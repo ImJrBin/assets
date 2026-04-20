@@ -1,236 +1,760 @@
-
-<h2 class="sr-only">家庭資產負債表互動式儀表板，包含資產趨勢、配置與月度收支分析（2013–2026）</h2>
-<style>
-.db{font-family:var(--font-sans);padding:1rem 0}
-.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px}
-.hdr h1{font-size:18px;font-weight:500;color:var(--color-text-primary);margin:0}
-.hdr span{font-size:12px;color:var(--color-text-secondary)}
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem}
-.mc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
-.ml{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
-.mv{font-size:20px;font-weight:500;color:var(--color-text-primary)}
-.ms{font-size:12px;margin-top:2px}
-.up{color:#1D9E75}.dn{color:#E24B4A}
-.sec{margin-bottom:2rem}
-.st{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px}
-.ctrls{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.cb{font-size:12px;padding:3px 12px;cursor:pointer;border:0.5px solid var(--color-border-secondary);border-radius:20px;background:transparent;color:var(--color-text-secondary)}
-.cb.on{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
-.lgd{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:12px;color:var(--color-text-secondary)}
-.lgd span{display:flex;align-items:center;gap:4px}
-.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-.cw{position:relative;width:100%}
-select{font-size:13px;padding:4px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
-.tabs{display:flex;gap:0;margin-bottom:1.5rem;border-bottom:0.5px solid var(--color-border-tertiary)}
-.tab{font-size:13px;padding:6px 16px;cursor:pointer;border:none;background:transparent;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px}
-.tab.on{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
-.pane{display:none}.pane.on{display:block}
-</style>
-
-<div class="db">
-<div class="hdr">
-  <h1>家庭資產負債儀表板</h1>
-  <span id="updLabel">資料截至 2026/04（最新）</span>
-</div>
-
-<div class="metrics" id="mRow"></div>
-
-<div class="tabs">
-  <button class="tab on" onclick="showTab('trend',this)">資產趨勢</button>
-  <button class="tab" onclick="showTab('alloc',this)">資產配置</button>
-  <button class="tab" onclick="showTab('monthly',this)">月度收支</button>
-</div>
-
-<div id="trend" class="pane on sec">
-  <div class="ctrls" id="rCtrl"></div>
-  <div class="lgd"><span><span class="ld" style="background:#378ADD"></span>資產淨值（萬元）</span></div>
-  <div class="cw" style="height:280px"><canvas id="tC" role="img" aria-label="歷年家庭資產淨值趨勢折線圖，2013至2026年"></canvas></div>
-</div>
-
-<div id="alloc" class="pane sec">
-  <div class="ctrls" id="aCtrl"></div>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
-    <div style="flex:1;min-width:180px"><div class="cw" style="height:220px"><canvas id="aC" role="img" aria-label="資產配置圓餅圖"></canvas></div></div>
-    <div id="aLgd" style="flex:1;min-width:160px;padding-top:8px;font-size:13px"></div>
-  </div>
-</div>
-
-<div id="monthly" class="pane sec">
-  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-    <select id="ySel" onchange="renderMonthly()"></select>
-    <div class="lgd" style="margin:0">
-      <span><span class="ld" style="background:#1D9E75"></span>收入</span>
-      <span><span class="ld" style="background:#E24B4A"></span>支出</span>
-      <span><span class="ld" style="background:#378ADD;border-radius:50%;width:8px;height:8px"></span>結餘</span>
-    </div>
-  </div>
-  <div class="cw" style="height:240px"><canvas id="mC" role="img" aria-label="月度收支長條圖"></canvas></div>
-</div>
-</div>
-
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭資產負債儀表板</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ── 設定區（修改這裡）──────────────────── */
+  /* 步驟：
+     1. 至 https://console.cloud.google.com
+     2. 建立專案 → API與服務 → 啟用 Google Sheets API + Google Drive API
+     3. 憑證 → 建立 OAuth 2.0 用戶端ID → 應用程式類型選「網頁應用程式」
+     4. 授權的 JavaScript 來源：填入你部署的網址（或 http://localhost 測試用）
+     5. 將 Client ID 貼入下方 CLIENT_ID
+  */
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --surface2: #1f1f25;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f2;
+    --text2: #8888a0;
+    --text3: #55556a;
+    --accent: #7c6af7;
+    --accent2: #a89af9;
+    --green: #3ecf8e;
+    --red: #f06060;
+    --amber: #f0a050;
+    --blue: #5090f0;
+    --r: 10px;
+    --r-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── 登入畫面 ── */
+  #loginScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 24px;
+    padding: 2rem;
+  }
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+  }
+  .login-card h1 { font-size: 22px; font-weight: 500; margin-bottom: 8px; }
+  .login-card p { color: var(--text2); font-size: 13px; margin-bottom: 28px; line-height: 1.7; }
+  .btn-google {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #fff; color: #333; border: none;
+    padding: 11px 24px; border-radius: var(--r-sm); font-size: 14px;
+    font-weight: 500; cursor: pointer; width: 100%;
+    transition: opacity .15s;
+  }
+  .btn-google:hover { opacity: .9; }
+  .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .setup-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.5rem;
+    max-width: 420px;
+    width: 100%;
+  }
+  .setup-box h3 { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .setup-box ol { color: var(--text2); font-size: 12px; padding-left: 1.2em; line-height: 2; }
+  .setup-box a { color: var(--accent2); text-decoration: none; }
+  .client-id-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r-sm);
+    padding: 9px 12px; color: var(--text); font-size: 13px; margin-top: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .client-id-input:focus { outline: none; border-color: var(--accent); }
+  .btn-save {
+    margin-top: 10px; width: 100%; padding: 9px; border-radius: var(--r-sm);
+    background: var(--accent); border: none; color: #fff; font-size: 13px;
+    font-weight: 500; cursor: pointer; transition: opacity .15s;
+  }
+  .btn-save:hover { opacity: .85; }
+
+  /* ── 載入畫面 ── */
+  #loadingScreen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loadMsg { color: var(--text2); font-size: 13px; }
+
+  /* ── 主儀表板 ── */
+  #dashboard { display: none; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 15px; font-weight: 500; color: var(--text); }
+  .logo span { color: var(--accent2); }
+  .data-badge {
+    font-size: 11px; background: var(--surface2); border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: 20px; color: var(--text2);
+    font-family: 'DM Mono', monospace;
+  }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .btn-refresh {
+    font-size: 12px; padding: 6px 14px; border-radius: var(--r-sm);
+    border: 1px solid var(--border2); background: transparent; color: var(--text2);
+    cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .15s;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn-refresh.loading { opacity: .4; pointer-events: none; }
+  .btn-signout {
+    font-size: 12px; padding: 6px 12px; border-radius: var(--r-sm);
+    border: 1px solid var(--border); background: transparent; color: var(--text3);
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-signout:hover { color: var(--red); border-color: var(--red); }
+
+  main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+  /* ── 指標卡 ── */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .mc {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 1.1rem 1.3rem;
+    transition: border-color .15s;
+  }
+  .mc:hover { border-color: var(--border2); }
+  .mc-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .mc-value { font-size: 26px; font-weight: 300; color: var(--text); font-family: 'DM Mono', monospace; letter-spacing: -.02em; }
+  .mc-sub { font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .up { color: var(--green); } .dn { color: var(--red); } .neu { color: var(--text3); }
+
+  /* ── 分頁 ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .tab {
+    font-size: 13px; padding: 8px 20px; cursor: pointer;
+    border: none; background: transparent; color: var(--text3);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all .15s; letter-spacing: .01em;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.on { color: var(--accent2); border-bottom-color: var(--accent); font-weight: 500; }
+  .pane { display: none; } .pane.on { display: block; }
+
+  /* ── 控制列 ── */
+  .ctrls { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .cb {
+    font-size: 12px; padding: 4px 14px; cursor: pointer;
+    border: 1px solid var(--border2); border-radius: 20px;
+    background: transparent; color: var(--text2); transition: all .15s;
+  }
+  .cb:hover { border-color: var(--accent); color: var(--accent2); }
+  .cb.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .sec-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+  /* ── 圖表 ── */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ── 圖例 ── */
+  .lgd { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; font-size: 12px; color: var(--text2); }
+  .lgd span { display: flex; align-items: center; gap: 5px; }
+  .ld { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── 配置圖區 ── */
+  .alloc-wrap { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
+  .alloc-chart { flex: 0 0 220px; }
+  .alloc-legend { flex: 1; min-width: 200px; }
+  .alloc-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .alloc-row:last-child { border-bottom: none; }
+  .alloc-name { display: flex; align-items: center; gap: 8px; color: var(--text2); }
+  .alloc-val { text-align: right; }
+  .alloc-pct { font-size: 14px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .alloc-amt { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  select {
+    font-size: 12px; padding: 5px 10px;
+    border: 1px solid var(--border2); border-radius: var(--r-sm);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+
+  /* ── 錯誤 ── */
+  .err {
+    background: rgba(240,96,96,.08); border: 1px solid rgba(240,96,96,.3);
+    border-radius: var(--r); padding: 1rem 1.2rem; color: var(--red);
+    font-size: 13px; margin-bottom: 1rem; display: none;
+  }
+
+  @media (max-width: 600px) {
+    main { padding: 1rem; }
+    header { padding: 1rem; }
+    .mc-value { font-size: 22px; }
+    .alloc-wrap { flex-direction: column; }
+    .alloc-chart { flex: none; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ 登入畫面 ══ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>家庭資產負債儀表板</h1>
+    <p>連接你的 Google Drive，自動讀取所有 Balance Sheet 檔案，新增月份後重新整理即可更新。</p>
+    <button class="btn-google" onclick="signIn()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      使用 Google 帳號登入
+    </button>
+  </div>
+
+  <div class="setup-box">
+    <h3>設定 OAuth Client ID</h3>
+    <ol>
+      <li>前往 <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+      <li>建立專案 → API與服務 → 啟用 <strong>Google Sheets API</strong> 與 <strong>Google Drive API</strong></li>
+      <li>憑證 → 建立 OAuth 2.0 用戶端 ID → 類型選「網頁應用程式」</li>
+      <li>授權的 JavaScript 來源填入此頁面的網址（本機測試填 <code style="font-size:11px;color:var(--accent2)">http://localhost</code>）</li>
+      <li>複製 Client ID 貼入下方並儲存</li>
+    </ol>
+    <input class="client-id-input" id="clientIdInput" type="text"
+      placeholder="貼入你的 OAuth Client ID（xxxxxxx.apps.googleusercontent.com）">
+    <button class="btn-save" onclick="saveClientId()">儲存並重新整理</button>
+  </div>
+</div>
+
+<!-- ══ 載入畫面 ══ -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div id="loadMsg">連接 Google Drive...</div>
+</div>
+
+<!-- ══ 主儀表板 ══ -->
+<div id="dashboard">
+  <header>
+    <div class="header-left">
+      <div class="logo">資產 <span>Dashboard</span></div>
+      <div class="data-badge" id="dataBadge">—</div>
+    </div>
+    <div class="header-right">
+      <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        重新整理
+      </button>
+      <button class="btn-signout" onclick="signOut()">登出</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="err" id="errBox"></div>
+    <div class="metrics" id="mRow"></div>
+
+    <div class="tabs">
+      <button class="tab on" onclick="showTab('trend',this)">資產趨勢</button>
+      <button class="tab" onclick="showTab('alloc',this)">資產配置</button>
+      <button class="tab" onclick="showTab('monthly',this)">月度收支</button>
+    </div>
+
+    <!-- 趨勢 -->
+    <div id="trend" class="pane on">
+      <div class="ctrls" id="rCtrl"></div>
+      <div class="lgd">
+        <span><span class="ld" style="background:#7c6af7"></span>資產淨值</span>
+        <span><span class="ld" style="background:#3ecf8e;border-radius:50%"></span>各月數據點</span>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="tC" role="img" aria-label="歷年家庭資產淨值趨勢折線圖"></canvas>
+      </div>
+    </div>
+
+    <!-- 配置 -->
+    <div id="alloc" class="pane">
+      <div class="ctrls" id="aCtrl"></div>
+      <div class="alloc-wrap">
+        <div class="alloc-chart">
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="aC" role="img" aria-label="資產配置圓餅圖"></canvas>
+          </div>
+        </div>
+        <div class="alloc-legend" id="aLgd"></div>
+      </div>
+    </div>
+
+    <!-- 收支 -->
+    <div id="monthly" class="pane">
+      <div class="ctrls">
+        <select id="ySel" onchange="renderMonthly()"></select>
+        <div class="lgd" style="margin:0">
+          <span><span class="ld" style="background:#3ecf8e"></span>收入</span>
+          <span><span class="ld" style="background:#f06060"></span>支出</span>
+          <span><span class="ld" style="background:#7c6af7;border-radius:50%;width:7px;height:7px"></span>結餘</span>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="mC" role="img" aria-label="月度收支長條圖"></canvas>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
-const DATA = [
-  {m:"201309",net:386618,cash:309392,stocks:474275,usstocks:0,funds:248678,forex:190002,inc:0,exp:0},
-  {m:"201310",net:304037,cash:153070,stocks:492911,usstocks:0,funds:271103,forex:190002,inc:0,exp:0},
-  {m:"201311",net:55802,cash:178334,stocks:497087,usstocks:0,funds:165524,forex:190000,inc:0,exp:0},
-  {m:"201312",net:-739052,cash:239663,stocks:508631,usstocks:0,funds:177987,forex:190000,inc:0,exp:0},
-  {m:"201806",net:3170045,cash:322595,stocks:1594712,usstocks:0,funds:132067,forex:298521,inc:123500,exp:83038},
-  {m:"201807",net:3196289,cash:425549,stocks:1580753,usstocks:0,funds:157094,forex:304367,inc:123500,exp:83038},
-  {m:"201808",net:3417468,cash:324342,stocks:1656564,usstocks:0,funds:198684,forex:429951,inc:123500,exp:83038},
-  {m:"201810",net:3524985,cash:509527,stocks:1549000,usstocks:0,funds:134138,forex:2,inc:123500,exp:83038},
-  {m:"201903",net:4145234,cash:916438,stocks:1690238,usstocks:0,funds:245000,forex:2,inc:123500,exp:83038},
-  {m:"201907",net:4004583,cash:599390,stocks:1844017,usstocks:0,funds:235000,forex:2,inc:130000,exp:74300},
-  {m:"202002",net:4601945,cash:963255,stocks:2066774,usstocks:0,funds:235000,forex:606575,inc:130000,exp:74300},
-  {m:"202003",net:4483025,cash:942837,stocks:1879398,usstocks:0,funds:360163,forex:606575,inc:130000,exp:74300},
-  {m:"202012",net:5953369,cash:1612681,stocks:2927373,usstocks:0,funds:575000,forex:614379,inc:130000,exp:74300},
-  {m:"202108",net:7434063,cash:755317,stocks:4867300,usstocks:0,funds:322261,forex:177637,inc:130000,exp:74300},
-  {m:"202109",net:7717494,cash:875854,stocks:5066133,usstocks:0,funds:371431,forex:194537,inc:130000,exp:74300},
-  {m:"202111",net:8237173,cash:1227788,stocks:5464614,usstocks:0,funds:512028,forex:207288,inc:130000,exp:74300},
-  {m:"202112",net:8363576,cash:1411852,stocks:4712684,usstocks:0,funds:550436,forex:218434,inc:130000,exp:74300},
-  {m:"202205",net:8188735,cash:1234136,stocks:5385834,usstocks:0,funds:554376,forex:283837,inc:137500,exp:74300},
-  {m:"202206",net:8007631,cash:1288864,stocks:5650030,usstocks:0,funds:598159,forex:284354,inc:137500,exp:74300},
-  {m:"202208",net:8297094,cash:973373,stocks:5128308,usstocks:0,funds:678763,forex:286808,inc:137500,exp:74300},
-  {m:"202209",net:7430476,cash:984535,stocks:5293299,usstocks:0,funds:653942,forex:297499,inc:137500,exp:74300},
-  {m:"202302",net:9299267,cash:2257663,stocks:5715066,usstocks:0,funds:411452,forex:14703,inc:137500,exp:74300},
-  {m:"202306",net:9712250,cash:2129621,stocks:6671621,usstocks:0,funds:482535,forex:14319,inc:137500,exp:74300},
-  {m:"202408",net:14019564,cash:1773216,stocks:12164185,usstocks:0,funds:57228,forex:87516,inc:137500,exp:74300},
-  {m:"202410",net:15294716,cash:1966890,stocks:12486314,usstocks:242493,funds:55870,forex:102489,inc:137500,exp:74300},
-  {m:"202411",net:16111896,cash:1225764,stocks:13864495,usstocks:278741,funds:547941,forex:81031,inc:137500,exp:74300},
-  {m:"202412",net:16013570,cash:1083089,stocks:13963693,usstocks:323572,funds:546338,forex:81070,inc:137500,exp:74300},
-  {m:"202503",net:16735084,cash:1727117,stocks:13980926,usstocks:367462,funds:548798,forex:81116,inc:137500,exp:74300},
-  {m:"202507",net:16852312,cash:788757,stocks:14590201,usstocks:385598,funds:483551,forex:37244,inc:137500,exp:74300},
-  {m:"202508",net:17605287,cash:1324177,stocks:15075643,usstocks:408173,funds:498321,forex:37665,inc:137500,exp:74300},
-  {m:"202509",net:18314562,cash:1167178,stocks:15159902,usstocks:448294,funds:511144,forex:66992,inc:137500,exp:74300},
-  {m:"202510",net:20010029,cash:1135523,stocks:17060490,usstocks:476374,funds:511292,forex:69171,inc:137500,exp:74300},
-  {m:"202511",net:20937646,cash:935668,stocks:18451991,usstocks:541287,funds:527520,forex:53301,inc:137500,exp:74300},
-  {m:"202512",net:21913560,cash:797140,stocks:19428870,usstocks:669133,funds:530542,forex:45869,inc:137500,exp:74300},
-  {m:"202601",net:23793190,cash:871882,stocks:20175575,usstocks:721960,funds:74183,forex:181299,inc:137500,exp:74300},
-  {m:"202602",net:26349847,cash:1148549,stocks:22360402,usstocks:932365,funds:79929,forex:402070,inc:77000,exp:59120},
-  {m:"202603",net:23717290,cash:606168,stocks:20151534,usstocks:1326202,funds:377884,forex:117157,inc:77000,exp:59120},
-];
+// ════════════════════════════════════════════
+// 設定
+// ════════════════════════════════════════════
+const FOLDER_ID = '0B18Bg9nMRKvMODA5ZmJmMmQtODc1OC00YWRkLTkxN2MtNmM2NTc2ZGNiZDY5';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly';
 
-let rng='all', aYear=null, tCI=null, aCI=null, mCI=null;
-const tw=n=>Math.round(Math.abs(n)/10000)+'萬';
-const tw2=n=>(n/10000).toFixed(0);
+let CLIENT_ID = localStorage.getItem('bs_client_id') || '';
+let accessToken = null;
+let allData = [];
+let tCI = null, aCI = null, mCI = null;
+let rng = 'all', aYear = null;
 
-function showTab(id,btn){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+// ── 顯示目前的 Client ID ──
+if (CLIENT_ID) document.getElementById('clientIdInput').value = CLIENT_ID;
+
+function saveClientId() {
+  const v = document.getElementById('clientIdInput').value.trim();
+  if (!v) return alert('請輸入 Client ID');
+  localStorage.setItem('bs_client_id', v);
+  CLIENT_ID = v;
+  location.reload();
+}
+
+// ════════════════════════════════════════════
+// Google 登入
+// ════════════════════════════════════════════
+function signIn() {
+  if (!CLIENT_ID) { alert('請先設定 OAuth Client ID'); return; }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showErr('登入失敗：' + resp.error); return; }
+      accessToken = resp.access_token;
+      localStorage.setItem('bs_token_exp', Date.now() + resp.expires_in * 1000);
+      showLoading('連接 Google Drive...');
+      loadAllData();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  allData = [];
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+// ════════════════════════════════════════════
+// UI 工具
+// ════════════════════════════════════════════
+function showLoading(msg) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loadMsg').textContent = msg;
+}
+
+function showDashboard() {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+function showErr(msg) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  const b = document.getElementById('errBox');
+  b.textContent = msg; b.style.display = 'block';
+  setTimeout(() => b.style.display = 'none', 6000);
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
   btn.classList.add('on');
   document.getElementById(id).classList.add('on');
 }
 
-function getRange(){
-  if(rng==='all') return DATA;
-  const lastY=parseInt(DATA[DATA.length-1].m.slice(0,4));
-  const cutY=lastY-parseInt(rng)+1;
-  return DATA.filter(d=>parseInt(d.m.slice(0,4))>=cutY);
+// ════════════════════════════════════════════
+// Google API 呼叫
+// ════════════════════════════════════════════
+async function gFetch(url) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  return res.json();
 }
 
-function renderMetrics(){
-  const L=DATA[DATA.length-1], P=DATA[DATA.length-2], F=DATA[0];
-  const chg=(L.net-P.net)/P.net*100;
-  const tot=(L.net-F.net)/Math.abs(F.net)*100;
-  const y26=DATA.filter(d=>d.m.startsWith('202'));
-  const avgS=y26.length?y26.reduce((s,d)=>s+(d.inc-d.exp),0)/y26.length:0;
-  document.getElementById('mRow').innerHTML=`
-    <div class="mc"><div class="ml">最新資產淨值</div><div class="mv">${(L.net/10000).toFixed(0)}萬</div><div class="ms ${chg>=0?'up':'dn'}">${chg>=0?'▲':'▼'}${Math.abs(chg).toFixed(1)}% 較上月</div></div>
-    <div class="mc"><div class="ml">最新月份</div><div class="mv">${L.m.slice(0,4)}/${L.m.slice(4,6)}</div><div class="ms" style="color:var(--color-text-secondary)">現金 ${tw(L.cash)}</div></div>
-    <div class="mc"><div class="ml">累計成長</div><div class="mv">${tot.toFixed(0)}%</div><div class="ms" style="color:var(--color-text-secondary)">自 2013 起</div></div>
-    <div class="mc"><div class="ml">近期月均結餘</div><div class="mv">${tw(Math.abs(avgS))}</div><div class="ms ${avgS>=0?'up':'dn'}">${avgS>=0?'正結餘':'負結餘'}</div></div>
-  `;
+// ── 找資料夾下所有 Balance Sheet 試算表 ──
+async function findFiles() {
+  const q = encodeURIComponent(`title contains 'Balance Sheet' and '${FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
+  const data = await gFetch(`https://www.googleapis.com/drive/v2/files?q=${q}&maxResults=50&fields=items(id,title)`);
+  return data.items || [];
 }
 
-function renderRangeCtrl(){
-  document.getElementById('rCtrl').innerHTML=[['3','近3年'],['5','近5年'],['10','近10年'],['all','全部']].map(([v,l])=>
-    `<button class="cb ${rng===v?'on':''}" onclick="rng='${v}';renderRangeCtrl();renderTrend()">${l}</button>`
+// ── 讀取一個試算表的所有分頁 ──
+async function readSpreadsheet(fileId) {
+  const meta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties.title`);
+  const sheets = meta.sheets.map(s => s.properties.title);
+  const results = [];
+  for (const sheet of sheets) {
+    try {
+      const enc = encodeURIComponent(sheet);
+      const d = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/${enc}!A1:Z80`);
+      const rows = d.values || [];
+      const parsed = parseSheet(rows, sheet);
+      if (parsed) results.push(parsed);
+    } catch(e) { /* 略過解析失敗的分頁 */ }
+  }
+  return results;
+}
+
+// ── 解析一個月份分頁 ──
+function parseSheet(rows, sheetName) {
+  // 分頁名稱應為 6 碼數字，如 202603
+  const monthMatch = sheetName.match(/(\d{6})/);
+  if (!monthMatch) return null;
+  const month = monthMatch[1];
+
+  const getVal = (keyword, rows) => {
+    for (const row of rows) {
+      for (let i = 0; i < row.length; i++) {
+        if (String(row[i]).includes(keyword)) {
+          // 取同行右側第一個數字
+          for (let j = i + 1; j < row.length; j++) {
+            const v = parseNum(row[j]);
+            if (v !== null && v > 0) return v;
+          }
+        }
+      }
+    }
+    return 0;
+  };
+
+  const parseNum = (s) => {
+    if (s === undefined || s === null || s === '') return null;
+    const n = parseFloat(String(s).replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  };
+
+  // 找資產淨值（直接搜尋 "資產淨值" 欄位）
+  let net = 0;
+  for (const row of rows) {
+    for (let i = 0; i < row.length; i++) {
+      if (String(row[i]).includes('資產淨值') && String(row[i]).includes('資產-負債')) {
+        for (let j = i + 1; j < row.length; j++) {
+          const v = parseNum(row[j]);
+          if (v !== null && Math.abs(v) > 10000) { net = v; break; }
+        }
+        if (net !== 0) break;
+      }
+    }
+    if (net !== 0) break;
+  }
+  if (net === 0) {
+    // 備用：找「合計」列對應的資產淨值
+    for (const row of rows) {
+      for (let i = 0; i < row.length; i++) {
+        if (String(row[i]) === '資產淨值(資產-負債)' || String(row[i]).trim() === '資產淨值(資產-負債)') {
+          for (let j = i + 1; j < row.length; j++) {
+            const v = parseNum(row[j]);
+            if (v !== null) { net = v; break; }
+          }
+        }
+      }
+    }
+  }
+
+  const cash   = getVal('現金及活存', rows);
+  const stocks = getVal('股票現值', rows);
+  const usRaw  = getVal('美股定額', rows) || getVal('美股VT', rows) || 0;
+  const funds  = getVal('共同基金現值', rows);
+  const jpm    = getVal('JPM多重收益基金', rows);
+  const forex  = (getVal('外幣-美元', rows) || 0) + (getVal('外幣-日元', rows) || 0) +
+                 (getVal('外幣-人民幣', rows) || 0) + (getVal('外匯-港幣', rows) || 0);
+  const inc    = getVal('收入合計', rows) || getVal('合計', rows);
+  const exp    = getVal('支出合計', rows) || 0;
+
+  // 月收入支出：找「合計」行
+  let mInc = 0, mExp = 0;
+  for (const row of rows) {
+    if (row[0] === '合計' && row[2] === '合計') {
+      mInc = parseNum(row[1]) || 0;
+      mExp = parseNum(row[3]) || 0;
+      break;
+    }
+  }
+
+  return { month, net, cash, stocks, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp };
+}
+
+// ════════════════════════════════════════════
+// 主要資料載入流程
+// ════════════════════════════════════════════
+async function loadAllData() {
+  try {
+    showLoading('搜尋 Balance Sheet 檔案...');
+    const files = await findFiles();
+    if (!files.length) throw new Error('找不到 Balance Sheet 檔案');
+
+    const results = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      showLoading(`讀取 ${f.title}（${i+1}/${files.length}）...`);
+      try {
+        const months = await readSpreadsheet(f.id);
+        results.push(...months);
+      } catch(e) { console.warn('跳過', f.title, e.message); }
+    }
+
+    allData = results
+      .filter(r => r && r.net !== 0)
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    if (!allData.length) throw new Error('解析後無有效資料');
+
+    const latest = allData[allData.length - 1];
+    document.getElementById('dataBadge').textContent =
+      `最新：${latest.month.slice(0,4)}/${latest.month.slice(4,6)} · ${allData.length} 筆`;
+
+    showDashboard();
+    renderAll();
+  } catch(e) {
+    showLoading('');
+    showErr('載入失敗：' + e.message);
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loadingScreen').style.display = 'none';
+  }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  btn.textContent = '更新中...';
+  try { await loadAllData(); } catch(e) {}
+  btn.classList.remove('loading');
+  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>重新整理`;
+}
+
+// ════════════════════════════════════════════
+// 渲染函式
+// ════════════════════════════════════════════
+const tw = n => {
+  const v = Math.abs(n);
+  if (v >= 1e8) return (v / 1e8).toFixed(1) + '億';
+  return Math.round(v / 1e4) + '萬';
+};
+
+function renderAll() {
+  renderMetrics();
+  renderRangeCtrl();
+  renderTrend();
+  renderAllocCtrl();
+  renderAlloc();
+  renderMonthlySelector();
+  renderMonthly();
+}
+
+function renderMetrics() {
+  const L = allData[allData.length - 1];
+  const P = allData[allData.length - 2];
+  const F = allData[0];
+  const chg = P ? (L.net - P.net) / Math.abs(P.net) * 100 : 0;
+  const tot = (L.net - F.net) / Math.abs(F.net) * 100;
+  const cur = allData.filter(d => d.month.startsWith(L.month.slice(0,4)));
+  const avgS = cur.length ? cur.reduce((s, d) => s + (d.inc - d.exp), 0) / cur.length : 0;
+  const yEarn = L.net - (allData.find(d => d.month.startsWith(L.month.slice(0,4))) || F).net;
+
+  document.getElementById('mRow').innerHTML = [
+    { l: '資產淨值', v: tw(L.net), s: `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(1)}% 較上月`, cls: chg >= 0 ? 'up' : 'dn' },
+    { l: '最新月份', v: `${L.month.slice(0,4)}/${L.month.slice(4,6)}`, s: `現金 ${tw(L.cash)}`, cls: 'neu' },
+    { l: '累計成長', v: Math.round(tot) + '%', s: `自 ${F.month.slice(0,4)} 年起`, cls: tot > 0 ? 'up' : 'dn' },
+    { l: '今年月均結餘', v: tw(Math.abs(avgS)), s: avgS >= 0 ? '正結餘' : '負結餘', cls: avgS >= 0 ? 'up' : 'dn' },
+  ].map(m => `
+    <div class="mc">
+      <div class="mc-label">${m.l}</div>
+      <div class="mc-value">${m.v}</div>
+      <div class="mc-sub ${m.cls}">${m.s}</div>
+    </div>`).join('');
+}
+
+function getRange() {
+  if (rng === 'all') return allData;
+  const lastY = parseInt(allData[allData.length - 1].month.slice(0, 4));
+  return allData.filter(d => parseInt(d.month.slice(0, 4)) >= lastY - parseInt(rng) + 1);
+}
+
+function renderRangeCtrl() {
+  document.getElementById('rCtrl').innerHTML = [['3','近3年'],['5','近5年'],['10','近10年'],['all','全部']].map(([v, l]) =>
+    `<button class="cb ${rng === v ? 'on' : ''}" onclick="rng='${v}';renderRangeCtrl();renderTrend()">${l}</button>`
   ).join('');
 }
 
-function renderTrend(){
-  const d=getRange();
-  const labels=d.map(r=>r.m.slice(0,4)+'/'+r.m.slice(4,6));
-  const vals=d.map(r=>parseInt(tw2(r.net)));
-  if(tCI) tCI.destroy();
-  tCI=new Chart(document.getElementById('tC').getContext('2d'),{
-    type:'line',
-    data:{labels,datasets:[{label:'資產淨值（萬）',data:vals,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.07)',borderWidth:2,pointRadius:d.length>40?0:3,pointBackgroundColor:'#1D9E75',fill:true,tension:0.3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{autoSkip:true,maxTicksLimit:10,maxRotation:45,font:{size:11},color:'#888780'},grid:{display:false}},
-        y:{ticks:{callback:v=>v+'萬',font:{size:11},color:'#888780'},grid:{color:'rgba(136,135,128,0.12)'}}
+function renderTrend() {
+  const d = getRange();
+  const labels = d.map(r => r.month.slice(0, 4) + '/' + r.month.slice(4, 6));
+  const vals = d.map(r => Math.round(r.net / 10000));
+  if (tCI) tCI.destroy();
+  tCI = new Chart(document.getElementById('tC').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        borderColor: '#7c6af7',
+        backgroundColor: 'rgba(124,106,247,0.06)',
+        borderWidth: 2,
+        pointRadius: d.length > 60 ? 0 : 3,
+        pointBackgroundColor: '#3ecf8e',
+        pointBorderColor: '#3ecf8e',
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' 萬' }
+      }},
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 45, font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a', font: { family: 'DM Mono' } }, grid: { color: 'rgba(255,255,255,0.04)' } }
       }
     }
   });
 }
 
-function renderAllocCtrl(){
-  const years=[...new Set(DATA.map(d=>d.m.slice(0,4)))];
-  if(!aYear) aYear=years[years.length-1];
-  document.getElementById('aCtrl').innerHTML=years.slice(-6).map(y=>
-    `<button class="cb ${aYear===y?'on':''}" onclick="aYear='${y}';renderAllocCtrl();renderAlloc()">${y}</button>`
+function renderAllocCtrl() {
+  const years = [...new Set(allData.map(d => d.month.slice(0, 4)))];
+  if (!aYear) aYear = years[years.length - 1];
+  document.getElementById('aCtrl').innerHTML = years.slice(-7).map(y =>
+    `<button class="cb ${aYear === y ? 'on' : ''}" onclick="aYear='${y}';renderAllocCtrl();renderAlloc()">${y}</button>`
   ).join('');
 }
 
-function renderAlloc(){
-  const yd=DATA.filter(d=>d.m.startsWith(aYear));
-  if(!yd.length) return;
-  const L=yd[yd.length-1];
-  const items=[
-    {l:'台股',v:L.stocks,c:'#378ADD'},
-    {l:'美股',v:L.usstocks,c:'#534AB7'},
-    {l:'基金',v:L.funds,c:'#1D9E75'},
-    {l:'現金活存',v:L.cash,c:'#BA7517'},
-    {l:'外幣',v:L.forex,c:'#D4537E'},
-  ].filter(i=>i.v>0);
-  const tot=items.reduce((s,i)=>s+i.v,0);
-  if(aCI) aCI.destroy();
-  aCI=new Chart(document.getElementById('aC').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:items.map(i=>i.l),datasets:[{data:items.map(i=>Math.round(i.v)),backgroundColor:items.map(i=>i.c),borderWidth:2,borderColor:'transparent'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}
+function renderAlloc() {
+  const yd = allData.filter(d => d.month.startsWith(aYear));
+  if (!yd.length) return;
+  const L = yd[yd.length - 1];
+  const palette = ['#7c6af7','#5090f0','#3ecf8e','#f0a050','#f06060','#a89af9'];
+  const items = [
+    { l: '台股', v: L.stocks },
+    { l: '美股', v: L.usstocks },
+    { l: '基金', v: L.funds },
+    { l: '現金活存', v: L.cash },
+    { l: '外幣', v: L.forex },
+  ].filter(i => i.v > 100).map((i, idx) => ({ ...i, c: palette[idx] }));
+  const tot = items.reduce((s, i) => s + i.v, 0);
+
+  if (aCI) aCI.destroy();
+  aCI = new Chart(document.getElementById('aC').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: items.map(i => i.l),
+      datasets: [{ data: items.map(i => Math.round(i.v)), backgroundColor: items.map(i => i.c), borderWidth: 3, borderColor: '#18181c' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.label}: ${(ctx.raw / 10000).toFixed(0)}萬 (${(ctx.raw / tot * 100).toFixed(1)}%)` }
+      }},
+      cutout: '65%'
+    }
   });
-  document.getElementById('aLgd').innerHTML=items.map(i=>{
-    const p=(i.v/tot*100).toFixed(1);
-    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary)">
-      <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:${i.c};flex-shrink:0"></span>${i.l}</span>
-      <span style="color:var(--color-text-secondary);text-align:right">${p}%<br><span style="font-size:11px">${tw(i.v)}</span></span>
+
+  document.getElementById('aLgd').innerHTML = items.map(i => {
+    const pct = (i.v / tot * 100).toFixed(1);
+    return `<div class="alloc-row">
+      <div class="alloc-name"><span style="width:8px;height:8px;border-radius:2px;background:${i.c};flex-shrink:0;display:inline-block"></span>${i.l}</div>
+      <div class="alloc-val">
+        <div class="alloc-pct">${pct}%</div>
+        <div class="alloc-amt">${tw(i.v)}</div>
+      </div>
     </div>`;
   }).join('');
 }
 
-function renderMonthlySelector(){
-  const yrs=[...new Set(DATA.map(d=>d.m.slice(0,4)))].sort((a,b)=>b-a);
-  document.getElementById('ySel').innerHTML=yrs.map(y=>`<option value="${y}">${y} 年</option>`).join('');
+function renderMonthlySelector() {
+  const yrs = [...new Set(allData.map(d => d.month.slice(0, 4)))].sort((a, b) => b - a);
+  document.getElementById('ySel').innerHTML = yrs.map(y => `<option value="${y}">${y} 年</option>`).join('');
 }
 
-function renderMonthly(){
-  const y=document.getElementById('ySel').value;
-  const d=DATA.filter(r=>r.m.startsWith(y));
-  const labels=d.map(r=>parseInt(r.m.slice(4,6))+'月');
-  if(mCI) mCI.destroy();
-  mCI=new Chart(document.getElementById('mC').getContext('2d'),{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'收入',data:d.map(r=>Math.round(r.inc/10000)),backgroundColor:'rgba(29,158,117,0.75)',borderWidth:0},
-      {label:'支出',data:d.map(r=>Math.round(r.exp/10000)),backgroundColor:'rgba(226,75,74,0.75)',borderWidth:0},
-      {label:'結餘',data:d.map(r=>Math.round((r.inc-r.exp)/10000)),type:'line',borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#378ADD'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{autoSkip:false,maxRotation:0,font:{size:11},color:'#888780'},grid:{display:false}},
-        y:{ticks:{callback:v=>v+'萬',font:{size:11},color:'#888780'},grid:{color:'rgba(136,135,128,0.12)'}}
+function renderMonthly() {
+  const y = document.getElementById('ySel').value;
+  const d = allData.filter(r => r.month.startsWith(y));
+  const labels = d.map(r => parseInt(r.month.slice(4, 6)) + '月');
+  if (mCI) mCI.destroy();
+  mCI = new Chart(document.getElementById('mC').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '收入', data: d.map(r => Math.round(r.inc / 10000)), backgroundColor: 'rgba(62,207,142,0.7)', borderWidth: 0, borderRadius: 4 },
+        { label: '支出', data: d.map(r => Math.round(r.exp / 10000)), backgroundColor: 'rgba(240,96,96,0.7)', borderWidth: 0, borderRadius: 4 },
+        { label: '結餘', data: d.map(r => Math.round((r.inc - r.exp) / 10000)), type: 'line', borderColor: '#7c6af7', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#7c6af7' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 0, font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
       }
     }
   });
 }
-
-renderMetrics();
-renderRangeCtrl();
-renderTrend();
-renderAllocCtrl();
-renderAlloc();
-renderMonthlySelector();
-renderMonthly();
 </script>
+</body>
+</html>
