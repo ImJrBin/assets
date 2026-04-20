@@ -966,11 +966,29 @@ function renderFire() {
   const coastAgeStr = achieved ? '現在' : `${Math.round(currentAge + yearsToCoast)} 歲`;
   const coastYearStr = achieved ? '已達成' : `還需 ${yearsToCoast.toFixed(1)} 年`;
 
+  // 可提前退休年數（若已超過 coast，資產成長超越目標的時間點）
+  let canRetireEarly = yearsToRetire;
+  if (achieved) {
+    for (let t = 0; t <= yearsToRetire; t += 0.5) {
+      if (currentNet * Math.pow(1 + growthRate, t) >= fireNumber) {
+        canRetireEarly = t; break;
+      }
+    }
+  }
+  const earlyRetireAge = Math.round(currentAge + canRetireEarly);
+  const earlyYears = yearsToRetire - canRetireEarly;
+
   document.getElementById('fireResult').innerHTML = `
     <div class="fire-insight">
-      退休後每月 <strong>${monthlyGoal.toLocaleString()}</strong> 元（通膨調整後 <strong>${Math.round(adjustedMonthly).toLocaleString()}</strong> 元），
-      以 ${(swr*100).toFixed(1)}% 安全提領率，需要 <strong>${tw(fireNumber)}</strong> 退休金。<br>
-      今天需要擁有 <strong>${tw(coastNumber)}</strong>，讓資產在 ${yearsToRetire} 年內自然成長至目標，無需再主動儲蓄。
+      ${achieved
+        ? `你的資產 <strong>${tw(currentNet)}</strong> 已超過 Coast FIRE 門檻 <strong>${tw(coastNumber)}</strong>。
+           即使今天起完全不再儲蓄，以 ${(growthRate*100).toFixed(0)}% 年報酬率自然成長，
+           <strong>${yearsToRetire} 年後</strong>預計累積 <strong>${tw(projectedAtRetire)}</strong>，
+           足以支應退休後每月 <strong>${Math.round(adjustedMonthly/10000*10)/10}萬</strong>（通膨調整後）的生活。`
+        : `退休後每月 <strong>${monthlyGoal.toLocaleString()}</strong> 元（通膨調整後 <strong>${Math.round(adjustedMonthly).toLocaleString()}</strong> 元），
+           以 ${(swr*100).toFixed(1)}% 安全提領率，<strong>${yearsToRetire} 年後</strong>需要 <strong>${tw(fireNumber)}</strong>。
+           今天只需擁有 <strong>${tw(coastNumber)}</strong>，讓資產自然成長即可達標。`
+      }
     </div>
 
     <div class="progress-bar-wrap">
@@ -985,34 +1003,36 @@ function renderFire() {
 
     <div class="fire-kpi-grid">
       <div class="fire-kpi ${achieved ? 'achieved' : 'highlight'}">
-        <div class="fk-label">Coast FIRE 數字</div>
+        <div class="fk-label">Coast FIRE 門檻（今日）</div>
         <div class="fk-value">${tw(coastNumber)}</div>
-        <div class="fk-sub">今日需達到的資產</div>
+        <div class="fk-sub">= ${tw(fireNumber)} ÷ (1+${(growthRate*100).toFixed(0)}%)^${yearsToRetire}</div>
       </div>
       <div class="fire-kpi">
-        <div class="fk-label">目前資產</div>
+        <div class="fk-label">目前資產淨值</div>
         <div class="fk-value ${achieved ? 'green' : pct >= 80 ? 'amber' : 'red'}">${tw(currentNet)}</div>
-        <div class="fk-sub">${achieved ? '✓ 已超過 Coast FIRE' : `還差 ${tw(coastNumber - currentNet)}`}</div>
+        <div class="fk-sub">${achieved ? `✓ 超出門檻 ${tw(currentNet - coastNumber)}` : `還差 ${tw(coastNumber - currentNet)}`}</div>
       </div>
       <div class="fire-kpi ${achieved ? 'achieved' : ''}">
-        <div class="fk-label">${achieved ? 'Coast FIRE 已達成' : '預計達成時間'}</div>
-        <div class="fk-value ${achieved ? 'green' : 'amber'}">${coastAgeStr}</div>
-        <div class="fk-sub">${coastYearStr}</div>
+        <div class="fk-label">${achieved ? '最快可退休年齡' : '預計達成 Coast FIRE'}</div>
+        <div class="fk-value ${achieved ? 'green' : 'amber'}">${achieved ? earlyRetireAge + ' 歲' : coastAgeStr}</div>
+        <div class="fk-sub">${achieved
+          ? (earlyYears > 0.5 ? `比原訂提早 ${Math.floor(earlyYears)} 年` : '現在即可達到退休金目標')
+          : coastYearStr}</div>
       </div>
       <div class="fire-kpi">
-        <div class="fk-label">退休時預估資產</div>
+        <div class="fk-label">退休時預估資產（${retireAge}歲）</div>
         <div class="fk-value ${surplus >= 0 ? 'green' : 'red'}">${tw(projectedAtRetire)}</div>
-        <div class="fk-sub">${surplus >= 0 ? `超出目標 ${tw(surplus)}` : `不足 ${tw(-surplus)}`}</div>
+        <div class="fk-sub">${surplus >= 0 ? `比目標多 ${tw(surplus)}` : `不足 ${tw(-surplus)}`}</div>
       </div>
       <div class="fire-kpi">
-        <div class="fk-label">退休目標月收入</div>
-        <div class="fk-value">${(monthlyGoal/10000).toFixed(0)}萬</div>
-        <div class="fk-sub">通膨調整後 ${(adjustedMonthly/10000).toFixed(1)}萬/月</div>
-      </div>
-      <div class="fire-kpi">
-        <div class="fk-label">所需退休金</div>
+        <div class="fk-label">退休金目標（${retireAge}歲時）</div>
         <div class="fk-value">${tw(fireNumber)}</div>
-        <div class="fk-sub">SWR ${(swr*100).toFixed(1)}% · ${yearsToRetire}年後</div>
+        <div class="fk-sub">= 月支出 ${(adjustedMonthly/10000).toFixed(1)}萬 × 12 ÷ ${(swr*100).toFixed(1)}%</div>
+      </div>
+      <div class="fire-kpi">
+        <div class="fk-label">退休月收入目標</div>
+        <div class="fk-value">${(monthlyGoal/10000).toFixed(0)}萬</div>
+        <div class="fk-sub">通膨調整後（${yearsToRetire}年）${(adjustedMonthly/10000).toFixed(1)}萬/月</div>
       </div>
     </div>
   `;
