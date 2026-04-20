@@ -234,6 +234,68 @@
     .alloc-wrap { flex-direction: column; }
     .alloc-chart { flex: none; width: 100%; }
   }
+
+  /* ── Coast FIRE ── */
+  .fire-layout { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; align-items: start; }
+  @media (max-width: 800px) { .fire-layout { grid-template-columns: 1fr; } }
+
+  .fire-inputs {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 1.3rem;
+  }
+  .fire-section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--text3); margin-bottom: 10px;
+  }
+  .fi-row { margin-bottom: 12px; }
+  .fi-row label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+  .fi-input-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg); border: 1px solid var(--border2);
+    border-radius: var(--r-sm); padding: 0 10px; height: 36px;
+  }
+  .fi-input-wrap:focus-within { border-color: var(--accent); }
+  .fi-prefix { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .fi-suffix { font-size: 12px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
+  .fi-input-wrap input {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-size: 14px; font-family: 'DM Mono', monospace; min-width: 0;
+    text-align: right;
+  }
+  .fi-input-wrap input:focus { outline: none; }
+  .fi-note { font-size: 11px; color: var(--accent2); margin-top: 4px; }
+
+  .fire-results {}
+  .fire-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .fire-kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 1rem;
+  }
+  .fire-kpi.highlight { border-color: var(--accent); background: rgba(124,106,247,0.06); }
+  .fire-kpi.achieved { border-color: var(--green); background: rgba(62,207,142,0.06); }
+  .fk-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .fk-value { font-size: 22px; font-weight: 300; font-family: 'DM Mono', monospace; color: var(--text); }
+  .fk-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .fk-value.green { color: var(--green); }
+  .fk-value.amber { color: var(--amber); }
+  .fk-value.red { color: var(--red); }
+
+  .progress-bar-wrap { margin: 1rem 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .progress-track {
+    height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width .6s ease;
+  }
+  .fire-insight {
+    background: var(--surface2); border-left: 3px solid var(--accent);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: .8rem 1rem;
+    font-size: 13px; color: var(--text2); margin-bottom: 1rem; line-height: 1.7;
+  }
+  .fire-insight strong { color: var(--text); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -299,6 +361,7 @@
       <button class="tab on" onclick="showTab('trend',this)">資產趨勢</button>
       <button class="tab" onclick="showTab('alloc',this)">資產配置</button>
       <button class="tab" onclick="showTab('monthly',this)">月度收支</button>
+      <button class="tab" onclick="showTab('fire',this);renderFire()">Coast FIRE</button>
     </div>
 
     <!-- 趨勢 -->
@@ -338,6 +401,91 @@
       </div>
       <div class="chart-wrap" style="height:260px">
         <canvas id="mC" role="img" aria-label="月度收支長條圖"></canvas>
+      </div>
+    </div>
+
+    <!-- Coast FIRE -->
+    <div id="fire" class="pane">
+      <div class="fire-layout">
+
+        <!-- 左：參數設定 -->
+        <div class="fire-inputs">
+          <div class="fire-section-label">目標設定</div>
+
+          <div class="fi-row">
+            <label>目標月收入（退休後）</label>
+            <div class="fi-input-wrap">
+              <span class="fi-prefix">NT$</span>
+              <input type="number" id="fi_monthlyGoal" value="100000" step="10000" oninput="renderFire()">
+              <span class="fi-suffix">/ 月</span>
+            </div>
+          </div>
+
+          <div class="fi-row">
+            <label>預計退休年齡</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="fi_retireAge" value="65" step="1" oninput="renderFire()">
+              <span class="fi-suffix">歲</span>
+            </div>
+          </div>
+
+          <div class="fi-row">
+            <label>目前年齡</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="fi_currentAge" value="45" step="1" oninput="renderFire()">
+              <span class="fi-suffix">歲</span>
+            </div>
+          </div>
+
+          <div class="fire-section-label" style="margin-top:1.5rem">報酬率假設</div>
+
+          <div class="fi-row">
+            <label>退休前投資年報酬率</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="fi_growthRate" value="7" step="0.5" oninput="renderFire()">
+              <span class="fi-suffix">%</span>
+            </div>
+          </div>
+
+          <div class="fi-row">
+            <label>退休後提領年報酬率</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="fi_withdrawRate" value="4" step="0.5" oninput="renderFire()">
+              <span class="fi-suffix">% (SWR)</span>
+            </div>
+          </div>
+
+          <div class="fi-row">
+            <label>通膨率</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="fi_inflation" value="2" step="0.5" oninput="renderFire()">
+              <span class="fi-suffix">%</span>
+            </div>
+          </div>
+
+          <div class="fire-section-label" style="margin-top:1.5rem">資產現況（自動帶入）</div>
+          <div class="fi-row">
+            <label>目前資產淨值</label>
+            <div class="fi-input-wrap">
+              <span class="fi-prefix">NT$</span>
+              <input type="number" id="fi_currentNet" value="0" step="100000" oninput="renderFire()">
+            </div>
+          </div>
+          <div class="fi-note" id="fi_autoNote"></div>
+        </div>
+
+        <!-- 右：結果 -->
+        <div class="fire-results">
+          <div id="fireResult"></div>
+          <div class="chart-wrap" style="height:260px;margin-top:1.5rem">
+            <canvas id="fC" role="img" aria-label="Coast FIRE 資產成長預測圖"></canvas>
+          </div>
+          <div class="lgd" style="margin-top:10px">
+            <span><span class="ld" style="background:#7c6af7"></span>實際資產（歷史）</span>
+            <span><span class="ld" style="background:#3ecf8e;border:1px dashed #3ecf8e;background:transparent"></span>Coast FIRE 所需軌跡</span>
+            <span><span class="ld" style="background:#f0a050"></span>自然成長預測</span>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -750,6 +898,163 @@ function renderMonthly() {
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { autoSkip: false, maxRotation: 0, font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════
+// Coast FIRE 計算
+// ════════════════════════════════════════════
+let fCI = null;
+
+function renderFire() {
+  const monthlyGoal  = parseFloat(document.getElementById('fi_monthlyGoal').value)  || 100000;
+  const retireAge    = parseFloat(document.getElementById('fi_retireAge').value)     || 65;
+  const currentAge   = parseFloat(document.getElementById('fi_currentAge').value)    || 45;
+  const growthRate   = parseFloat(document.getElementById('fi_growthRate').value)    / 100 || 0.07;
+  const swr          = parseFloat(document.getElementById('fi_withdrawRate').value)  / 100 || 0.04;
+  const inflation    = parseFloat(document.getElementById('fi_inflation').value)     / 100 || 0.02;
+
+  // 自動帶入最新資產淨值
+  let currentNet = parseFloat(document.getElementById('fi_currentNet').value) || 0;
+  if (allData.length && currentNet === 0) {
+    currentNet = allData[allData.length - 1].net;
+    document.getElementById('fi_currentNet').value = Math.round(currentNet);
+  }
+  if (allData.length) {
+    const L = allData[allData.length - 1];
+    document.getElementById('fi_autoNote').textContent =
+      `✓ 已帶入 ${L.month.slice(0,4)}/${L.month.slice(4,6)} 資產淨值 ${tw(L.net)}`;
+  }
+
+  const yearsToRetire = Math.max(retireAge - currentAge, 0);
+
+  // 1. 退休時需要的總資產（通膨調整後目標月收入 / SWR * 12）
+  const inflationFactor = Math.pow(1 + inflation, yearsToRetire);
+  const adjustedMonthly = monthlyGoal * inflationFactor;
+  const fireNumber = adjustedMonthly * 12 / swr;
+
+  // 2. Coast FIRE 數字：今天需要多少資產，讓它自然成長到退休時達到 FIRE Number
+  const coastNumber = fireNumber / Math.pow(1 + growthRate, yearsToRetire);
+
+  // 3. 達成率
+  const pct = Math.min(currentNet / coastNumber * 100, 100);
+  const achieved = currentNet >= coastNumber;
+
+  // 4. 如果還未達成，多久能達成（假設資產以 growthRate 成長）
+  let yearsToCoast = 0;
+  if (!achieved) {
+    // 解方程：currentNet * (1+g)^t = coastNumber_at_t
+    // coastNumber_at_t = fireNumber / (1+g)^(yearsToRetire - t)
+    // currentNet * (1+g)^t = fireNumber / (1+g)^(yearsToRetire - t)
+    // currentNet * (1+g)^yearsToRetire = fireNumber
+    // → 不需要再存錢的時間點：找 t 使得 currentNet*(1+g)^t = fireNumber/(1+g)^(yearsToRetire-t)
+    for (let t = 0; t <= yearsToRetire; t += 0.5) {
+      const needed = fireNumber / Math.pow(1 + growthRate, yearsToRetire - t);
+      const projected = currentNet * Math.pow(1 + growthRate, t);
+      if (projected >= needed) { yearsToCoast = t; break; }
+    }
+  }
+
+  // 5. 退休時預測資產
+  const projectedAtRetire = currentNet * Math.pow(1 + growthRate, yearsToRetire);
+  const surplus = projectedAtRetire - fireNumber;
+
+  // ── 顯示 KPI ──
+  const coastAgeStr = achieved ? '現在' : `${Math.round(currentAge + yearsToCoast)} 歲`;
+  const coastYearStr = achieved ? '已達成' : `還需 ${yearsToCoast.toFixed(1)} 年`;
+
+  document.getElementById('fireResult').innerHTML = `
+    <div class="fire-insight">
+      退休後每月 <strong>${monthlyGoal.toLocaleString()}</strong> 元（通膨調整後 <strong>${Math.round(adjustedMonthly).toLocaleString()}</strong> 元），
+      以 ${(swr*100).toFixed(1)}% 安全提領率，需要 <strong>${tw(fireNumber)}</strong> 退休金。<br>
+      今天需要擁有 <strong>${tw(coastNumber)}</strong>，讓資產在 ${yearsToRetire} 年內自然成長至目標，無需再主動儲蓄。
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>Coast FIRE 達成率</span>
+        <span style="font-family:'DM Mono',monospace;color:${achieved?'var(--green)':'var(--amber)'}">${pct.toFixed(1)}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="pfill" style="width:${pct}%;background:${achieved?'linear-gradient(90deg,#3ecf8e,#3ecf8e)':'linear-gradient(90deg,#7c6af7,#f0a050)'}"></div>
+      </div>
+    </div>
+
+    <div class="fire-kpi-grid">
+      <div class="fire-kpi ${achieved ? 'achieved' : 'highlight'}">
+        <div class="fk-label">Coast FIRE 數字</div>
+        <div class="fk-value">${tw(coastNumber)}</div>
+        <div class="fk-sub">今日需達到的資產</div>
+      </div>
+      <div class="fire-kpi">
+        <div class="fk-label">目前資產</div>
+        <div class="fk-value ${achieved ? 'green' : pct >= 80 ? 'amber' : 'red'}">${tw(currentNet)}</div>
+        <div class="fk-sub">${achieved ? '✓ 已超過 Coast FIRE' : `還差 ${tw(coastNumber - currentNet)}`}</div>
+      </div>
+      <div class="fire-kpi ${achieved ? 'achieved' : ''}">
+        <div class="fk-label">${achieved ? 'Coast FIRE 已達成' : '預計達成時間'}</div>
+        <div class="fk-value ${achieved ? 'green' : 'amber'}">${coastAgeStr}</div>
+        <div class="fk-sub">${coastYearStr}</div>
+      </div>
+      <div class="fire-kpi">
+        <div class="fk-label">退休時預估資產</div>
+        <div class="fk-value ${surplus >= 0 ? 'green' : 'red'}">${tw(projectedAtRetire)}</div>
+        <div class="fk-sub">${surplus >= 0 ? `超出目標 ${tw(surplus)}` : `不足 ${tw(-surplus)}`}</div>
+      </div>
+      <div class="fire-kpi">
+        <div class="fk-label">退休目標月收入</div>
+        <div class="fk-value">${(monthlyGoal/10000).toFixed(0)}萬</div>
+        <div class="fk-sub">通膨調整後 ${(adjustedMonthly/10000).toFixed(1)}萬/月</div>
+      </div>
+      <div class="fire-kpi">
+        <div class="fk-label">所需退休金</div>
+        <div class="fk-value">${tw(fireNumber)}</div>
+        <div class="fk-sub">SWR ${(swr*100).toFixed(1)}% · ${yearsToRetire}年後</div>
+      </div>
+    </div>
+  `;
+
+  // ── 圖表：歷史 + 預測軌跡 ──
+  const histLabels = allData.map(d => d.month.slice(0,4) + '/' + d.month.slice(4,6));
+  const histVals   = allData.map(d => Math.round(d.net / 10000));
+
+  // 預測：從現在到退休，每年一個點
+  const curYearFrac = currentAge;
+  const projLabels = [], projVals = [], coastNeededVals = [];
+  const nowYear = new Date().getFullYear();
+  for (let t = 0; t <= yearsToRetire; t += 1) {
+    projLabels.push((nowYear + t) + '年');
+    projVals.push(Math.round(currentNet * Math.pow(1 + growthRate, t) / 10000));
+    coastNeededVals.push(Math.round(fireNumber / Math.pow(1 + growthRate, yearsToRetire - t) / 10000));
+  }
+
+  // 合併標籤（歷史 + 預測，以今年為分界）
+  const allLabels = [...histLabels, ...projLabels];
+  const allHist   = [...histVals,   ...new Array(projLabels.length).fill(null)];
+  const allProj   = [...new Array(histLabels.length).fill(null), ...projVals];
+  const allCoast  = [...new Array(histLabels.length).fill(null), ...coastNeededVals];
+
+  if (fCI) fCI.destroy();
+  fCI = new Chart(document.getElementById('fC').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: allLabels,
+      datasets: [
+        { label: '歷史資產', data: allHist, borderColor: '#7c6af7', backgroundColor: 'rgba(124,106,247,0.05)', borderWidth: 2, pointRadius: 1, fill: true, tension: 0.3, spanGaps: false },
+        { label: 'Coast FIRE 所需', data: allCoast, borderColor: '#3ecf8e', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.1, spanGaps: false },
+        { label: '自然成長預測', data: allProj, borderColor: '#f0a050', backgroundColor: 'rgba(240,160,80,0.05)', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3, spanGaps: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw ? ctx.raw.toLocaleString() + '萬' : '—'}` }
+      }},
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 45, font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.03)' } },
         y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
       }
     }
