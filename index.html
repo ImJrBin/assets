@@ -931,52 +931,69 @@ function renderFire() {
 
   const yearsToRetire = Math.max(retireAge - currentAge, 0);
 
-  // 1. 退休時需要的總資產（通膨調整後目標月收入 / SWR * 12）
-  const inflationFactor = Math.pow(1 + inflation, yearsToRetire);
-  const adjustedMonthly = monthlyGoal * inflationFactor;
-  const fireNumber = adjustedMonthly * 12 / swr;
+  // ── 修正說明 ──────────────────────────────────────────────────────
+  // 通膨處理採「方案A」：
+  //   退休金目標用通膨調整後的月支出計算（名目值）
+  //   折現時用「名目報酬率」而非「實質報酬率」
+  //   理由：兩個通膨效果在分子分母中互相抵消，結果等同於：
+  //     coastNumber = (monthlyGoal * 12 / swr) / (1 + realRate)^yearsToRetire
+  //   其中 realRate ≈ growthRate - inflation（Fisher 近似）
+  //   這樣才不會雙重計算通膨
+  // ──────────────────────────────────────────────────────────────────
 
-  // 2. Coast FIRE 數字：今天需要多少資產，讓它自然成長到退休時達到 FIRE Number
+  // 1. 退休時需要的名目退休金（月支出通膨調整後 / SWR * 12）
+  const inflationFactor  = Math.pow(1 + inflation, yearsToRetire);
+  const adjustedMonthly  = monthlyGoal * inflationFactor;       // 退休當年的名目月支出
+  const fireNumber       = adjustedMonthly * 12 / swr;          // 退休當年需要的名目總資產
+
+  // 2. Coast FIRE 數字：以「名目報酬率」折現（修正後，不再低估）
+  //    coastNumber = fireNumber / (1+nominalRate)^yearsToRetire
+  //    等價於 = (monthlyGoal*12/swr) / (1+realRate)^yearsToRetire
   const coastNumber = fireNumber / Math.pow(1 + growthRate, yearsToRetire);
 
   // 3. 達成率
-  const pct = Math.min(currentNet / coastNumber * 100, 100);
+  const pct      = Math.min(currentNet / coastNumber * 100, 100);
   const achieved = currentNet >= coastNumber;
 
-  // 4. 如果還未達成，多久能達成（假設資產以 growthRate 成長）
+  // 4. 未達成時：解析解求需要幾年（精確，不用 loop）
+  //    Coast 條件：currentNet * (1+g)^t = fireNumber / (1+g)^(Y-t)
+  //    化簡：currentNet * (1+g)^Y = fireNumber  → 與 t 無關
+  //    實際上 yearsToCoast = log(coastNumber / currentNet) / log(1+g)
+  //    （即今天資產成長到 coastNumber 所需年數）
   let yearsToCoast = 0;
   if (!achieved) {
-    // 解方程：currentNet * (1+g)^t = coastNumber_at_t
-    // coastNumber_at_t = fireNumber / (1+g)^(yearsToRetire - t)
-    // currentNet * (1+g)^t = fireNumber / (1+g)^(yearsToRetire - t)
-    // currentNet * (1+g)^yearsToRetire = fireNumber
-    // → 不需要再存錢的時間點：找 t 使得 currentNet*(1+g)^t = fireNumber/(1+g)^(yearsToRetire-t)
-    for (let t = 0; t <= yearsToRetire; t += 0.5) {
-      const needed = fireNumber / Math.pow(1 + growthRate, yearsToRetire - t);
-      const projected = currentNet * Math.pow(1 + growthRate, t);
-      if (projected >= needed) { yearsToCoast = t; break; }
-    }
+    yearsToCoast = Math.log(coastNumber / currentNet) / Math.log(1 + growthRate);
+    yearsToCoast = Math.max(0, yearsToCoast);
   }
 
-  // 5. 退休時預測資產
+  // 5. 退休時（原訂年齡）預測資產
   const projectedAtRetire = currentNet * Math.pow(1 + growthRate, yearsToRetire);
-  const surplus = projectedAtRetire - fireNumber;
+  const surplus           = projectedAtRetire - fireNumber;
+
+  // 6. 提前退休：找最早幾歲資產可達到當時的 FIRE Number（正確版）
+  //    t 年後退休，月支出通膨調整為 monthlyGoal*(1+inf)^t，
+  //    所需退休金 = monthlyGoal*(1+inf)^t * 12 / swr
+  //    資產預測   = currentNet * (1+g)^t
+  //    達成條件   = currentNet*(1+g)^t >= monthlyGoal*(1+inf)^t*12/swr
+  //    解析解     = currentNet*(g-inf)^t >= monthlyGoal*12/swr  ← Fisher 近似
+  //    精確解析：t = log(monthlyGoal*12/swr/currentNet) / log((1+g)/(1+inf))
+  let canRetireEarly = yearsToRetire;
+  const baseFireNoInflation = monthlyGoal * 12 / swr; // 今天若退休所需的實質資產
+  if (currentNet >= baseFireNoInflation) {
+    canRetireEarly = 0; // 現在就可以退休了
+  } else {
+    const realGrowth = (1 + growthRate) / (1 + inflation); // 實質複利因子
+    if (realGrowth > 1) {
+      canRetireEarly = Math.log(baseFireNoInflation / currentNet) / Math.log(realGrowth);
+      canRetireEarly = Math.min(Math.max(0, canRetireEarly), yearsToRetire);
+    }
+  }
+  const earlyRetireAge = currentAge + canRetireEarly;
+  const earlyYears     = yearsToRetire - canRetireEarly;
 
   // ── 顯示 KPI ──
-  const coastAgeStr = achieved ? '現在' : `${Math.round(currentAge + yearsToCoast)} 歲`;
+  const coastAgeStr  = achieved ? '現在' : `${Math.round(currentAge + yearsToCoast)} 歲`;
   const coastYearStr = achieved ? '已達成' : `還需 ${yearsToCoast.toFixed(1)} 年`;
-
-  // 可提前退休年數（若已超過 coast，資產成長超越目標的時間點）
-  let canRetireEarly = yearsToRetire;
-  if (achieved) {
-    for (let t = 0; t <= yearsToRetire; t += 0.5) {
-      if (currentNet * Math.pow(1 + growthRate, t) >= fireNumber) {
-        canRetireEarly = t; break;
-      }
-    }
-  }
-  const earlyRetireAge = Math.round(currentAge + canRetireEarly);
-  const earlyYears = yearsToRetire - canRetireEarly;
 
   document.getElementById('fireResult').innerHTML = `
     <div class="fire-insight">
@@ -1014,7 +1031,7 @@ function renderFire() {
       </div>
       <div class="fire-kpi ${achieved ? 'achieved' : ''}">
         <div class="fk-label">${achieved ? '最快可退休年齡' : '預計達成 Coast FIRE'}</div>
-        <div class="fk-value ${achieved ? 'green' : 'amber'}">${achieved ? earlyRetireAge + ' 歲' : coastAgeStr}</div>
+        <div class="fk-value ${achieved ? 'green' : 'amber'}">${achieved ? Math.floor(earlyRetireAge) + ' 歲' : coastAgeStr}</div>
         <div class="fk-sub">${achieved
           ? (earlyYears > 0.5 ? `比原訂提早 ${Math.floor(earlyYears)} 年` : '現在即可達到退休金目標')
           : coastYearStr}</div>
