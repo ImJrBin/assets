@@ -1011,6 +1011,25 @@ function renderMonthly() {
 
 
 // ════════════════════════════════════════════
+// 共用：從 Coast FIRE 分頁讀取參數
+// ════════════════════════════════════════════
+function getFireParams() {
+  const g = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : null; };
+  return {
+    husbandAge    : g('fi_husbandAge')    || 50,
+    husbandRetire : g('fi_husbandRetire') || 65,
+    wifeAge       : g('fi_wifeAge')       || 48,
+    wifeLife      : g('fi_wifeLife')      || 90,
+    monthlyGoal   : g('fi_monthlyGoal')   || 100000,
+    laborPension  : g('fi_labor')         || 20000,
+    growthRate    : (g('fi_growthRate')   || 7)   / 100,
+    swr           : (g('fi_withdrawRate') || 3.5) / 100,
+    inflation     : (g('fi_inflation')    || 2)   / 100,
+    currentNet    : g('fi_currentNet')    || (allData.length ? allData[allData.length-1].net : 0),
+  };
+}
+
+// ════════════════════════════════════════════
 // 白話總結
 // ════════════════════════════════════════════
 function renderSummary() {
@@ -1019,10 +1038,7 @@ function renderSummary() {
   const F   = allData[0];
   const net = L.net;
 
-  // Coast FIRE 快速試算（用預設值）
-  const husbandAge    = 50, husbandRetire = 65;
-  const monthlyGoal   = 100000, laborPension = 20000;
-  const growthRate    = 0.07, swr = 0.035, inflation = 0.02;
+  const { husbandAge, husbandRetire, monthlyGoal, laborPension, growthRate, swr, inflation } = getFireParams();
   const yearsToRetire = husbandRetire - husbandAge;
   const inflFactor    = Math.pow(1 + inflation, yearsToRetire);
   const monthlyNeeded = Math.max(monthlyGoal * inflFactor - laborPension, 0);
@@ -1084,10 +1100,8 @@ function renderStress() {
   const dropped = nonStock + stocks * (1 - drop);
   const loss    = net - dropped;
 
-  // Coast FIRE 門檻
-  const husbandAge = 50, husbandRetire = 65;
-  const growthRate = 0.07, swr = 0.035, inflation = 0.02;
-  const monthlyGoal = 100000, laborPension = 20000;
+  // Coast FIRE 門檻（從 Coast FIRE 分頁讀取使用者設定）
+  const { husbandAge, husbandRetire, growthRate, swr, inflation, monthlyGoal, laborPension } = getFireParams();
   const ytr = husbandRetire - husbandAge;
   const coastNum = Math.max(monthlyGoal * Math.pow(1+inflation, ytr) - laborPension, 0) * 12 / swr / Math.pow(1+growthRate, ytr);
   const stillOk = dropped >= coastNum;
@@ -1124,12 +1138,10 @@ function renderUnemployed() {
   for (let m = 0; m < months; m++) projected = projected * (1 + monthRate) - monthlyExp;
   const netAfter = projected;
 
-  // 重新就業後的 coast fire 狀態（假設重新就業時年齡增加）
-  const husbandAge = 50, husbandRetire = 65;
+  // 重新就業後的 coast fire 狀態（從 Coast FIRE 分頁讀取使用者設定）
+  const { husbandAge, husbandRetire, growthRate, swr, inflation, monthlyGoal, laborPension } = getFireParams();
   const ageAfter = husbandAge + months / 12;
   const ytrAfter = Math.max(husbandRetire - ageAfter, 0);
-  const growthRate = 0.07, swr = 0.035, inflation = 0.02;
-  const monthlyGoal = 100000, laborPension = 20000;
   const coastAfter = Math.max(monthlyGoal * Math.pow(1+inflation, ytrAfter) - laborPension, 0) * 12 / swr / Math.pow(1+growthRate, ytrAfter);
   const stillOk = netAfter >= coastAfter;
   const cashMonths = Math.round(L.cash / monthlyExp);
