@@ -236,34 +236,38 @@
   }
 
   /* ── Coast FIRE ── */
-  .fire-layout { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; align-items: start; }
-  @media (max-width: 800px) { .fire-layout { grid-template-columns: 1fr; } }
+  .fire-layout { display: grid; grid-template-columns: 320px 1fr; gap: 2rem; align-items: start; }
+  @media (max-width: 860px) { .fire-layout { grid-template-columns: 1fr; } }
 
   .fire-inputs {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r); padding: 1.3rem;
+    border-radius: var(--r); padding: 1.2rem;
   }
   .fire-section-label {
     font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
-    color: var(--text3); margin-bottom: 10px;
+    color: var(--text3); margin-bottom: 8px;
   }
-  .fi-row { margin-bottom: 12px; }
-  .fi-row label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+  /* 雙欄 pair：label 占滿，兩個 input 並排 */
+  .fi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .fi-pair .fi-row { margin-bottom: 0; }
+  .fi-row { margin-bottom: 10px; }
+  .fi-row label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fi-input-wrap {
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 4px;
     background: var(--bg); border: 1px solid var(--border2);
-    border-radius: var(--r-sm); padding: 0 10px; height: 36px;
+    border-radius: var(--r-sm); padding: 0 8px; height: 34px;
+    min-width: 0;
   }
   .fi-input-wrap:focus-within { border-color: var(--accent); }
-  .fi-prefix { font-size: 12px; color: var(--text3); flex-shrink: 0; }
-  .fi-suffix { font-size: 12px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
+  .fi-prefix { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+  .fi-suffix { font-size: 11px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
   .fi-input-wrap input {
     flex: 1; background: transparent; border: none; color: var(--text);
-    font-size: 14px; font-family: 'DM Mono', monospace; min-width: 0;
-    text-align: right;
+    font-size: 13px; font-family: 'DM Mono', monospace; min-width: 0;
+    text-align: right; width: 100%;
   }
   .fi-input-wrap input:focus { outline: none; }
-  .fi-note { font-size: 11px; color: var(--accent2); margin-top: 4px; }
+  .fi-note { font-size: 11px; color: var(--accent2); margin-top: 3px; margin-bottom: 6px; line-height: 1.5; }
 
   .fire-results {}
   .fire-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
@@ -412,25 +416,27 @@
         <div class="fire-inputs">
 
           <div class="fire-section-label">家庭成員</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="fi-row" style="margin:0">
+          <div class="fi-pair">
+            <div class="fi-row">
               <label>先生目前年齡</label>
               <div class="fi-input-wrap"><input type="number" id="fi_husbandAge" value="50" step="1" oninput="renderFire()"><span class="fi-suffix">歲</span></div>
             </div>
-            <div class="fi-row" style="margin:0">
+            <div class="fi-row">
               <label>先生退休年齡</label>
               <div class="fi-input-wrap"><input type="number" id="fi_husbandRetire" value="65" step="1" oninput="renderFire()"><span class="fi-suffix">歲</span></div>
             </div>
-            <div class="fi-row" style="margin:0;margin-top:8px">
+          </div>
+          <div class="fi-pair">
+            <div class="fi-row">
               <label>太太目前年齡</label>
               <div class="fi-input-wrap"><input type="number" id="fi_wifeAge" value="48" step="1" oninput="renderFire()"><span class="fi-suffix">歲</span></div>
             </div>
-            <div class="fi-row" style="margin:0;margin-top:8px">
+            <div class="fi-row">
               <label>太太預計壽命</label>
               <div class="fi-input-wrap"><input type="number" id="fi_wifeLife" value="90" step="1" oninput="renderFire()"><span class="fi-suffix">歲</span></div>
             </div>
           </div>
-          <div class="fi-note" style="margin-top:6px">提領期 = 太太壽命 − 先生退休年齡，影響 SWR 安全性</div>
+          <div class="fi-note">提領期 = 太太壽命 − 先生退休年齡，影響 SWR 安全性</div>
 
           <div class="fire-section-label" style="margin-top:1.2rem">退休後收支目標</div>
 
@@ -454,22 +460,21 @@
           <div class="fi-note">實際每月需從資產提領 = 目標 − 勞保</div>
 
           <div class="fire-section-label" style="margin-top:1.2rem">報酬率假設</div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="fi-row" style="margin:0">
+          <div class="fi-pair">
+            <div class="fi-row">
               <label>退休前年報酬率</label>
               <div class="fi-input-wrap"><input type="number" id="fi_growthRate" value="7" step="0.5" oninput="renderFire()"><span class="fi-suffix">%</span></div>
             </div>
-            <div class="fi-row" style="margin:0">
-              <label>安全提領率 (SWR)</label>
+            <div class="fi-row">
+              <label>安全提領率 SWR</label>
               <div class="fi-input-wrap"><input type="number" id="fi_withdrawRate" value="3.5" step="0.5" oninput="renderFire()"><span class="fi-suffix">%</span></div>
             </div>
-            <div class="fi-row" style="margin:0;margin-top:8px">
-              <label>通膨率</label>
-              <div class="fi-input-wrap"><input type="number" id="fi_inflation" value="2" step="0.5" oninput="renderFire()"><span class="fi-suffix">%</span></div>
-            </div>
           </div>
-          <div class="fi-note" style="margin-top:6px">太太壽命 90 歲，提領期約 40 年，SWR 建議 3.5%</div>
+          <div class="fi-row">
+            <label>通膨率</label>
+            <div class="fi-input-wrap" style="max-width:160px"><input type="number" id="fi_inflation" value="2" step="0.5" oninput="renderFire()"><span class="fi-suffix">%</span></div>
+          </div>
+          <div class="fi-note">太太壽命 90 歲，提領期約 40 年，SWR 建議 3.5%</div>
 
           <div class="fire-section-label" style="margin-top:1.2rem">資產現況（自動帶入）</div>
           <div class="fi-row">
