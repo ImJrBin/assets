@@ -155,7 +155,7 @@
   main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
 
   /* ── 指標卡 ── */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 2rem; }
   .mc {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--r); padding: 1.1rem 1.3rem;
@@ -168,12 +168,13 @@
   .up { color: var(--green); } .dn { color: var(--red); } .neu { color: var(--text3); }
 
   /* ── 分頁 ── */
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
     font-size: 13px; padding: 8px 20px; cursor: pointer;
     border: none; background: transparent; color: var(--text3);
     border-bottom: 2px solid transparent; margin-bottom: -1px;
-    transition: all .15s; letter-spacing: .01em;
+    transition: all .15s; letter-spacing: .01em; white-space: nowrap; flex-shrink: 0;
   }
   .tab:hover { color: var(--text2); }
   .tab.on { color: var(--accent2); border-bottom-color: var(--accent); font-weight: 500; }
@@ -227,12 +228,50 @@
     font-size: 13px; margin-bottom: 1rem; display: none;
   }
 
-  @media (max-width: 600px) {
-    main { padding: 1rem; }
-    header { padding: 1rem; }
-    .mc-value { font-size: 22px; }
+  /* ── 手機 responsive ── */
+  @media (max-width: 640px) {
+    /* 基礎 */
+    body { font-size: 13px; }
+    main { padding: .8rem; }
+    header { padding: .8rem 1rem; gap: 8px; }
+
+    /* header：重新整理+登出縮小 */
+    .logo { font-size: 14px; }
+    .data-badge { font-size: 10px; padding: 2px 8px; }
+    .btn-refresh { font-size: 11px; padding: 5px 10px; }
+    .btn-signout { font-size: 11px; padding: 5px 8px; }
+
+    /* 白話總結：防截斷 */
+    .summary-banner { padding: .9rem 1rem; gap: 10px; }
+    .summary-icon { font-size: 18px; }
+    .summary-text { font-size: 13px; line-height: 1.65; word-break: break-word; overflow-wrap: anywhere; }
+
+    /* 指標卡：強制兩欄 */
+    .metrics { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.2rem; }
+    .mc { padding: .8rem .9rem; }
+    .mc-value { font-size: 20px; }
+    .mc-sub { font-size: 11px; }
+
+    /* 分頁標籤：捲動不換行 */
+    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 1px; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { font-size: 12px; padding: 7px 14px; white-space: nowrap; flex-shrink: 0; }
+
+    /* 圖表高度縮小 */
+    #tC, #mC, #fC { max-height: 220px; }
     .alloc-wrap { flex-direction: column; }
     .alloc-chart { flex: none; width: 100%; }
+
+    /* Coast FIRE */
+    .fire-layout { grid-template-columns: 1fr; gap: 1rem; }
+    .fi-pair { grid-template-columns: 1fr 1fr; }
+    .fire-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .fire-kpi { padding: .8rem; }
+    .fk-value { font-size: 18px; }
+
+    /* 情境分析 */
+    .scenario-grid { grid-template-columns: 1fr; }
+    .scenario-card { padding: 1rem; }
   }
 
   /* ── Coast FIRE ── */
@@ -307,7 +346,9 @@
     display: flex; align-items: flex-start; gap: 14px;
     background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(124,106,247,0.08));
     border: 1px solid rgba(62,207,142,0.25);
+    min-width: 0; overflow: hidden;
   }
+  .summary-text { min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
   .summary-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
   .summary-text { font-size: 14px; color: var(--text2); line-height: 1.75; }
   .summary-text strong { color: var(--text); font-weight: 500; }
