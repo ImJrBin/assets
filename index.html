@@ -1095,6 +1095,13 @@ function renderSummary() {
   const banner = document.getElementById('summaryBanner');
   banner.style.display = 'flex';
 
+  // 退休時名目資產折回今日購買力（÷ 通膨因子）
+  const projRetireReal = Math.round(net * Math.pow(1 + growthRate, yearsToRetire) / inflFactor / 10000);
+  // 今日如果退休，實質可提領（名目提領 ÷ 通膨因子，此處 t=0 故等於名目值）
+  const monthlyCanGetReal = Math.round(net * swr / 12 / 10000 * 10) / 10;
+  // 退休時名目月提領（含通膨調整後的目標月支出）
+  const monthlyNominalAtRetire = Math.round(monthlyNeeded / 10000 * 10) / 10;
+
   if (achieved) {
     banner.innerHTML = `
       <div class="summary-banner">
@@ -1102,9 +1109,11 @@ function renderSummary() {
         <div class="summary-text">
           <div class="summary-title">財務狀況總結</div>
           家庭資產目前是 <strong>${tw(net)}</strong>，上個月${chgStr}。Coast FIRE <strong>已達成</strong>（達成率 ${coastPct}%）——
-          即使今天起完全不再存錢，以歷史平均報酬率成長，<strong>${husbandRetire} 歲退休時預計有 ${projRetire} 萬</strong>，
-          足以支應退休後每月 <strong>${(monthlyGoal/10000).toFixed(0)} 萬</strong> 的生活，還有大量盈餘。
-          現在如果退休，每月約可從資產提領 <strong>${monthlyCanGet} 萬</strong>。
+          即使今天起完全不再存錢，以 ${(growthRate*100).toFixed(0)}% 名目年報酬率成長，
+          <strong>${husbandRetire} 歲退休時預計累積約 ${projRetire} 萬（名目金額）</strong>，
+          折回今日購買力約 <strong>${projRetireReal} 萬</strong>（÷ ${yearsToRetire} 年通膨 ${(inflation*100).toFixed(0)}%）。
+          退休後每月可從資產提領約 <strong>${monthlyNominalAtRetire} 萬（退休當年幣值）</strong>，相當於今日購買力 <strong>${(monthlyGoal/10000).toFixed(0)} 萬</strong>。
+          現在如果退休，每月約可提領 <strong>${monthlyCanGetReal} 萬（今日幣值）</strong>。
         </div>
       </div>`;
   } else {
@@ -1324,7 +1333,8 @@ function renderFire() {
         ? `家庭資產 <strong>${tw(currentNet)}</strong> 已超過 Coast FIRE 門檻 <strong>${tw(coastNumber)}</strong>。
            不再主動儲蓄，以 ${(growthRate*100).toFixed(0)}% 年報酬率成長，
            <strong>${yearsToRetire} 年後（${husbandRetire} 歲）</strong>預估累積 <strong>${tw(projectedAtRetire)}</strong>，
-           扣除勞保每月可提領 <strong>${(monthlyFromAsset/10000).toFixed(1)}萬</strong>（相當今日 <strong>${(monthlyGoal/10000).toFixed(0)}萬</strong> 購買力）。`
+           每月需從資產提領 <strong>${(monthlyFromAsset/10000).toFixed(1)}萬（退休當年名目金額）</strong>，
+           相當於今日購買力 <strong>${(monthlyGoal/10000).toFixed(0)}萬</strong>（通膨調整後目標）。`
         : `退休後目標月支出 <strong>${(monthlyGoal/10000).toFixed(0)}萬</strong>（今日幣值），扣勞保 <strong>${(laborPension/10000).toFixed(1)}萬</strong>，
            每月需從資產提領 <strong>${(monthlyFromAsset/10000).toFixed(1)}萬</strong>（通膨後）。
            提領期 <strong>${drawdownYears} 年</strong>（太太 ${wifeAge} → ${wifeLife} 歲），建議 SWR ${swrGuide}%，
@@ -1361,14 +1371,14 @@ function renderFire() {
           :coastYearStr}</div>
       </div>
       <div class="fire-kpi">
-        <div class="fk-label">退休時預估資產（${husbandRetire}歲）</div>
+        <div class="fk-label">退休時預估資產（${husbandRetire}歲，名目值）</div>
         <div class="fk-value ${surplus>=0?'green':'red'}">${tw(projectedAtRetire)}</div>
-        <div class="fk-sub">${surplus>=0?`比目標多 ${tw(surplus)}`:`不足 ${tw(-surplus)}`}</div>
+        <div class="fk-sub">${surplus>=0?`比目標多 ${tw(surplus)}`:`不足 ${tw(-surplus)}`}・今日購買力約 ${tw(Math.round(projectedAtRetire/inflationFactor))}</div>
       </div>
       <div class="fire-kpi">
         <div class="fk-label">退休金目標（${husbandRetire}歲名目值）</div>
         <div class="fk-value">${tw(fireNumber)}</div>
-        <div class="fk-sub">月提領 ${(monthlyFromAsset/10000).toFixed(1)}萬 × 12 ÷ ${(swr*100).toFixed(1)}%</div>
+        <div class="fk-sub">月提領 ${(monthlyFromAsset/10000).toFixed(1)}萬（名目）× 12 ÷ SWR ${(swr*100).toFixed(1)}%・SWR 已含通膨調整</div>
       </div>
       <div class="fire-kpi">
         <div class="fk-label">提領期 / 建議 SWR</div>
