@@ -865,6 +865,21 @@ function parseSheet(rows, sheetName) {
     return 0;
   };
 
+  // 完整比對（用於「活存」避免命中「現金及活存」）
+  const getExactVal = (keyword, rows) => {
+    for (const row of rows) {
+      for (let i = 0; i < row.length; i++) {
+        if (String(row[i]).trim() === keyword) {
+          for (let j = i + 1; j < row.length; j++) {
+            const v = parseNum(row[j]);
+            if (v !== null && v > 0) return v;
+          }
+        }
+      }
+    }
+    return 0;
+  };
+
   const parseNum = (s) => {
     if (s === undefined || s === null || s === '') return null;
     const n = parseFloat(String(s).replace(/,/g, ''));
@@ -899,13 +914,20 @@ function parseSheet(rows, sheetName) {
     }
   }
 
-  const cash   = getVal('現金及活存', rows);
-  const stocks = getVal('股票現值', rows);
-  const usRaw  = getVal('美股定額', rows) || getVal('美股VT', rows) || 0;
-  const funds  = getVal('共同基金現值', rows);
-  const jpm    = getVal('JPM多重收益基金', rows);
-  const forex  = (getVal('外幣-美元', rows) || 0) + (getVal('外幣-日元', rows) || 0) +
-                 (getVal('外幣-人民幣', rows) || 0) + (getVal('外匯-港幣', rows) || 0);
+  // 優先抓年度摘要區的「活存」（精確比對，即 F3+F9+F15+F16 加總，較完整）
+  // fallback 到資產表上方的「現金及活存」單一欄位
+  const cash    = getExactVal('活存', rows)   || getVal('現金及活存', rows);
+  // 年度摘要區「股票」= 台股＋美股＋證券戶餘額完整加總
+  const stocks  = getExactVal('股票', rows)   || getVal('股票現值', rows);
+  // 美股定額（資產表個別欄位，年度摘要已含在股票內，這裡設 0 避免重複計算）
+  const usRaw   = stocks ? 0 : (getVal('美股定額', rows) || getVal('美股VT', rows) || 0);
+  // 年度摘要區「基金」= 共同基金＋JPM＋國泰帳戶加總
+  const funds   = getExactVal('基金', rows)   || getVal('共同基金現值', rows);
+  const jpm     = funds ? 0 : getVal('JPM多重收益基金', rows);
+  // 年度摘要區「外匯」= 美元＋日元＋港幣＋人民幣加總
+  const forex   = getExactVal('外匯', rows)   ||
+                  ((getVal('外幣-美元', rows) || 0) + (getVal('外幣-日元', rows) || 0) +
+                   (getVal('外幣-人民幣', rows) || 0) + (getVal('外匯-港幣', rows) || 0));
   const inc    = getVal('收入合計', rows) || getVal('合計', rows);
   const exp    = getVal('支出合計', rows) || 0;
 
