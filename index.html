@@ -917,10 +917,13 @@ function parseSheet(rows, sheetName) {
   // 優先抓年度摘要區的「活存」（精確比對，即 F3+F9+F15+F16 加總，較完整）
   // fallback 到資產表上方的「現金及活存」單一欄位
   const cash    = getExactVal('活存', rows)   || getVal('現金及活存', rows);
-  // 年度摘要區「股票」= 台股＋美股＋證券戶餘額完整加總
-  const stocks  = getExactVal('股票', rows)   || getVal('股票現值', rows);
-  // 美股定額（資產表個別欄位，年度摘要已含在股票內，這裡設 0 避免重複計算）
-  const usRaw   = stocks ? 0 : (getVal('美股定額', rows) || getVal('美股VT', rows) || 0);
+  // 202605 起年度摘要區分「台股」和「美股」
+  // 舊格式（202604 以前）只有「股票」合計
+  const twStocks = getExactVal('台股', rows);   // 台股（新格式）
+  const usStocks = getExactVal('美股', rows);   // 美股（新格式）
+  const stocks   = twStocks || (getExactVal('股票', rows) || getVal('股票現值', rows));
+  // 舊格式的美股：從個別欄位加總（美股定額古 + 芳 + 樂安）
+  const usRaw    = usStocks || (twStocks ? 0 : (getVal('美股定額', rows) || getVal('美股VT', rows) || 0));
   // 年度摘要區「基金」= 共同基金＋JPM＋國泰帳戶加總
   const funds   = getExactVal('基金', rows)   || getVal('共同基金現值', rows);
   const jpm     = funds ? 0 : getVal('JPM多重收益基金', rows);
@@ -941,7 +944,7 @@ function parseSheet(rows, sheetName) {
     }
   }
 
-  return { month, net, cash, stocks, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp };
+  return { month, net, cash, stocks, twstocks: twStocks || 0, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp };
 }
 
 // ════════════════════════════════════════════
@@ -1094,9 +1097,13 @@ function renderAlloc() {
   if (!yd.length) return;
   const L = yd[yd.length - 1];
   const palette = ['#7c6af7','#5090f0','#3ecf8e','#f0a050','#f06060','#a89af9'];
+  // 新格式（202605+）twstocks 有值，台股美股分開
+  // 舊格式 twstocks=0，stocks 全部當台股，usstocks 另計
+  const twVal = L.twstocks > 0 ? L.twstocks : L.stocks;
+  const usVal = L.twstocks > 0 ? L.usstocks : L.usstocks;
   const items = [
-    { l: '台股', v: L.stocks },
-    { l: '美股', v: L.usstocks },
+    { l: '台股', v: twVal },
+    { l: '美股', v: usVal },
     { l: '基金', v: L.funds },
     { l: '現金活存', v: L.cash },
     { l: '外幣', v: L.forex },
@@ -1445,7 +1452,9 @@ function renderStress() {
   const L       = allData[allData.length - 1];
   const drop    = parseFloat(document.getElementById('sc_drop').value) / 100;
   const net     = L.net;
-  const stocks  = (L.stocks || 0) + (L.usstocks || 0);
+  const twVal_s = L.twstocks > 0 ? L.twstocks : L.stocks;
+  const usVal_s = L.usstocks || 0;
+  const stocks  = twVal_s + usVal_s;
   const nonStock = net - stocks;
   const dropped = nonStock + stocks * (1 - drop);
   const loss    = net - dropped;
@@ -1459,7 +1468,7 @@ function renderStress() {
 
   document.getElementById('sc_stress_result').innerHTML = `
     <div class="sc-row"><span class="sc-row-label">目前資產</span><span class="sc-row-val">${tw(net)}</span></div>
-    <div class="sc-row"><span class="sc-row-label">股票部位（${(stocks/net*100).toFixed(0)}%）跌 ${Math.round(drop*100)}%</span><span class="sc-row-val" style="color:var(--red)">−${tw(loss)}</span></div>
+    <div class="sc-row"><span class="sc-row-label">股票部位 台${(twVal_s/net*100).toFixed(0)}%+美${(usVal_s/net*100).toFixed(0)}% 跌 ${Math.round(drop*100)}%</span><span class="sc-row-val" style="color:var(--red)">−${tw(loss)}</span></div>
     <div class="sc-row"><span class="sc-row-label">跌後資產淨值</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--red)'}">${tw(dropped)}</span></div>
     <div class="sc-row"><span class="sc-row-label">Coast FIRE 門檻</span><span class="sc-row-val">${tw(coastNum)}</span></div>
     <div class="sc-row"><span class="sc-row-label">跌後達成率</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--amber)'}"> ${pctAfter.toFixed(0)}%</span></div>
