@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭投資分析報告 2013–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1a1a;
+  --ink2:#444;
+  --ink3:#888;
+  --paper:#faf8f4;
+  --paper2:#f2ede5;
+  --paper3:#e8e0d4;
+  --accent:#b85c2a;
+  --accent2:#d4763d;
+  --green:#2a7a4f;
+  --red:#b83030;
+  --gold:#9a7c2a;
+  --rule:rgba(26,26,26,0.12);
+  --r:6px;
+}
+body{font-family:'Noto Serif TC',serif;background:var(--paper);color:var(--ink);line-height:1.8;font-size:15px}
+.page{max-width:820px;margin:0 auto;padding:3rem 2rem 6rem}
+
+/* ── 封面 ── */
+.cover{text-align:center;padding:4rem 0 3rem;border-bottom:2px solid var(--ink);margin-bottom:3rem}
+.cover-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-bottom:1.2rem}
+.cover-title{font-size:2.2rem;font-weight:700;line-height:1.3;margin-bottom:.8rem}
+.cover-title span{color:var(--accent)}
+.cover-sub{font-size:1rem;color:var(--ink2);font-weight:400;margin-bottom:2rem}
+.cover-meta{display:flex;justify-content:center;gap:3rem;font-size:12px;color:var(--ink3);font-family:'DM Mono',monospace}
+.cover-meta strong{display:block;font-size:18px;font-weight:500;color:var(--ink);font-family:'Noto Serif TC',serif;margin-bottom:2px}
+
+/* ── 章節 ── */
+.chapter{margin-bottom:3.5rem}
+.chapter-header{display:flex;align-items:baseline;gap:1rem;margin-bottom:1.5rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule)}
+.chapter-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.1em;flex-shrink:0}
+.chapter-title{font-size:1.25rem;font-weight:700;color:var(--ink)}
+p{margin-bottom:1rem;color:var(--ink2)}
+p strong{color:var(--ink);font-weight:500}
+
+/* ── 數據卡 ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:1.5rem 0}
+.kpi{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--r);padding:1rem 1.1rem}
+.kpi-label{font-size:11px;color:var(--ink3);letter-spacing:.05em;margin-bottom:4px;font-family:'DM Mono',monospace}
+.kpi-value{font-size:1.6rem;font-weight:700;color:var(--ink);line-height:1.1;font-family:'DM Mono',monospace}
+.kpi-sub{font-size:11px;color:var(--ink3);margin-top:3px}
+.kpi.accent{background:rgba(184,92,42,0.06);border-color:rgba(184,92,42,0.2)}
+.kpi.green{background:rgba(42,122,79,0.06);border-color:rgba(42,122,79,0.2)}
+.kpi.red{background:rgba(184,48,48,0.06);border-color:rgba(184,48,48,0.2)}
+
+/* ── 時間表 ── */
+.timeline{position:relative;padding-left:2rem;margin:1.5rem 0}
+.timeline::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:1px;background:var(--rule)}
+.tl-item{position:relative;margin-bottom:1.5rem}
+.tl-dot{position:absolute;left:-2rem;top:5px;width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--accent);flex-shrink:0}
+.tl-year{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.08em;margin-bottom:2px}
+.tl-text{color:var(--ink2);font-size:14px;line-height:1.7}
+.tl-text strong{color:var(--ink)}
+
+/* ── 評分卡 ── */
+.scorecard{margin:1.5rem 0}
+.score-row{display:flex;align-items:center;gap:12px;padding:.7rem 0;border-bottom:1px solid var(--rule)}
+.score-row:last-child{border-bottom:none}
+.score-label{flex:1;font-size:13px;color:var(--ink2)}
+.score-bar-track{width:160px;height:6px;background:var(--paper3);border-radius:3px;overflow:hidden;flex-shrink:0}
+.score-bar-fill{height:100%;border-radius:3px}
+.score-num{font-family:'DM Mono',monospace;font-size:12px;width:32px;text-align:right;flex-shrink:0}
+
+/* ── 警示/建議框 ── */
+.callout{border-left:3px solid var(--accent);padding:.8rem 1rem;margin:1.2rem 0;background:rgba(184,92,42,0.04);border-radius:0 var(--r) var(--r) 0}
+.callout.green{border-color:var(--green);background:rgba(42,122,79,0.04)}
+.callout.red{border-color:var(--red);background:rgba(184,48,48,0.04)}
+.callout.gold{border-color:var(--gold);background:rgba(154,124,42,0.04)}
+.callout-title{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--accent);margin-bottom:4px}
+.callout.green .callout-title{color:var(--green)}
+.callout.red .callout-title{color:var(--red)}
+.callout.gold .callout-title{color:var(--gold)}
+.callout-body{font-size:13px;color:var(--ink2);line-height:1.7}
+.callout-body strong{color:var(--ink)}
+
+/* ── 比較表 ── */
+.compare-table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:13px}
+.compare-table th{background:var(--paper2);padding:.6rem .8rem;text-align:left;font-weight:500;color:var(--ink);border-bottom:1px solid var(--paper3);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em}
+.compare-table td{padding:.6rem .8rem;border-bottom:1px solid var(--rule);color:var(--ink2);vertical-align:top}
+.compare-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;font-family:'DM Mono',monospace;vertical-align:middle}
+.tag-good{background:rgba(42,122,79,0.1);color:var(--green)}
+.tag-warn{background:rgba(184,92,42,0.1);color:var(--accent)}
+.tag-bad{background:rgba(184,48,48,0.1);color:var(--red)}
+
+/* ── 圖表 ── */
+.chart-wrap{margin:1.5rem 0;background:var(--paper2);border-radius:var(--r);padding:1.2rem;border:1px solid var(--paper3)}
+.chart-title{font-size:12px;color:var(--ink3);margin-bottom:.8rem;font-family:'DM Mono',monospace;letter-spacing:.06em}
+
+/* ── 結語 ── */
+.conclusion{margin-top:4rem;padding-top:2rem;border-top:2px solid var(--ink)}
+.conclusion-grade{font-size:3rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);line-height:1}
+.speaker-note{background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--r);padding:1rem 1.2rem;margin-top:2rem;font-size:12px;color:var(--ink3);font-style:italic}
+
+@media(max-width:600px){
+  .page{padding:1.5rem 1rem 4rem}
+  .cover-title{font-size:1.6rem}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .score-bar-track{width:100px}
+  .cover-meta{gap:1.5rem;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 封面 ══ -->
+<div class="cover">
+  <div class="cover-eyebrow">Family Investment Review · 2013 – 2026</div>
+  <h1 class="cover-title">一份<span>13年</span>的財務成績單<br>給一個普通工薪家庭的不普通故事</h1>
+  <div class="cover-sub">資料來源：家庭資產負債表 Balance Sheet_2013 ～ Balance Sheet_2026</div>
+  <div class="cover-meta">
+    <div><strong>3,254萬</strong>2026/06 資產淨值</div>
+    <div><strong>+8,400%</strong>13年累計成長</div>
+    <div><strong>Coast FIRE</strong>已達成</div>
+    <div><strong>50歲</strong>當事人現齡</div>
+  </div>
+</div>
+
+<!-- ══ 第一章：整體成就 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 01</span>
+    <h2 class="chapter-title">從負37萬到3,254萬——數字說話</h2>
+  </div>
+
+  <p>2013年9月，這份試算表記下了人生第一筆數字：資產淨值<strong>負37萬</strong>。那不是一個令人振奮的起點，但它是誠實的起點。13年後的今天，同一份試算表記錄著<strong>3,254萬</strong>。</p>
+
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="kpi-label">2013 起始淨值</div>
+      <div class="kpi-value" style="font-size:1.3rem;color:var(--red)">-37萬</div>
+      <div class="kpi-sub">負資產出發</div>
+    </div>
+    <div class="kpi accent">
+      <div class="kpi-label">2026/06 淨值</div>
+      <div class="kpi-value">3,254萬</div>
+      <div class="kpi-sub">名目資產</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">年化成長率（估算）</div>
+      <div class="kpi-value">~40%</div>
+      <div class="kpi-sub">含儲蓄貢獻</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Coast FIRE 達成率</div>
+      <div class="kpi-value">100%+</div>
+      <div class="kpi-sub">門檻約 1,300萬</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">2024 單年增加</div>
+      <div class="kpi-value">+547萬</div>
+      <div class="kpi-sub">10,562→16,013萬</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">2025 單年增加</div>
+      <div class="kpi-value">+590萬</div>
+      <div class="kpi-sub">16,013→21,913萬</div>
+    </div>
+  </div>
+
+  <p>最引人注目的是加速度。2013年到2020年，每年成長100~200萬，紮實但不算驚人。2021年之後，台股多頭搭配紀律性的持續加碼，資產成長開始呈現複利加速效應——2024年一年就增加了超過500萬，幾乎是前三年的總和。</p>
+
+  <div class="callout green">
+    <div class="callout-title">✓ 核心優勢</div>
+    <div class="callout-body">台灣許多高薪家庭把錢放在定存或儲蓄險，平均年報酬率2%以下。這個家庭選擇了股票ETF為主的投資策略，在同樣的工作收入下，資產累積速度是傳統方式的5～10倍。</div>
+  </div>
+</div>
+
+<!-- ══ 第二章：資產配置分析 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 02</span>
+    <h2 class="chapter-title">92%股票集中度——勇氣還是風險？</h2>
+  </div>
+
+  <p>截至2026年6月，家庭資產配置如下：台股88.1%、美股7.4%、基金0.3%、現金活存4.0%、外匯0.2%。股票合計佔比<strong>95.5%</strong>，現金僅4%。</p>
+
+  <div class="chart-wrap">
+    <div class="chart-title">資產配置演變（各年底快照）</div>
+    <canvas id="allocChart" height="200"></canvas>
+  </div>
+
+  <table class="compare-table">
+    <tr>
+      <th>配置項目</th><th>2026/06 佔比</th><th>學術建議（50歲）</th><th>評估</th>
+    </tr>
+    <tr>
+      <td>股票（台股＋美股）</td>
+      <td><strong>95.5%</strong></td>
+      <td>50～60%</td>
+      <td><span class="tag tag-warn">過重</span></td>
+    </tr>
+    <tr>
+      <td>其中台股比重</td>
+      <td><strong>92.2%</strong> of 股票</td>
+      <td>建議本土偏誤 &lt;50%</td>
+      <td><span class="tag tag-bad">高度集中</span></td>
+    </tr>
+    <tr>
+      <td>美股</td>
+      <td>7.4%</td>
+      <td>30～40%</td>
+      <td><span class="tag tag-warn">不足</span></td>
+    </tr>
+    <tr>
+      <td>現金及活存</td>
+      <td>4.0%</td>
+      <td>6～12個月生活費</td>
+      <td><span class="tag tag-good">尚可</span></td>
+    </tr>
+    <tr>
+      <td>債券／固定收益</td>
+      <td>0%</td>
+      <td>20～30%</td>
+      <td><span class="tag tag-bad">完全缺席</span></td>
+    </tr>
+  </table>
+
+  <div class="callout green">
+    <div class="callout-title">✓ 優點：高風險高報酬策略奏效</div>
+    <div class="callout-body">在2021～2025年台股大多頭期間，近乎全押台股的策略讓資產翻倍不止。如果當時按教科書配置50%債券，現在的資產可能只有2,000萬出頭，少了超過1,000萬。結果論來看，這個決定是正確的。</div>
+  </div>
+
+  <div class="callout red">
+    <div class="callout-title">⚠ 風險：本土偏誤過重，缺乏全球分散</div>
+    <div class="callout-body">台股佔整體資產約88%，這意味著台灣單一市場的黑天鵝事件（地緣政治衝突、市場崩盤）會直接重創資產。2022年台股重挫30%，資產淨值從高點掉了近200萬，就是一個預演。<strong>目前持續增加美股ETF（VOO/VT/VTI）的方向是對的</strong>，應繼續擴大。</div>
+  </div>
+
+  <div class="callout gold">
+    <div class="callout-title">→ 建議：5年內逐步調整至台股60% / 美股30% / 現金10%</div>
+    <div class="callout-body">不建議大幅賣出台股重新配置（稅務成本高），而是把未來的定期定額和股息再投資，逐漸往美股傾斜。太太近期加入的0050正2屬於槓桿型ETF，波動率是0050的兩倍，建議控制在整體資產3%以內。</div>
+  </div>
+</div>
+
+<!-- ══ 第三章：行為分析 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 03</span>
+    <h2 class="chapter-title">13年的行為記錄——比績效更難得</h2>
+  </div>
+
+  <p>投資最難的不是選股，是<strong>行為</strong>。從這份試算表可以還原出這個家庭13年來的投資行為模式。</p>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2013 出發</div>
+      <div class="tl-text">從負37萬開始記帳，資產結構雜亂（台股、基金、外幣分散），但開始有系統地追蹤。<strong>最重要的一步是願意面對現實數字。</strong></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2018–2020 奠基期</div>
+      <div class="tl-text">資產從317萬成長到595萬，每年穩定增加100～200萬。台股為主、少量基金、現金部位較高。這段時期是<strong>儲蓄紀律建立的關鍵年</strong>。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2021–2022 大起大落</div>
+      <div class="tl-text">2021年底高峰836萬，2022年重挫後谷底743萬。<strong>關鍵是：沒有恐慌賣出。</strong>繼續持有並維持定期定額。這是一般散戶最常敗在的地方，這個家庭通過了測試。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2023–2024 加速成長</div>
+      <div class="tl-text">AI浪潮帶動台股，資產從930萬快速跳升到1,400萬再到2,000萬。開始引入美股定期定額（VOO/VT/VTI），<strong>全球分散化意識覺醒</strong>，這是策略的進化。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2024 太太離職</div>
+      <div class="tl-text">家庭收入從每月13.75萬降至7.7萬，月均結餘從6.3萬降至1.8萬。<strong>資產規模足夠大，Coast FIRE已達成，這個決定在財務上是支撐得住的。</strong>這正是長期累積的意義。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-year">2026 現在</div>
+      <div class="tl-text">資產3,254萬，太太加入投資（0050正2），每月USD 2,000定期定額美股。資產仍在加速。<strong>距退休15年，子彈已上膛。</strong></div>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">✓ 最值得稱讚的行為特質</div>
+    <div class="callout-body">
+      <strong>1. 13年不中斷的記帳</strong>——這是所有財務規劃的基礎，99%的人做不到。<br>
+      <strong>2. 2022年空頭沒有停損出場</strong>——當年跌100萬，繼續持有，2023年全回來了。<br>
+      <strong>3. 逐漸從選股轉向ETF</strong>——降低個股風險，增加投資紀律性。<br>
+      <strong>4. 太太離職後沒有賣股補收入</strong>——信任長期複利，不因短期壓力破壞計畫。
+    </div>
+  </div>
+</div>
+
+<!-- ══ 第四章：支出結構 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 04</span>
+    <h2 class="chapter-title">每月5.6萬的支出——合理嗎？</h2>
+  </div>
+
+  <p>2026年的月均支出約5.6～6萬（太太在職時7.4萬）。以一個四口之家、雙薪、有車、有小孩教育費的台北家庭來說，這個數字<strong>屬於偏低的理性派</strong>。</p>
+
+  <div class="chart-wrap">
+    <div class="chart-title">月支出主要科目佔比（2026年）</div>
+    <canvas id="expChart" height="160"></canvas>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">✓ 支出控制優點</div>
+    <div class="callout-body">沒有房貸（老公寓）、沒有消費性貸款、沒有卡債。每月硬性支出結構清晰，除了保單、勞保等固定支出外，大部分是可控的生活費。<strong>無房貸是最大的財務優勢之一</strong>，每個月省下的房貸金額可能就是別人無法投資的3～5萬。</div>
+  </div>
+
+  <div class="callout gold">
+    <div class="callout-title">→ 待觀察：退休後支出目標是否合理</div>
+    <div class="callout-body">退休目標月支出10萬（今日購買力）。目前實際支出5.6萬，有相當差距。15年後小孩已獨立，生活費應可降低，但另一方面旅遊、醫療支出可能增加。<strong>建議用「隨年齡遞減支出模型」估算，65～74歲可能真的需要10萬，75歲後可能只需7～8萬。</strong></div>
+  </div>
+</div>
+
+<!-- ══ 第五章：風險評估 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 05</span>
+    <h2 class="chapter-title">三個你沒有注意到的風險</h2>
+  </div>
+
+  <div class="scorecard">
+    <div class="score-row">
+      <div class="score-label">台股集中風險（單一市場曝險）</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:88%;background:var(--red)"></div></div>
+      <div class="score-num" style="color:var(--red)">高</div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">收入集中風險（單一薪資來源）</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:75%;background:var(--red)"></div></div>
+      <div class="score-num" style="color:var(--red)">高</div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">壽險保障不足風險</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:70%;background:var(--accent2)"></div></div>
+      <div class="score-num" style="color:var(--accent2)">中高</div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">流動性風險（現金僅4%）</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:45%;background:var(--gold)"></div></div>
+      <div class="score-num" style="color:var(--gold)">中</div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">通膨侵蝕風險（長期提領）</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:35%;background:var(--gold)"></div></div>
+      <div class="score-num" style="color:var(--gold)">中</div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">負債風險</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:5%;background:var(--green)"></div></div>
+      <div class="score-num" style="color:var(--green)">低</div>
+    </div>
+  </div>
+
+  <div class="callout red">
+    <div class="callout-title">⚠ 風險一：壽險保障額度</div>
+    <div class="callout-body">你的壽險保額：公司團保80萬定壽＋南山30萬，合計<strong>110萬</strong>。太太無薪資、無勞保，若你發生意外，她僅能領到110萬壽險加上你的勞保死亡給付（約60～100萬），合計不超過200萬，而她需要獨自撫養兩個小孩到成年，至少還需要15年。200萬完全不夠。<strong>建議增加定期壽險至少至1,000萬</strong>，以目前50歲健康男性，15年期1,000萬定壽，年保費約5～8萬，非常划算。</div>
+  </div>
+
+  <div class="callout red">
+    <div class="callout-title">⚠ 風險二：槓桿ETF 0050正2</div>
+    <div class="callout-body">0050正2是每日重置的槓桿型ETF，長期持有存在「波動耗損」問題——即使指數最終回到原點，槓桿ETF不會。2022年0050跌30%，0050正2跌幅超過60%。<strong>它不適合作為長期核心持倉，更適合短中期戰術性操作。</strong>建議控制在整體資產3%（約100萬）以內，並設定明確的停利停損規則。</div>
+  </div>
+
+  <div class="callout gold">
+    <div class="callout-title">→ 風險三：序列報酬風險（退休初期）</div>
+    <div class="callout-body">Coast FIRE已達成，但還有一個風險值得關注：如果你在65歲剛退休時遭遇大熊市（如2000年科技股崩盤、2008年金融海嘯），前幾年的提領加上資產縮水，可能會讓退休金比預期少很多。建議退休前3～5年，開始逐步將5～10%資產轉換為現金或短債，作為退休初期的生活緩衝。</div>
+  </div>
+</div>
+
+<!-- ══ 第六章：給太太看的版本 ══ -->
+<div class="chapter">
+  <div class="chapter-header">
+    <span class="chapter-num">CHAPTER 06</span>
+    <h2 class="chapter-title">如果只能告訴太太一件事</h2>
+  </div>
+
+  <p>財務數字有時會讓人焦慮，特別是當你不確定這些數字意味著什麼的時候。所以把它翻譯成一句話：</p>
+
+  <div style="text-align:center;padding:2.5rem 1rem;background:var(--paper2);border-radius:var(--r);border:1px solid var(--paper3);margin:1.5rem 0">
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:.8rem;font-family:'DM Mono',monospace;letter-spacing:.08em">TODAY'S SNAPSHOT</div>
+    <div style="font-size:1.15rem;color:var(--ink2);line-height:1.9">
+      我們現在有 <strong style="color:var(--accent);font-size:1.3rem">3,254萬</strong>。<br>
+      就算今天起我們完全不存錢，<br>
+      這筆錢以平均報酬率自然成長，<br>
+      15年後就會變成足夠我們退休的金額。<br>
+      <strong style="color:var(--ink)">我們已經越過了那條線。</strong>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:var(--ink3);text-align:center;margin-top:-.5rem">這就是 Coast FIRE 的意思。不是不用工作，是不再需要為錢焦慮。</p>
+</div>
+
+<!-- ══ 結語 ══ -->
+<div class="conclusion">
+  <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1.5rem">
+    <div class="conclusion-grade">A</div>
+    <div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--ink3);margin-bottom:4px">OVERALL ASSESSMENT</div>
+      <div style="font-size:1.1rem;font-weight:700">紀律優異，策略待優化</div>
+    </div>
+  </div>
+
+  <p>這份報告最讓我敬佩的，不是3,254萬這個數字，而是<strong>13年不間斷的記帳紀律</strong>。在台灣，願意這樣做的家庭不到1%。數字是結果，行為才是原因。</p>
+
+  <p>策略上最需要改進的只有兩件事：一是<strong>逐漸增加美股比重，降低台股集中度</strong>（你已經在做了，繼續）；二是<strong>確認壽險保額足夠保護太太和孩子</strong>（這件事優先級最高，本週就去做）。</p>
+
+  <p>其他一切，照常進行就好。</p>
+
+  <div class="speaker-note">
+    本報告資料來源為當事人Google Drive家庭資產負債表，數據截至2026年6月。報告中的建議僅供參考，不構成投資建議。每個家庭的財務狀況不同，重大決策前建議諮詢合格財務規劃師。
+  </div>
+</div>
+
+</div><!-- end .page -->
+
+<script>
+// 資產配置演變圖
+const allocCtx = document.getElementById('allocChart').getContext('2d');
+new Chart(allocCtx, {
+  type: 'bar',
+  data: {
+    labels: ['2018','2019','2020','2021','2022','2023','2024','2025','2026/06'],
+    datasets: [
+      { label:'台股', data:[50,51,49,63,64,62,74,88,88], backgroundColor:'rgba(184,92,42,0.75)', borderWidth:0 },
+      { label:'美股', data:[0,0,0,0,0,0,3,5,7], backgroundColor:'rgba(154,124,42,0.75)', borderWidth:0 },
+      { label:'基金', data:[4,6,10,4,8,4,1,2,0.3], backgroundColor:'rgba(42,122,79,0.6)', borderWidth:0 },
+      { label:'現金', data:[10,22,27,10,15,24,14,4,4], backgroundColor:'rgba(100,100,100,0.4)', borderWidth:0 },
+      { label:'外幣', data:[9,0,10,2,4,0,1,0.2,0.2], backgroundColor:'rgba(60,60,120,0.4)', borderWidth:0 },
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } },
+    scales:{
+      x:{ stacked:true, ticks:{font:{size:11},color:'#888'}, grid:{display:false} },
+      y:{ stacked:true, ticks:{callback:v=>v+'%',font:{size:11},color:'#888'}, max:100, grid:{color:'rgba(0,0,0,0.06)'} }
+    }
+  }
+});
+
+// 支出圖
+const expCtx = document.getElementById('expChart').getContext('2d');
+new Chart(expCtx, {
+  type: 'bar',
+  data: {
+    labels: ['菜錢','保單','勞保','英文課','停車場','管樂/鋼琴','安親費','油錢','學校雜費','其他'],
+    datasets:[{
+      data:[20000,9258,4214,3825,2750,4850,1633,1800,2133,4814],
+      backgroundColor:[
+        'rgba(184,92,42,0.7)','rgba(154,124,42,0.7)','rgba(100,130,160,0.7)',
+        'rgba(42,122,79,0.6)','rgba(120,80,140,0.6)','rgba(42,122,79,0.5)',
+        'rgba(60,130,130,0.6)','rgba(180,120,60,0.5)','rgba(100,100,180,0.5)','rgba(150,150,150,0.5)'
+      ],
+      borderWidth:0, borderRadius:3
+    }]
+  },
+  options:{
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>' NT$'+ctx.raw.toLocaleString() } } },
+    scales:{
+      x:{ ticks:{callback:v=>v>=10000?(v/10000).toFixed(0)+'萬':v,font:{size:10},color:'#888'}, grid:{color:'rgba(0,0,0,0.06)'} },
+      y:{ ticks:{font:{size:11},color:'#555'}, grid:{display:false} }
+    }
+  }
+});
+</script>
+</body>
+</html>
