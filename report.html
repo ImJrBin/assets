@@ -95,8 +95,9 @@ p strong{color:var(--ink);font-weight:500}
 .tag-bad{background:rgba(184,48,48,0.1);color:var(--red)}
 
 /* ── 圖表 ── */
-.chart-wrap{margin:1.5rem 0;background:var(--paper2);border-radius:var(--r);padding:1.2rem;border:1px solid var(--paper3)}
+.chart-wrap{margin:1.5rem 0;background:var(--paper2);border-radius:var(--r);padding:1.2rem;border:1px solid var(--paper3);overflow:hidden}
 .chart-title{font-size:12px;color:var(--ink3);margin-bottom:.8rem;font-family:'DM Mono',monospace;letter-spacing:.06em}
+.chart-inner{position:relative;width:100%}
 
 /* ── 結語 ── */
 .conclusion{margin-top:4rem;padding-top:2rem;border-top:2px solid var(--ink)}
@@ -188,8 +189,10 @@ p strong{color:var(--ink);font-weight:500}
   <p>截至2026年6月，家庭資產配置如下：台股88.1%、美股7.4%、基金0.3%、現金活存4.0%、外匯0.2%。股票合計佔比<strong>95.5%</strong>，現金僅4%。</p>
 
   <div class="chart-wrap">
-    <div class="chart-title">資產配置演變（各年底快照）</div>
-    <canvas id="allocChart" height="200"></canvas>
+    <div class="chart-title">資產配置演變（各年底快照，%）</div>
+    <div class="chart-inner" style="height:220px">
+      <canvas id="allocChart"></canvas>
+    </div>
   </div>
 
   <table class="compare-table">
@@ -306,9 +309,27 @@ p strong{color:var(--ink);font-weight:500}
 
   <p>2026年的月均支出約5.6～6萬（太太在職時7.4萬）。以一個四口之家、雙薪、有車、有小孩教育費的台北家庭來說，這個數字<strong>屬於偏低的理性派</strong>。</p>
 
-  <div class="chart-wrap">
-    <div class="chart-title">月支出主要科目佔比（2026年）</div>
-    <canvas id="expChart" height="160"></canvas>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:1.2rem 0;font-size:13px">
+    <div style="background:var(--paper2);border-radius:var(--r);padding:.7rem .9rem;border:1px solid var(--paper3)">
+      <div style="color:var(--ink3);font-size:11px;font-family:'DM Mono',monospace;margin-bottom:4px">最大支出</div>
+      <div style="font-weight:500">菜錢 <span style="font-family:'DM Mono',monospace">34%</span></div>
+      <div style="color:var(--ink3);font-size:12px">每月約 2 萬，飲食為重</div>
+    </div>
+    <div style="background:var(--paper2);border-radius:var(--r);padding:.7rem .9rem;border:1px solid var(--paper3)">
+      <div style="color:var(--ink3);font-size:11px;font-family:'DM Mono',monospace;margin-bottom:4px">保險支出</div>
+      <div style="font-weight:500">保單＋勞保 <span style="font-family:'DM Mono',monospace">24%</span></div>
+      <div style="color:var(--ink3);font-size:12px">年繳約 11 萬</div>
+    </div>
+    <div style="background:var(--paper2);border-radius:var(--r);padding:.7rem .9rem;border:1px solid var(--paper3)">
+      <div style="color:var(--ink3);font-size:11px;font-family:'DM Mono',monospace;margin-bottom:4px">子女教育</div>
+      <div style="font-weight:500">英文＋安親＋才藝 <span style="font-family:'DM Mono',monospace">22%</span></div>
+      <div style="color:var(--ink3);font-size:12px">小孩獨立後消失</div>
+    </div>
+    <div style="background:var(--paper2);border-radius:var(--r);padding:.7rem .9rem;border:1px solid var(--paper3)">
+      <div style="color:var(--ink3);font-size:11px;font-family:'DM Mono',monospace;margin-bottom:4px">交通</div>
+      <div style="font-weight:500">停車＋油錢＋保養 <span style="font-family:'DM Mono',monospace">10%</span></div>
+      <div style="color:var(--ink3);font-size:12px">Touran 維護成本低</div>
+    </div>
   </div>
 
   <div class="callout green">
@@ -449,31 +470,6 @@ new Chart(allocCtx, {
   }
 });
 
-// 支出圖
-const expCtx = document.getElementById('expChart').getContext('2d');
-new Chart(expCtx, {
-  type: 'bar',
-  data: {
-    labels: ['菜錢','保單','勞保','英文課','停車場','管樂/鋼琴','安親費','油錢','學校雜費','其他'],
-    datasets:[{
-      data:[20000,9258,4214,3825,2750,4850,1633,1800,2133,4814],
-      backgroundColor:[
-        'rgba(184,92,42,0.7)','rgba(154,124,42,0.7)','rgba(100,130,160,0.7)',
-        'rgba(42,122,79,0.6)','rgba(120,80,140,0.6)','rgba(42,122,79,0.5)',
-        'rgba(60,130,130,0.6)','rgba(180,120,60,0.5)','rgba(100,100,180,0.5)','rgba(150,150,150,0.5)'
-      ],
-      borderWidth:0, borderRadius:3
-    }]
-  },
-  options:{
-    indexAxis:'y', responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>' NT$'+ctx.raw.toLocaleString() } } },
-    scales:{
-      x:{ ticks:{callback:v=>v>=10000?(v/10000).toFixed(0)+'萬':v,font:{size:10},color:'#888'}, grid:{color:'rgba(0,0,0,0.06)'} },
-      y:{ ticks:{font:{size:11},color:'#555'}, grid:{display:false} }
-    }
-  }
-});
 </script>
 </body>
 </html>
