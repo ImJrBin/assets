@@ -821,9 +821,17 @@ async function gFetch(url) {
 
 // ── 找資料夾下所有 Balance Sheet 試算表 ──
 async function findFiles() {
+  // 從 2021 年開始載入，減少 loading 時間
+  // 2013~2020 的歷史資料格式較舊，解析容易出錯且拖慢速度
+  const START_YEAR = 2021;
   const q = encodeURIComponent(`title contains 'Balance Sheet' and '${FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
   const data = await gFetch(`https://www.googleapis.com/drive/v2/files?q=${q}&maxResults=50&fields=items(id,title)`);
-  return data.items || [];
+  const all = data.items || [];
+  // 過濾出 2021 年（含）以後的檔案
+  return all.filter(f => {
+    const m = f.title.match(/(\d{4})/);
+    return m ? parseInt(m[1]) >= START_YEAR : false;
+  });
 }
 
 // ── 讀取一個試算表的所有分頁 ──
@@ -947,7 +955,37 @@ function parseSheet(rows, sheetName) {
     }
   }
 
-  return { month, net, cash, stocks, twstocks: twStocks || 0, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp };
+  // ── 個股細項（202607 起，前綴「台股-」「美股-」）──
+  const h0050   = getVal('台股-元大台灣50', rows) || 0;
+  const h00631  = getVal('台股-元大台灣50正2', rows) || getVal('台股-元大台灣50正', rows) || 0;
+  const h00878  = getVal('台股-元大高股息', rows) || 0;
+  const h006208 = getVal('台股-富邦台50', rows) || 0;
+  const h2330   = getVal('台股-台積電', rows) || 0;
+  // 美股合併：VOO+VTI+VUAA → VUAA系列；VT+VWRA → VWRA系列
+  const hVOO    = (getVal('美股-VOO-古', rows)||0) + (getVal('美股-VOO-樂', rows)||0);
+  const hVTI    = getVal('美股-VTI-安', rows) || 0;
+  const hVUAA   = getVal('美股-IB-VUAA', rows) || 0;
+  const hVT     = (getVal('美股-VT-古', rows)||0) + (getVal('美股-VT-芳', rows)||0);
+  const hVWRA   = getVal('美股-IB-VWRA', rows) || 0;
+  const hVUAA_total = hVOO + hVTI + hVUAA;
+  const hVWRA_total = hVT + hVWRA;
+  const hasTwDetail = h0050 + h00631 + h00878 + h006208 + h2330 > 0;
+  const hasUsDetail = hVUAA_total + hVWRA_total > 0;
+  const holdings = (hasTwDetail || hasUsDetail) ? {
+    tw: hasTwDetail ? [
+      { l: '0050 元大台灣50',  v: h0050,   c: '#7c6af7' },
+      { l: '00631L 台灣50正2', v: h00631,  c: '#f06060' },
+      { l: '00878 高股息',     v: h00878,  c: '#3ecf8e' },
+      { l: '006208 富邦台50',  v: h006208, c: '#5090f0' },
+      { l: '2330 台積電',      v: h2330,   c: '#f0a050' },
+    ].filter(i => i.v > 0) : null,
+    us: hasUsDetail ? [
+      { l: 'VUAA系列 (VOO+VTI+VUAA)', v: hVUAA_total, c: '#a89af9' },
+      { l: 'VWRA系列 (VT+VWRA)',       v: hVWRA_total, c: '#64c8c8' },
+    ].filter(i => i.v > 0) : null,
+  } : null;
+
+  return { month, net, cash, stocks, twstocks: twStocks || 0, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp, holdings };
 }
 
 // ════════════════════════════════════════════
@@ -1099,58 +1137,51 @@ function renderAlloc() {
   const yd = allData.filter(d => d.month.startsWith(aYear));
   if (!yd.length) return;
   const L = yd[yd.length - 1];
-
   const hasDetail = L.holdings && (L.holdings.tw || L.holdings.us);
-
   if (aCI) aCI.destroy();
 
   if (hasDetail) {
-    // ── 雙層圓餅：外圈個股，內圈大類 ──
-    const twItems = L.holdings.tw || [];
-    const usItems = L.holdings.us || [];
+    // ── 雙層圓餅：外圈個股細項，內圈大類合計 ──
+    const twItems = (L.holdings.tw || []);
+    const usItems = (L.holdings.us || []);
     const otherItems = [
       { l: '基金',     v: L.funds, c: '#f0a050' },
       { l: '現金活存', v: L.cash,  c: '#888780' },
       { l: '外幣',     v: L.forex, c: '#64b464' },
     ].filter(i => i.v > 100);
 
-    const allItems = [...twItems, ...usItems, ...otherItems];
-    const tot = allItems.reduce((s, i) => s + i.v, 0);
+    const outerItems = [...twItems, ...usItems, ...otherItems];
+    const tot = outerItems.reduce((s, i) => s + i.v, 0);
 
-    // 內圈大類
-    const twTotal = twItems.reduce((s, i) => s + i.v, 0);
-    const usTotal = usItems.reduce((s, i) => s + i.v, 0);
+    // 內圈：三大類合計
+    const twTotal    = twItems.reduce((s, i) => s + i.v, 0);
+    const usTotal    = usItems.reduce((s, i) => s + i.v, 0);
     const otherTotal = otherItems.reduce((s, i) => s + i.v, 0);
     const innerItems = [
-      { l: '台股', v: twTotal, c: 'rgba(124,106,247,0.85)' },
-      { l: '美股', v: usTotal, c: 'rgba(100,200,200,0.85)' },
-      { l: '其他', v: otherTotal, c: 'rgba(136,135,128,0.6)' },
+      { l: `台股 ${(twTotal/tot*100).toFixed(1)}%`,    v: twTotal,    c: 'rgba(124,106,247,0.7)' },
+      { l: `美股 ${(usTotal/tot*100).toFixed(1)}%`,    v: usTotal,    c: 'rgba(100,200,200,0.7)' },
+      { l: `其他 ${(otherTotal/tot*100).toFixed(1)}%`, v: otherTotal, c: 'rgba(136,135,128,0.5)' },
     ].filter(i => i.v > 0);
 
     aCI = new Chart(document.getElementById('aC').getContext('2d'), {
       type: 'doughnut',
       data: {
-        labels: allItems.map(i => i.l),
+        labels: outerItems.map(i => i.l),
         datasets: [
-          // 外圈：個股細項
           {
-            label: '個股',
-            data: allItems.map(i => Math.round(i.v)),
-            backgroundColor: allItems.map(i => i.c),
-            borderWidth: 2,
-            borderColor: '#18181c',
-            cutout: '55%',
-            radius: '100%',
+            // 外圈：個股
+            data: outerItems.map(i => Math.round(i.v)),
+            backgroundColor: outerItems.map(i => i.c),
+            borderWidth: 2, borderColor: '#18181c',
+            cutout: '52%', radius: '100%',
           },
-          // 內圈：大類合計
           {
-            label: '大類',
+            // 內圈：大類（labels 用 innerItems，需要分開 tooltip）
+            label: '__inner__',
             data: innerItems.map(i => Math.round(i.v)),
             backgroundColor: innerItems.map(i => i.c),
-            borderWidth: 2,
-            borderColor: '#18181c',
-            cutout: '0%',
-            radius: '52%',
+            borderWidth: 2, borderColor: '#18181c',
+            cutout: '0%', radius: '50%',
           },
         ]
       },
@@ -1160,10 +1191,14 @@ function renderAlloc() {
           legend: { display: false },
           tooltip: {
             callbacks: {
+              title: ctx => {
+                if (ctx[0].datasetIndex === 1) return innerItems[ctx[0].dataIndex]?.l || '';
+                return ctx[0].label;
+              },
               label: ctx => {
                 const v = ctx.raw;
                 const pct = (v / tot * 100).toFixed(1);
-                return ` ${ctx.label}: ${Math.round(v/10000)}萬 (${pct}%)`;
+                return ` ${Math.round(v/10000)}萬 (${pct}%)`;
               }
             }
           }
@@ -1171,17 +1206,19 @@ function renderAlloc() {
       }
     });
 
-    // 圖例：分組 + 大類合計標題
+    // 圖例：分組顯示，標題含合計
     const groups = [
-      { title: `台股　合計 ${(twTotal/tot*100).toFixed(1)}%　${Math.round(twTotal/10000)}萬`, items: twItems },
-      { title: `美股　合計 ${(usTotal/tot*100).toFixed(1)}%　${Math.round(usTotal/10000)}萬`, items: usItems },
-      { title: `其他　合計 ${(otherTotal/tot*100).toFixed(1)}%　${Math.round(otherTotal/10000)}萬`, items: otherItems },
-    ];
+      { title: `台股　${(twTotal/tot*100).toFixed(1)}%・${Math.round(twTotal/10000)}萬`, items: twItems, c: 'rgba(124,106,247,0.7)' },
+      { title: `美股　${(usTotal/tot*100).toFixed(1)}%・${Math.round(usTotal/10000)}萬`, items: usItems, c: 'rgba(100,200,200,0.7)' },
+      { title: `其他　${(otherTotal/tot*100).toFixed(1)}%・${Math.round(otherTotal/10000)}萬`, items: otherItems, c: 'rgba(136,135,128,0.5)' },
+    ].filter(g => g.items.length > 0);
 
-    document.getElementById('aLgd').innerHTML = groups.map(g => {
-      if (!g.items.length) return '';
-      return `<div style="margin-bottom:.8rem">
-        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${g.title}</div>
+    document.getElementById('aLgd').innerHTML = groups.map(g => `
+      <div style="margin-bottom:.9rem">
+        <div style="display:flex;align-items:center;gap:6px;padding-bottom:5px;margin-bottom:4px;border-bottom:1px solid var(--border)">
+          <span style="width:10px;height:10px;border-radius:2px;background:${g.c};flex-shrink:0;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:500;color:var(--text)">${g.title}</span>
+        </div>
         ${g.items.map(i => {
           const pct = (i.v / tot * 100).toFixed(1);
           return `<div class="alloc-row">
@@ -1189,11 +1226,10 @@ function renderAlloc() {
             <div class="alloc-val"><div class="alloc-pct">${pct}%</div><div class="alloc-amt">${tw(i.v)}</div></div>
           </div>`;
         }).join('')}
-      </div>`;
-    }).join('');
+      </div>`).join('');
 
   } else {
-    // 舊格式：單層大類圓餅
+    // 舊格式（2021~2026/06）：單層大類圓餅
     const twVal = L.twstocks > 0 ? L.twstocks : L.stocks;
     const usVal = L.usstocks || 0;
     const items = [
@@ -1204,7 +1240,6 @@ function renderAlloc() {
       { l: '外幣',     v: L.forex, c: '#64b464' },
     ].filter(i => i.v > 100);
     const tot = items.reduce((s, i) => s + i.v, 0);
-
     aCI = new Chart(document.getElementById('aC').getContext('2d'), {
       type: 'doughnut',
       data: {
@@ -1219,7 +1254,6 @@ function renderAlloc() {
         cutout: '65%'
       }
     });
-
     document.getElementById('aLgd').innerHTML = items.map(i => {
       const pct = (i.v / tot * 100).toFixed(1);
       return `<div class="alloc-row">
@@ -1229,7 +1263,6 @@ function renderAlloc() {
     }).join('');
   }
 }
-
 function renderMonthlySelector() {
   const yrs = [...new Set(allData.map(d => d.month.slice(0, 4)))].sort((a, b) => b - a);
   document.getElementById('ySel').innerHTML = yrs.map(y => `<option value="${y}">${y} 年</option>`).join('');
