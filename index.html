@@ -839,8 +839,8 @@
           </div>
           <div class="lgd" style="margin-top:8px">
             <span><span class="ld" style="background:#7c6af7"></span>扣除長照後可用資產（萬）</span>
-            <span><span class="ld" style="background:#3ecf8e"></span>月提領合計（千元）</span>
-            <span><span class="ld" style="background:#f06060;border-radius:50%"></span>壓力測試月提領（千元）</span>
+            <span><span class="ld" style="background:#3ecf8e"></span>月提領合計（萬元）</span>
+            <span><span class="ld" style="background:#f06060;border-radius:50%"></span>壓力測試月提領（萬元）</span>
           </div>
         </div>
 
@@ -1912,9 +1912,9 @@ function renderRetireDetail() {
   // 判定文字
   const statusLabel = { ok:'✅ 財務充裕', warn:'⚠️ 勉強可行', bad:'❌ 建議再等' }[d.status];
   const statusTip   = {
-    ok:  `${age} 歲退休後每月可用 <strong>${Math.round(d.totalMonthly/1000)}千元</strong>，即使台股跌 30%，最壞情況每月仍有 <strong>${Math.round(d.stressMonthly/1000)}千元</strong>，長照費用 <strong>${tw2(d.ltcReserve)}</strong> 已預留。`,
-    warn:`${age} 歲退休財務上勉強可行，每月 <strong>${Math.round(d.totalMonthly/1000)}千元</strong> 與目標支出相當，緩衝有限。台股若重挫，每月可能降至 <strong>${Math.round(d.stressMonthly/1000)}千元</strong>，建議維持彈性支出。`,
-    bad: `${age} 歲退休月收入 <strong>${Math.round(d.totalMonthly/1000)}千元</strong> 不足以支應 <strong>${Math.round(d.expenseNominal/1000)}千元</strong> 的退休支出，建議再等幾年讓資產繼續成長。`,
+    ok:  `${age} 歲退休後每月可用 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong>，即使台股跌 30%，最壞情況每月仍有 <strong>${(d.stressMonthly/10000).toFixed(1)}萬</strong>，長照費用 <strong>${tw2(d.ltcReserve)}</strong> 已預留。`,
+    warn:`${age} 歲退休財務上勉強可行，每月 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong> 與目標支出相當，緩衝有限。台股若重挫，每月可能降至 <strong>${(d.stressMonthly/10000).toFixed(1)}萬</strong>，建議維持彈性支出。`,
+    bad: `${age} 歲退休月收入 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong> 不足以支應 <strong>${(d.expenseNominal/10000).toFixed(1)}萬</strong> 的退休支出，建議再等幾年讓資產繼續成長。`,
   }[d.status];
 
   document.getElementById('ret_verdict').innerHTML = `
@@ -1929,9 +1929,9 @@ function renderRetireDetail() {
     { label:'退休時預估資產（名目）', value: tw2(d.nominalAsset), sub: `今日資產 × (1+${((getFireParams().growthRate)*100).toFixed(0)}%)^${d.ytr}年`, cls: '' },
     { label:'長照準備金（通膨調整）', value: tw2(d.ltcReserve),   sub: `NT$${(d.ltcMonthly/10000).toFixed(1)}萬/月 × ${d.ltcYears}年 × 2人`, cls: '' },
     { label:'扣除長照後可用資產',     value: tw2(d.usableAsset),  sub: `SWR ${(getFireParams().swr*100).toFixed(1)}% → 月提領 ${tw2(d.monthlyFromAsset)}`, cls: d.status==='ok'?'ok':d.status==='bad'?'bad':'' },
-    { label:'每月總收入來源',         value: Math.round(d.totalMonthly/1000)+'千元', sub: `資產提領＋勞保＋租金`, cls: d.status==='ok'?'ok':'' },
-    { label:'退休月生活費（名目值）', value: Math.round(d.expenseNominal/1000)+'千元', sub: `今日 ${Math.round((parseFloat(document.getElementById('ret_expense').value)||60000)/1000)}千元 × 通膨 ${d.ytr}年`, cls: '' },
-    { label:'台股跌30% 月收入',       value: Math.round(d.stressMonthly/1000)+'千元', sub: d.stressMonthly >= d.expenseNominal ? '壓力測試仍可支應✓' : '壓力測試不足，需節支', cls: d.stressMonthly >= d.expenseNominal ? 'ok' : 'bad' },
+    { label:'每月總收入來源',         value: (d.totalMonthly/10000).toFixed(1)+'萬', sub: `資產提領＋勞保＋租金`, cls: d.status==='ok'?'ok':'' },
+    { label:'退休月生活費（名目值）', value: (d.expenseNominal/10000).toFixed(1)+'萬', sub: `今日 ${((parseFloat(document.getElementById('ret_expense').value)||60000)/10000).toFixed(1)}萬 × 通膨 ${d.ytr}年`, cls: '' },
+    { label:'台股跌30% 月收入',       value: (d.stressMonthly/10000).toFixed(1)+'萬',  sub: d.stressMonthly >= d.expenseNominal ? '壓力測試仍可支應✓' : '壓力測試不足，需節支', cls: d.stressMonthly >= d.expenseNominal ? 'ok' : 'bad' },
   ];
 
   document.getElementById('ret_detail_cards').innerHTML = cards.map(c => `
@@ -1952,7 +1952,7 @@ function renderRetireAgeBars() {
   document.getElementById('ret_age_bars').innerHTML = results.map(r => {
     const pct   = (r.totalMonthly / maxMo * 100).toFixed(0);
     const color = r.status === 'ok' ? '#3ecf8e' : r.status === 'warn' ? '#f0a050' : '#f06060';
-    const moStr = Math.round(r.totalMonthly / 1000);
+    const moStr = (r.totalMonthly / 10000).toFixed(1);
     return `<div class="age-bar-row ${r.retireAge === curAge ? 'active' : ''}"
       data-age="${r.retireAge}"
       onclick="document.getElementById('ret_age_slider').value=${r.retireAge};updateRetSlider();renderRetireDetail()">
@@ -1960,7 +1960,7 @@ function renderRetireAgeBars() {
       <div class="age-bar-track">
         <div class="age-bar-fill" style="width:${pct}%;background:${color}"></div>
       </div>
-      <span class="age-bar-pct" style="color:${color}">${moStr}K</span>
+      <span class="age-bar-pct" style="color:${color}">${moStr}萬</span>
     </div>`;
   }).join('');
 }
@@ -1986,17 +1986,17 @@ function renderRetireChart() {
           borderWidth: 0, borderRadius: 3, yAxisID: 'y',
         },
         {
-          label: '月提領合計（千元）',
+          label: '月提領合計（萬）',
           type: 'line',
-          data: results.map(r => Math.round(r.totalMonthly / 1000)),
+          data: results.map(r => parseFloat((r.totalMonthly / 10000).toFixed(1))),
           borderColor: '#3ecf8e', backgroundColor: 'transparent',
           borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
           yAxisID: 'y2',
         },
         {
-          label: '壓力測試月提領（千元）',
+          label: '壓力測試月提領（萬）',
           type: 'line',
-          data: results.map(r => Math.round(r.stressMonthly / 1000)),
+          data: results.map(r => parseFloat((r.stressMonthly / 10000).toFixed(1))),
           borderColor: '#f06060', backgroundColor: 'transparent',
           borderWidth: 1.5, borderDash: [4, 3],
           pointRadius: 2, pointBackgroundColor: '#f06060',
@@ -2010,7 +2010,7 @@ function renderRetireChart() {
       scales: {
         x:  { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
         y:  { position: 'left',  ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y2: { position: 'right', ticks: { callback: v => v+'K', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
+        y2: { position: 'right', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
       }
     }
   });
