@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -423,6 +423,56 @@
     bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
   input:checked + .toggle-slider { background:var(--accent); }
   input:checked + .toggle-slider:before { transform:translateX(16px); }
+
+  /* ── 退休試算 ── */
+  .ret-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; align-items: start; }
+  @media (max-width: 860px) { .ret-layout { grid-template-columns: 1fr; } }
+
+  .ret-inputs { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.2rem; }
+
+  .ret-verdict {
+    border-radius: var(--r); padding: 1rem 1.2rem; margin-bottom: 1rem;
+    font-size: 13px; line-height: 1.75; border: 1px solid var(--border);
+  }
+  .ret-verdict.ok   { background: rgba(62,207,142,0.07); border-color: rgba(62,207,142,0.25); }
+  .ret-verdict.warn { background: rgba(240,160,80,0.07); border-color: rgba(240,160,80,0.25); }
+  .ret-verdict.bad  { background: rgba(240,96,96,0.07);  border-color: rgba(240,96,96,0.25);  }
+  .ret-verdict-title { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+  .ret-verdict.ok   .ret-verdict-title { color: var(--green); }
+  .ret-verdict.warn .ret-verdict-title { color: var(--amber); }
+  .ret-verdict.bad  .ret-verdict-title { color: var(--red);   }
+
+  .ret-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .ret-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: .8rem 1rem; }
+  .ret-kpi.hl { border-color: var(--accent); background: rgba(124,106,247,0.06); }
+  .ret-kpi.ok { border-color: var(--green);  background: rgba(62,207,142,0.06); }
+  .ret-kpi.bad{ border-color: var(--red);    background: rgba(240,96,96,0.06); }
+  .rk-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .rk-value { font-size: 20px; font-weight: 300; font-family: 'DM Mono', monospace; color: var(--text); line-height: 1.2; }
+  .rk-sub   { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  .ret-slider-wrap { margin-bottom: 1.2rem; }
+  .ret-slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .ret-slider-label  { font-size: 12px; color: var(--text2); }
+  .ret-slider-value  { font-size: 22px; font-weight: 300; font-family: 'DM Mono', monospace; color: var(--accent2); }
+  input[type=range].ret-slider {
+    width: 100%; -webkit-appearance: none; height: 4px;
+    border-radius: 2px; outline: none; cursor: pointer;
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) 50%, var(--border2) 50%, var(--border2) 100%);
+  }
+  input[type=range].ret-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent2); border: 2px solid var(--bg); cursor: pointer;
+  }
+
+  .age-bar-wrap { margin: 1rem 0; }
+  .age-bar-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; cursor: pointer; }
+  .age-bar-row:hover .age-bar-fill { opacity: .85; }
+  .age-bar-age  { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); width: 28px; flex-shrink: 0; }
+  .age-bar-track{ flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .age-bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .age-bar-pct  { font-size: 11px; font-family: 'DM Mono', monospace; width: 36px; text-align: right; flex-shrink: 0; }
+  .age-bar-row.active .age-bar-fill { outline: 2px solid var(--accent2); outline-offset: 1px; }
 </style>
 </head>
 <body>
@@ -491,6 +541,7 @@
       <button class="tab" onclick="showTab('monthly',this)">月度收支</button>
       <button class="tab" onclick="showTab('fire',this);renderFire()">Coast FIRE</button>
       <button class="tab" onclick="showTab('scenarios',this);renderScenarios()">情境分析</button>
+      <button class="tab" onclick="showTab('retire',this);renderRetire()">退休試算</button>
     </div>
 
     <!-- 趨勢 -->
@@ -723,6 +774,79 @@
 
       </div>
     </div>
+
+    <!-- 退休試算 -->
+    <div id="retire" class="pane">
+      <div class="ret-layout">
+
+        <!-- 左：參數 -->
+        <div class="ret-inputs">
+          <div class="fire-section-label">退休年齡試算</div>
+
+          <div class="ret-slider-wrap">
+            <div class="ret-slider-header">
+              <span class="ret-slider-label">拖動選擇退休年齡</span>
+              <span class="ret-slider-value" id="ret_age_display">55 歲</span>
+            </div>
+            <input type="range" class="ret-slider" id="ret_age_slider"
+              min="51" max="65" value="55" step="1"
+              oninput="updateRetSlider();renderRetireDetail()">
+          </div>
+
+          <div class="fire-section-label" style="margin-top:1rem">退休後收支（今日幣值）</div>
+          <div class="fi-row">
+            <label>每月生活費</label>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
+              <input type="number" id="ret_expense" value="60000" step="5000" oninput="renderRetire()">
+            <span class="fi-suffix">/月</span></div>
+          </div>
+          <div class="fi-row">
+            <label>繼承房產月租金（可設 0）</label>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
+              <input type="number" id="ret_rent" value="20000" step="5000" oninput="renderRetire()">
+            <span class="fi-suffix">/月</span></div>
+          </div>
+
+          <div class="fire-section-label" style="margin-top:1rem">長照準備</div>
+          <div class="fi-row">
+            <label>長照月費（每人，今日幣值）</label>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
+              <input type="number" id="ret_ltc_monthly" value="40000" step="5000" oninput="renderRetire()">
+            <span class="fi-suffix">/月</span></div>
+          </div>
+          <div class="fi-row">
+            <label>長照年數（每人）</label>
+            <div class="fi-input-wrap">
+              <input type="number" id="ret_ltc_years" value="7.7" step="0.5" oninput="renderRetire()">
+            <span class="fi-suffix">年</span></div>
+          </div>
+          <div class="fi-note">夫妻合計長照準備金 = 月費×12×年數×2人（通膨調整）</div>
+
+          <div class="fire-section-label" style="margin-top:1rem">參數沿用 Coast FIRE 設定</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.8">
+            報酬率 / SWR / 通膨 / 勞保年金<br>請至 Coast FIRE 分頁調整
+          </div>
+        </div>
+
+        <!-- 右：結果 -->
+        <div>
+          <div id="ret_verdict"></div>
+          <div id="ret_detail_cards" class="ret-kpi-grid"></div>
+          <div class="fire-section-label" style="margin-bottom:8px">51～65 歲各年齡月提領概覽（點選切換）</div>
+          <div id="ret_age_bars" class="age-bar-wrap"></div>
+          <div class="chart-wrap" style="height:240px;margin-top:1rem">
+            <canvas id="retC" role="img" aria-label="各退休年齡可用資產與月提領折線圖"></canvas>
+          </div>
+          <div class="lgd" style="margin-top:8px">
+            <span><span class="ld" style="background:#7c6af7"></span>扣除長照後可用資產（萬）</span>
+            <span><span class="ld" style="background:#3ecf8e"></span>月提領合計（千元）</span>
+            <span><span class="ld" style="background:#f06060;border-radius:50%"></span>壓力測試月提領（千元）</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1691,6 +1815,206 @@ function renderEducation() {
 // Coast FIRE 計算（家庭版）
 // ════════════════════════════════════════════
 let fCI = null;
+
+
+// ════════════════════════════════════════════
+// 退休試算
+// ════════════════════════════════════════════
+let retCI = null;
+
+function updateRetSlider() {
+  const age = document.getElementById('ret_age_slider').value;
+  const pct = (age - 51) / (65 - 51) * 100;
+  document.getElementById('ret_age_slider').style.background =
+    `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--border2) ${pct}%, var(--border2) 100%)`;
+  document.getElementById('ret_age_display').textContent = age + ' 歲';
+}
+
+// 計算某退休年齡的完整財務數字
+function calcRetireAt(retireAge) {
+  const p = getFireParams();
+  const currentNet   = allData.length ? allData[allData.length-1].net : 0;
+  const retExpense   = parseFloat(document.getElementById('ret_expense').value)    || 60000;
+  const rentIncome   = parseFloat(document.getElementById('ret_rent').value)       || 0;
+  const ltcMonthly   = parseFloat(document.getElementById('ret_ltc_monthly').value)|| 40000;
+  const ltcYears     = parseFloat(document.getElementById('ret_ltc_years').value)  || 7.7;
+
+  const ytr          = Math.max(retireAge - p.husbandAge, 0);
+  const inflFactor   = Math.pow(1 + p.inflation, ytr);
+
+  // 退休時名目資產（自然成長，不計額外儲蓄，保守估算）
+  const nominalAsset = currentNet * Math.pow(1 + p.growthRate, ytr);
+
+  // 長照準備金（通膨調整，夫妻各一次）
+  const ltcReserve   = ltcMonthly * 12 * ltcYears * 2 * inflFactor;
+
+  // 可用資產（扣除長照準備金）
+  const usableAsset  = Math.max(nominalAsset - ltcReserve, 0);
+
+  // 月提領（SWR × 可用資產 / 12）
+  const monthlyFromAsset = usableAsset * p.swr / 12;
+
+  // 勞保（65 歲以後才領）
+  const laborIncome  = retireAge >= 65 ? p.laborPension : 0;
+
+  // 房租收入（通膨調整後名目值，保守不調整）
+  const rentNominal  = rentIncome;
+
+  // 每月總收入
+  const totalMonthly = monthlyFromAsset + laborIncome + rentNominal;
+
+  // 退休後需要的名目月支出
+  const expenseNominal = retExpense * inflFactor;
+
+  // 壓力測試：台股跌 30%（台股佔 85.5%）
+  const L = allData.length ? allData[allData.length-1] : {};
+  const twRatio    = L.twstocks > 0 ? L.twstocks / L.net : 0.855;
+  const stressAsset= currentNet * (1 - twRatio * 0.3) * Math.pow(1 + p.growthRate, ytr);
+  const stressUsable = Math.max(stressAsset - ltcReserve, 0);
+  const stressMonthly = stressUsable * p.swr / 12 + laborIncome + rentNominal;
+
+  // 是否夠用
+  const surplus    = totalMonthly - expenseNominal;
+  const status     = totalMonthly >= expenseNominal * 1.2 ? 'ok'
+                   : totalMonthly >= expenseNominal        ? 'warn' : 'bad';
+
+  return {
+    retireAge, ytr, nominalAsset, ltcReserve, usableAsset,
+    monthlyFromAsset, laborIncome, rentNominal, totalMonthly,
+    expenseNominal, surplus, status,
+    stressMonthly, stressUsable,
+    inflFactor, ltcMonthly, ltcYears,
+  };
+}
+
+function renderRetire() {
+  if (!allData.length) return;
+  updateRetSlider();
+  renderRetireDetail();
+  renderRetireChart();
+  renderRetireAgeBars();
+}
+
+function renderRetireDetail() {
+  if (!allData.length) return;
+  const age = parseInt(document.getElementById('ret_age_slider').value);
+  const d   = calcRetireAt(age);
+  const tw2 = n => Math.abs(n) >= 1e8 ? (n/1e8).toFixed(1)+'億' : Math.round(Math.abs(n)/1e4)+'萬';
+
+  // 更新進度條背景
+  updateRetSlider();
+
+  // 更新 age bars 的 active 狀態
+  document.querySelectorAll('.age-bar-row').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.age) === age);
+  });
+
+  // 判定文字
+  const statusLabel = { ok:'✅ 財務充裕', warn:'⚠️ 勉強可行', bad:'❌ 建議再等' }[d.status];
+  const statusTip   = {
+    ok:  `${age} 歲退休後每月可用 <strong>${Math.round(d.totalMonthly/1000)}千元</strong>，即使台股跌 30%，最壞情況每月仍有 <strong>${Math.round(d.stressMonthly/1000)}千元</strong>，長照費用 <strong>${tw2(d.ltcReserve)}</strong> 已預留。`,
+    warn:`${age} 歲退休財務上勉強可行，每月 <strong>${Math.round(d.totalMonthly/1000)}千元</strong> 與目標支出相當，緩衝有限。台股若重挫，每月可能降至 <strong>${Math.round(d.stressMonthly/1000)}千元</strong>，建議維持彈性支出。`,
+    bad: `${age} 歲退休月收入 <strong>${Math.round(d.totalMonthly/1000)}千元</strong> 不足以支應 <strong>${Math.round(d.expenseNominal/1000)}千元</strong> 的退休支出，建議再等幾年讓資產繼續成長。`,
+  }[d.status];
+
+  document.getElementById('ret_verdict').innerHTML = `
+    <div class="ret-verdict ${d.status}">
+      <div class="ret-verdict-title">${statusLabel}</div>
+      ${statusTip}
+    </div>`;
+
+  // KPI 卡片
+  const laborStr = d.laborIncome > 0 ? `含勞保 ${tw2(d.laborIncome*12)}/年` : `${age < 65 ? '65歲起領勞保' : ''}`;
+  const cards = [
+    { label:'退休時預估資產（名目）', value: tw2(d.nominalAsset), sub: `今日資產 × (1+${((getFireParams().growthRate)*100).toFixed(0)}%)^${d.ytr}年`, cls: '' },
+    { label:'長照準備金（通膨調整）', value: tw2(d.ltcReserve),   sub: `NT$${(d.ltcMonthly/10000).toFixed(1)}萬/月 × ${d.ltcYears}年 × 2人`, cls: '' },
+    { label:'扣除長照後可用資產',     value: tw2(d.usableAsset),  sub: `SWR ${(getFireParams().swr*100).toFixed(1)}% → 月提領 ${tw2(d.monthlyFromAsset)}`, cls: d.status==='ok'?'ok':d.status==='bad'?'bad':'' },
+    { label:'每月總收入來源',         value: Math.round(d.totalMonthly/1000)+'千元', sub: `資產提領＋勞保＋租金`, cls: d.status==='ok'?'ok':'' },
+    { label:'退休月生活費（名目值）', value: Math.round(d.expenseNominal/1000)+'千元', sub: `今日 ${Math.round((parseFloat(document.getElementById('ret_expense').value)||60000)/1000)}千元 × 通膨 ${d.ytr}年`, cls: '' },
+    { label:'台股跌30% 月收入',       value: Math.round(d.stressMonthly/1000)+'千元', sub: d.stressMonthly >= d.expenseNominal ? '壓力測試仍可支應✓' : '壓力測試不足，需節支', cls: d.stressMonthly >= d.expenseNominal ? 'ok' : 'bad' },
+  ];
+
+  document.getElementById('ret_detail_cards').innerHTML = cards.map(c => `
+    <div class="ret-kpi ${c.cls}">
+      <div class="rk-label">${c.label}</div>
+      <div class="rk-value">${c.value}</div>
+      <div class="rk-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderRetireAgeBars() {
+  if (!allData.length) return;
+  const ages    = Array.from({length: 15}, (_, i) => 51 + i);
+  const results = ages.map(a => calcRetireAt(a));
+  const maxMo   = Math.max(...results.map(r => r.totalMonthly));
+  const curAge  = parseInt(document.getElementById('ret_age_slider').value);
+
+  document.getElementById('ret_age_bars').innerHTML = results.map(r => {
+    const pct   = (r.totalMonthly / maxMo * 100).toFixed(0);
+    const color = r.status === 'ok' ? '#3ecf8e' : r.status === 'warn' ? '#f0a050' : '#f06060';
+    const moStr = Math.round(r.totalMonthly / 1000);
+    return `<div class="age-bar-row ${r.retireAge === curAge ? 'active' : ''}"
+      data-age="${r.retireAge}"
+      onclick="document.getElementById('ret_age_slider').value=${r.retireAge};updateRetSlider();renderRetireDetail()">
+      <span class="age-bar-age">${r.retireAge}</span>
+      <div class="age-bar-track">
+        <div class="age-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <span class="age-bar-pct" style="color:${color}">${moStr}K</span>
+    </div>`;
+  }).join('');
+}
+
+function renderRetireChart() {
+  if (!allData.length) return;
+  const ages    = Array.from({length: 15}, (_, i) => 51 + i);
+  const results = ages.map(a => calcRetireAt(a));
+
+  if (retCI) retCI.destroy();
+  retCI = new Chart(document.getElementById('retC').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ages.map(a => a + '歲'),
+      datasets: [
+        {
+          label: '可用資產（萬）',
+          data: results.map(r => Math.round(r.usableAsset / 10000)),
+          backgroundColor: results.map(r =>
+            r.status === 'ok'   ? 'rgba(124,106,247,0.6)' :
+            r.status === 'warn' ? 'rgba(240,160,80,0.6)'  :
+                                  'rgba(240,96,96,0.5)'),
+          borderWidth: 0, borderRadius: 3, yAxisID: 'y',
+        },
+        {
+          label: '月提領合計（千元）',
+          type: 'line',
+          data: results.map(r => Math.round(r.totalMonthly / 1000)),
+          borderColor: '#3ecf8e', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
+          yAxisID: 'y2',
+        },
+        {
+          label: '壓力測試月提領（千元）',
+          type: 'line',
+          data: results.map(r => Math.round(r.stressMonthly / 1000)),
+          borderColor: '#f06060', backgroundColor: 'transparent',
+          borderWidth: 1.5, borderDash: [4, 3],
+          pointRadius: 2, pointBackgroundColor: '#f06060',
+          yAxisID: 'y2',
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x:  { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y:  { position: 'left',  ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y2: { position: 'right', ticks: { callback: v => v+'K', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
+      }
+    }
+  });
+}
 
 function renderFire() {
   const husbandAge    = parseFloat(document.getElementById('fi_husbandAge').value)    || 50;
