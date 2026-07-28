@@ -223,7 +223,169 @@
     color:var(--ink-soft);
   }
 
-  footer{
+  /* Sentiment gauge */
+  .gauge-wrap{
+    margin-bottom:30px;
+  }
+  .gauge-label-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:8px;
+  }
+  .gauge-label-row .gauge-title{
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:16px;
+  }
+  .gauge-label-row .gauge-state{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.05em;
+  }
+  .gauge-track{
+    position:relative;
+    height:10px;
+    border-radius:5px;
+    background:linear-gradient(to right, var(--green), var(--gold), var(--stamp));
+    margin-bottom:6px;
+  }
+  .gauge-marker{
+    position:absolute;
+    top:-5px;
+    width:2px;
+    height:20px;
+    background:var(--ink);
+  }
+  .gauge-scale{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .gauge-note{
+    font-size:14px;
+    line-height:1.75;
+    color:var(--ink-soft);
+  }
+
+  /* Holdings light-wall */
+  .holdings-wall{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:10px;
+    margin-bottom:34px;
+  }
+  .light-card{
+    border-radius:8px;
+    padding:12px 14px;
+    border:1px solid var(--rule);
+  }
+  .light-card.lvl-danger{ background:#F3D9D3; border-color:var(--stamp); }
+  .light-card.lvl-warning{ background:var(--paper-2); border-color:var(--gold); }
+  .light-card.lvl-success{ background:#E1E9DE; border-color:var(--green); }
+  .light-card .ticker{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:16px;
+    display:block;
+  }
+  .light-card .name{
+    font-size:12px;
+    color:var(--ink-soft);
+    display:block;
+    margin-bottom:6px;
+  }
+  .light-card .note{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--ink-soft);
+  }
+
+  /* Event chain */
+  .chain-list{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    margin-bottom:10px;
+  }
+  .chain-card{
+    border:1px solid var(--rule);
+    padding:16px;
+  }
+  .chain-row{
+    display:flex;
+    align-items:stretch;
+    gap:0;
+    flex-wrap:wrap;
+  }
+  .chain-seg{
+    flex:1;
+    min-width:150px;
+    padding:10px 12px;
+  }
+  .chain-seg .seg-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.05em;
+    margin:0 0 4px;
+  }
+  .chain-seg .seg-text{
+    font-family:'Noto Serif TC', serif;
+    font-size:15px;
+    line-height:1.5;
+    margin:0;
+  }
+  .chain-seg.seg-event{ background:var(--paper-2); }
+  .chain-seg.seg-reaction{ background:#F0E4CB; }
+  .chain-seg.seg-impact.lvl-danger{ background:#F3D9D3; }
+  .chain-seg.seg-impact.lvl-warning{ background:#F0E4CB; }
+  .chain-seg.seg-impact.lvl-success{ background:#E1E9DE; }
+  .chain-seg.seg-event .seg-label{ color:var(--ink-soft); }
+  .chain-seg.seg-reaction .seg-label{ color:var(--gold); }
+  .chain-seg.seg-impact.lvl-danger .seg-label{ color:var(--stamp); }
+  .chain-seg.seg-impact.lvl-warning .seg-label{ color:var(--gold); }
+  .chain-seg.seg-impact.lvl-success .seg-label{ color:var(--green); }
+  .chain-arrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 6px;
+    color:var(--ink-soft);
+    font-size:16px;
+  }
+  .chain-conclusion{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.75;
+    margin:10px 0 4px;
+  }
+  .chain-source{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--gold);
+  }
+
+  @media (max-width:600px){
+    .chain-row{
+      flex-direction:column;
+    }
+    .chain-seg{
+      min-width:100%;
+    }
+    .chain-arrow{
+      transform:rotate(90deg);
+      padding:2px 0;
+    }
+    .holdings-wall{
+      grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    }
+    .masthead h1{
+      letter-spacing:.03em;
+    }
+  }
     text-align:center;
     font-family:'IBM Plex Mono', monospace;
     font-size:11.5px;
@@ -256,18 +418,27 @@
 
   <div id="content" style="display:none;">
 
-    <div class="section-label"><span class="num">01</span><h2>持股觀察</h2><span class="rule"></span></div>
-    <div class="holdings-grid" id="holdingsGrid"></div>
+    <div class="gauge-wrap">
+      <div class="gauge-label-row">
+        <span class="gauge-title">今日情勢儀表</span>
+        <span class="gauge-state" id="gaugeStateLabel"></span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-marker" id="gaugeMarker"></div>
+      </div>
+      <div class="gauge-scale"><span>平靜</span><span>觀察</span><span>警戒</span></div>
+      <p class="gauge-note" id="gaugeNote"></p>
+    </div>
 
-    <div class="section-label"><span class="num">02</span><h2>今日新聞總覽</h2><span class="rule"></span></div>
-    <div class="news-feed" id="newsFeed"></div>
+    <div class="section-label"><span class="num">01</span><h2>持股燈號牆</h2><span class="rule"></span></div>
+    <div class="holdings-wall" id="holdingsWall"></div>
+
+    <div class="section-label"><span class="num">02</span><h2>今日事件關聯鏈</h2><span class="rule"></span></div>
+    <div class="chain-list" id="chainList"></div>
 
   </div>
 
-  <footer>
-    本頁面內容為新聞整理，非投資建議・資料由 Claude 依對話當下搜尋整理寫入<br>
-    PChome 資深工程師的每日觀盤儀表板
-  </footer>
+  <footer></footer>
 
 </div>
 
@@ -278,78 +449,63 @@ const SEED_DATA = {
   "date": "2026-07-28",
   "updated_at": "2026-07-28 15:10",
   "data_note": "台股確切收盤點數今日搜尋當下尚未有明確標示「收盤」的來源可確認，本頁盤中數據僅供參考事件脈絡，精確收盤請以Google財經/券商App為準。",
+  "gauge": {
+    "level": 68,
+    "state": "觀察",
+    "note": "中國DUV設備新聞引發全球半導體股情緒性賣壓，台股重挫、你的槓桿部位波動加倍，但屬單一事件衝擊而非基本面惡化；真正需要重新評估配置的時刻是明天Fed利率決議，若意外升息才是警戒等級的開始。"
+  },
   "holdings": [
-    {"ticker":"2330","name":"台積電","weather":"storm","note":"股價一度失守2,300元，較昨收下跌約2-3%。市值權重逾四成，為今日大盤重挫主因，但法人認為AI晶片需求基本面未變，屬情緒性賣壓。"},
-    {"ticker":"0050","name":"元大台灣50","weather":"rainy","note":"台積電權重最高，今日隨大盤重挫同步下修。"},
-    {"ticker":"006208","name":"富邦台50","weather":"rainy","note":"成分與0050相近，走勢同步反映大盤重挫。"},
-    {"ticker":"00631L","name":"元大台灣50正2","weather":"storm","note":"追蹤大盤2倍槓桿，今日大盤重挫逾3%，正2部位波動加倍，屬於今天需要多留意的部位。"},
-    {"ticker":"00685L","name":"群益台灣加權正2","weather":"storm","note":"同樣為2倍槓桿部位，今日隨大盤重挫、記憶體與權值股跌停同步承壓。"},
-    {"ticker":"VTI","name":"全美股市場","weather":"cloudy","note":"受NVDA融資疑慮及費半重挫影響，科技股權重承壓，但分散度高，衝擊優於單押半導體的部位。"},
-    {"ticker":"VOO","name":"S&P 500","weather":"sunny","note":"早盤受中東停火利多帶動走高，午後受科技股賣壓回吐部分漲幅，仍屬上漲。"},
-    {"ticker":"VT","name":"全球股市","weather":"cloudy","note":"同時含台股與美股曝險，今日兩地科技股賣壓同步反映在淨值上。"},
-    {"ticker":"VUAA","name":"S&P 500(UCITS)","weather":"sunny","note":"走勢同VOO，早盤地緣政治利多、午後NVDA消息影響回檔，仍屬上漲。"},
-    {"ticker":"VWRA","name":"全球股市(UCITS)","weather":"cloudy","note":"走勢同VT，同時反映台股與美股科技股今日賣壓。"}
+    {"ticker":"2330","name":"台積電","level":"danger","note":"一度失守2,300元，跌約2-3%。市值權重逾四成，為今日大盤重挫主因，AI晶片需求基本面未變。"},
+    {"ticker":"0050","name":"元大台灣50","level":"danger","note":"台積電權重最高，隨大盤重挫同步下修。"},
+    {"ticker":"006208","name":"富邦台50","level":"danger","note":"成分與0050相近，走勢同步反映大盤重挫。"},
+    {"ticker":"00631L","name":"台灣50正2","level":"danger","note":"2倍槓桿，大盤重挫逾3%，波動加倍，今天需要多留意。"},
+    {"ticker":"00685L","name":"加權正2","level":"danger","note":"同為2倍槓桿，記憶體與權值股跌停同步承壓。"},
+    {"ticker":"VTI","name":"全美股市場","level":"warning","note":"費半重挫影響科技股權重，但分散度高，衝擊有限。"},
+    {"ticker":"VOO","name":"S&P 500","level":"success","note":"早盤受中東停火利多帶動，終場仍屬上漲。"},
+    {"ticker":"VT","name":"全球股市","level":"warning","note":"同時含台股與美股曝險，兩地賣壓同步反映。"},
+    {"ticker":"VUAA","name":"S&P 500(UCITS)","level":"success","note":"走勢同VOO，終場仍屬上漲。"},
+    {"ticker":"VWRA","name":"全球股市(UCITS)","level":"warning","note":"走勢同VT，反映台美股今日賣壓。"}
   ],
-  "news": [
+  "chains": [
     {
-      "category":"macro",
-      "title":"Fed本週召開利率會議，市場預期按兵不動但升息機率升溫",
-      "summary":"聯準會7/28-29召開FOMC會議，29日美東下午2點公布結果，由新任主席華許召開記者會。華許上任後取消前瞻指引，市場對按兵不動（3.50%-3.75%）仍是主流預期，但受中東情勢推升油價、關稅通膨疑慮影響，市場定價本次意外升息機率已升至約33.7%，高於兩週前的一成。焦點在會後記者會對9月政策路徑的表態。",
-      "source":"中央社/TradingKey"
+      "event":"中國量產自製DUV曝光機",
+      "reaction":"半導體設備壟斷疑慮，ASML ADR重挫5.8%，記憶體概念股全面下殺",
+      "impact":"2330 / 0050 / 006208 / 00631L / 00685L",
+      "level":"danger",
+      "conclusion":"情緒性賣壓，非基本面惡化，00631L、00685L波動加倍是今天最需要留意的部位。",
+      "source":"財報狗/ETtoday財經雲"
     },
     {
-      "category":"macro",
-      "title":"美伊戰事暫停，油價從高點回落",
-      "summary":"美國與伊朗確認暫停攻擊，市場緊張情緒緩解，帶動WTI原油價格從高點回落至每桶84美元附近。地緣政治風險降溫是本週初市場上漲的主要動能之一，但荷莫茲海峽通行細節仍有爭議，市場對停火持續性保持觀望。",
-      "source":"24/7 Wall St."
-    },
-    {
-      "category":"macro",
-      "title":"中國DUV曝光機量產傳聞，衝擊全球半導體設備股壟斷格局",
-      "summary":"上海一家具官方背景的企業傳出已量產自製浸潤式DUV曝光機，市場擔憂中國半導體設備國產化提速，衝擊荷蘭ASML等西方設備商的壟斷地位。分析指出，該公司今年規劃產量僅5台，相較ASML年出貨約130台仍有明顯差距，此波下跌偏向「壟斷地位可能被打破」的情緒性反應，而非基本面立即受衝擊。",
-      "source":"財報狗/Newtalk新聞"
-    },
-    {
-      "category":"us",
-      "title":"美股週一收盤：道瓊獨紅創高，費半重挫近3%",
-      "summary":"美股四大指數週一（7/27）表現分歧：道瓊終場上漲262.83點（+0.51%）收52,210.08點；標普500小漲1.2點（+0.02%）收7,413.18點；那斯達克下跌43.74點（-0.18%）收24,932.08點；費城半導體指數重挫264.01點（-2.23%）收11,554.88點，30檔成分股全數跌破50日均線，為2025年4月以來首見。",
-      "source":"ETtoday財經雲（引用交易所資料）"
-    },
-    {
-      "category":"us",
-      "title":"輝達單日市值蒸發2,500億美元，痛失市值王寶座",
-      "summary":"市場傳出NVDA正洽談為OpenAI租用資料中心提供約2,500億美元融資擔保，引發投資人對AI產業「循環融資」的疑慮——即客戶需依賴輝達提供的資金才能採購其晶片。消息帶動NVDA收跌4.99%至196.51美元，市值降至4.77兆美元，被蘋果反超，失去全球市值最高公司頭銜。",
-      "source":"FTNN新聞網"
-    },
-    {
-      "category":"us",
-      "title":"ASML ADR重挫逾5%，記憶體概念股全面下殺",
-      "summary":"受中國DUV量產消息衝擊，ASML美股ADR盤中一度重挫近7%，終場下跌5.8%。美光、SK海力士ADR、SanDisk等記憶體與設備概念股同步下殺，市場擔憂中國半導體供應鏈加速本土化，將侵蝕西方設備商在中國市場的市占率。",
-      "source":"鉅亨網"
-    },
-    {
-      "category":"us",
-      "title":"本週美股焦點：蘋果、微軟、Meta、亞馬遜齊發財報",
-      "summary":"本週適逢Fed利率決議、多家科技巨頭財報、及多項經濟數據公布同時撞期，市場波動可能加劇。蘋果將於週四盤後公布財報，市場預期營收約1,080億美元、每股獲利約1.89美元，焦點在iPhone銷售動能、服務業務成長，以及AI布局進展。",
-      "source":"24/7 Wall St."
-    },
-    {
-      "category":"tw",
-      "title":"台股今日開盤重挫，盤中最深跌1,818點創史上第6大跌點",
-      "summary":"受DUV設備新聞及美股費半重挫拖累，日韓股市同步重挫（日經開盤半小時內跌逾2,590點、韓股一度觸發熔斷暫停交易），台股今日開盤即重挫，盤中最深跌1,818.41點。記憶體族群受創最重，旺宏、南亞科、華邦電、群聯開盤半小時內即同步跌停，指標股國巨也摜壓至跌停價563元。",
+      "event":"日韓股市同步重挫，台股盤中最深跌1,818點",
+      "reaction":"記憶體族群旺宏、南亞科、華邦電、群聯開盤半小時內即跌停，國巨摜壓至跌停",
+      "impact":"2330 / 0050 / 006208",
+      "level":"danger",
+      "conclusion":"與上則DUV新聞同源，屬同一波賣壓的延伸，非獨立利空。",
       "source":"ETtoday財經雲"
     },
     {
-      "category":"tw",
-      "title":"台積電盤中失守2,300元關卡",
-      "summary":"台積電今日股價盤中下探至約2,270元，較昨收下跌約80元、跌幅約3.4%。因占大盤市值逾四成，是加權指數重挫的主要拖累來源，惟法人普遍認為AI晶片需求基本面未受影響，此波偏向設備壟斷議題引發的情緒性賣壓，而非產業基本面惡化。",
-      "source":"ETtoday財經雲/自由財經"
+      "event":"NVDA為OpenAI資料中心提供2,500億美元融資擔保",
+      "reaction":"循環融資疑慮，NVDA收跌4.99%，單日蒸發2,500億美元市值，痛失市值王",
+      "impact":"VTI / VOO / VT / VUAA / VWRA",
+      "level":"warning",
+      "conclusion":"分散配置沖淡單一個股衝擊，值得追蹤但不用行動。",
+      "source":"FTNN新聞網"
     },
     {
-      "category":"tw",
-      "title":"台指期夜盤同步重挫，收盤險守43,000點",
-      "summary":"台指期夜盤同步反映DUV設備新聞衝擊，盤中一度急殺逾千點，終場下跌708點，收在43,172點，險守4萬3關卡，顯示國際資金對台股後續走勢仍存戒心，隔日開盤動能有待觀察。",
-      "source":"鉅亨網"
+      "event":"美伊戰事暫停，油價回落至每桶84美元附近",
+      "reaction":"地緣政治風險降溫，帶動美股早盤走高，道瓊終場創新高收52,210.08點",
+      "impact":"VOO / VUAA 早盤上漲動能",
+      "level":"success",
+      "conclusion":"利多帶動早盤，惟午後被半導體賣壓部分抵銷，屬正向因子。",
+      "source":"24/7 Wall St."
+    },
+    {
+      "event":"Fed本週召開利率會議，29日公布決議",
+      "reaction":"市場預期按兵不動（3.50%-3.75%）為主流，意外升息機率已升至約33.7%",
+      "impact":"全部持股（尤其台美股ETF部位）",
+      "level":"warning",
+      "conclusion":"今天還不用反應，但若明天意外升息，才是真正需要重新檢視配置的時刻。",
+      "source":"中央社/TradingKey"
     }
   ]
 };
@@ -379,8 +535,6 @@ async function loadBriefing(){
   render(storedData);
 }
 
-const CAT_LABEL = { macro: '總經', us: '美股', tw: '台股' };
-
 function render(data){
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('content').style.display = 'block';
@@ -396,77 +550,70 @@ function render(data){
     noteEl.style.display = 'none';
   }
 
-  fillHoldings(data.holdings || []);
-  fillNewsFeed(data.news || []);
+  fillGauge(data.gauge || {});
+  fillHoldingsWall(data.holdings || []);
+  fillChainList(data.chains || []);
 }
 
-const WEATHER_ICON = {
-  sunny: '☀️',
-  cloudy: '⛅',
-  rainy: '🌧️',
-  storm: '⛈️'
-};
+function fillGauge(gauge){
+  const level = typeof gauge.level === 'number' ? gauge.level : 30;
+  document.getElementById('gaugeMarker').style.left = level + '%';
+  document.getElementById('gaugeStateLabel').textContent = gauge.state || '';
+  document.getElementById('gaugeNote').textContent = gauge.note || '';
+}
 
-function fillHoldings(items){
-  const grid = document.getElementById('holdingsGrid');
-  grid.innerHTML = '';
+function fillHoldingsWall(items){
+  const wall = document.getElementById('holdingsWall');
+  wall.innerHTML = '';
   if(items.length === 0){
-    grid.innerHTML = '<p class="empty-col">尚無持股觀察資料</p>';
+    wall.innerHTML = '<p class="empty-col">尚無持股觀察資料</p>';
     return;
   }
   items.forEach(h=>{
+    const lvl = h.level || 'warning';
     const card = document.createElement('div');
-    card.className = 'holding-card';
-    const icon = WEATHER_ICON[h.weather] || '⛅';
+    card.className = 'light-card lvl-' + lvl;
     card.innerHTML = `
-      <div class="tick-row">
-        <div class="ticker-group">
-          <span class="weather-icon">${icon}</span>
-          <span class="ticker">${h.ticker || ''}</span>
-        </div>
-        <span class="name">${h.name || ''}</span>
-      </div>
+      <span class="ticker">${h.ticker || ''}</span>
+      <span class="name">${h.name || ''}</span>
       <div class="note">${h.note || '今天暫無特別動態'}</div>
     `;
-    grid.appendChild(card);
+    wall.appendChild(card);
   });
 }
 
-function fillNewsFeed(items){
-  const feed = document.getElementById('newsFeed');
-  feed.innerHTML = '';
+function fillChainList(items){
+  const list = document.getElementById('chainList');
+  list.innerHTML = '';
   if(!items || items.length === 0){
-    feed.innerHTML = '<p class="empty-col">今天暫無相關新聞</p>';
+    list.innerHTML = '<p class="empty-col">今天暫無相關事件</p>';
     return;
   }
-  items.forEach(item=>{
-    const wrap = document.createElement('div');
-    wrap.className = 'news-item';
-
-    const catRow = document.createElement('div');
-    catRow.className = 'cat-row';
-    const tag = document.createElement('span');
-    const cat = item.category || 'macro';
-    tag.className = 'cat-tag cat-' + cat;
-    tag.textContent = CAT_LABEL[cat] || '焦點';
-    catRow.appendChild(tag);
-    wrap.appendChild(catRow);
-
-    const h3 = document.createElement('h3');
-    h3.textContent = item.title || '';
-    wrap.appendChild(h3);
-
-    const p = document.createElement('p');
-    p.textContent = item.summary || '';
-    wrap.appendChild(p);
-
-    if(item.source){
-      const src = document.createElement('div');
-      src.className = 'source-tag';
-      src.textContent = '— ' + item.source;
-      wrap.appendChild(src);
-    }
-    feed.appendChild(wrap);
+  items.forEach(c=>{
+    const lvl = c.level || 'warning';
+    const card = document.createElement('div');
+    card.className = 'chain-card';
+    card.innerHTML = `
+      <div class="chain-row">
+        <div class="chain-seg seg-event">
+          <p class="seg-label">事件</p>
+          <p class="seg-text">${c.event || ''}</p>
+        </div>
+        <div class="chain-arrow">→</div>
+        <div class="chain-seg seg-reaction">
+          <p class="seg-label">市場反應</p>
+          <p class="seg-text">${c.reaction || ''}</p>
+        </div>
+        <div class="chain-arrow">→</div>
+        <div class="chain-seg seg-impact lvl-${lvl}">
+          <p class="seg-label">對你的影響</p>
+          <p class="seg-text">${c.impact || ''}</p>
+        </div>
+      </div>
+      <p class="chain-conclusion">${c.conclusion || ''}</p>
+      <div class="chain-source">— ${c.source || ''}</div>
+    `;
+    list.appendChild(card);
   });
 }
 
