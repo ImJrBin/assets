@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>綠豆湯</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F0E4;
+    --paper-2:#EBE3D2;
+    --ink:#201C16;
+    --ink-soft:#4A4438;
+    --rule:#C9BFA8;
+    --stamp:#A6342A;
+    --stamp-soft:#C96A5A;
+    --gold:#9C7A3C;
+    --green:#3E6B4F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans TC', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:1000px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+
+  /* Masthead */
+  .masthead{
+    text-align:center;
+    border-bottom:4px double var(--ink);
+    padding-bottom:14px;
+    margin-bottom:6px;
+  }
+  .masthead .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+  }
+  .masthead h1{
+    font-family:'Noto Serif TC', serif;
+    font-weight:900;
+    font-size:clamp(38px,7vw,58px);
+    margin:6px 0 4px;
+    letter-spacing:.06em;
+  }
+  .masthead .sub{
+    font-family:'Noto Serif TC', serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    letter-spacing:.12em;
+  }
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    padding:8px 2px 18px;
+    border-bottom:1px solid var(--rule);
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .meta-row .updated-badge{
+    background:var(--ink);
+    color:var(--paper);
+    padding:3px 9px;
+    border-radius:2px;
+  }
+
+  /* Empty state */
+  .empty-state{
+    text-align:center;
+    padding:70px 20px;
+    border:1px dashed var(--rule);
+    background:var(--paper-2);
+  }
+  .empty-state h2{
+    font-family:'Noto Serif TC', serif;
+    font-size:22px;
+    margin-bottom:10px;
+  }
+  .empty-state p{
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.8;
+  }
+  .empty-state code{
+    background:var(--ink);
+    color:var(--paper);
+    padding:3px 8px;
+    border-radius:3px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  /* Section headers */
+  .section-label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:0 0 12px;
+  }
+  .section-label .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--paper);
+    background:var(--ink);
+    padding:2px 7px;
+  }
+  .section-label h2{
+    font-family:'Noto Serif TC', serif;
+    font-size:19px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:.03em;
+  }
+  .section-label .rule{
+    flex:1;
+    height:1px;
+    background:var(--rule);
+  }
+
+  /* News feed - single vertical list */
+  .news-feed{
+    margin-bottom:10px;
+  }
+  .news-item{
+    padding:18px 0;
+    border-bottom:1px solid var(--rule);
+  }
+  .news-item:first-child{padding-top:0;}
+  .news-item .cat-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .cat-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.06em;
+    padding:2px 8px;
+    border:1px solid var(--ink);
+    color:var(--ink);
+  }
+  .cat-tag.cat-macro{border-color:var(--gold); color:var(--gold);}
+  .cat-tag.cat-us{border-color:var(--green); color:var(--green);}
+  .cat-tag.cat-tw{border-color:var(--stamp); color:var(--stamp);}
+  .news-item h3{
+    font-family:'Noto Serif TC', serif;
+    font-size:17px;
+    line-height:1.5;
+    margin:0 0 8px;
+  }
+  .news-item p{
+    font-size:13.5px;
+    line-height:1.85;
+    color:var(--ink-soft);
+    margin:0 0 8px;
+  }
+  .source-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--gold);
+    letter-spacing:.03em;
+  }
+  .empty-col{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    font-style:italic;
+  }
+
+  /* Holdings grid */
+  .holdings-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    gap:14px;
+    margin-bottom:34px;
+  }
+  .holding-card{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    padding:14px 16px;
+  }
+  .holding-card .tick-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+  }
+  .holding-card .ticker-group{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .holding-card .weather-icon{
+    font-size:18px;
+    line-height:1;
+  }
+  .holding-card .ticker{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:15px;
+  }
+  .holding-card .name{
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .holding-card .note{
+    font-size:12.5px;
+    line-height:1.65;
+    color:var(--ink-soft);
+  }
+
+  footer{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    line-height:1.8;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="eyebrow">TAIWAN · U.S. MARKETS</div>
+    <h1>綠 豆 湯</h1>
+    <div class="sub">DAILY INVESTMENT BRIEFING</div>
+  </div>
+  <div class="meta-row">
+    <span id="dateLine">尚未取得日期</span>
+    <span class="updated-badge" id="updatedBadge">尚無資料</span>
+  </div>
+
+  <div id="dataNote" style="display:none; font-size:11.5px; color:var(--ink-soft); text-align:center; margin:-14px 0 22px; font-style:italic;"></div>
+
+  <div id="emptyState" class="empty-state" style="display:none;">
+    <h2>今天還沒有簡報</h2>
+    <p>跟 Claude 說一聲 <code>更新今日簡報</code>，我會搜尋當天總經新聞、美股隔夜表現、台股焦點，<br>整理好之後寫進這份頁面，之後你打開永遠是同一份、看最新內容。</p>
+  </div>
+
+  <div id="content" style="display:none;">
+
+    <div class="section-label"><span class="num">01</span><h2>持股觀察</h2><span class="rule"></span></div>
+    <div class="holdings-grid" id="holdingsGrid"></div>
+
+    <div class="section-label"><span class="num">02</span><h2>今日新聞總覽</h2><span class="rule"></span></div>
+    <div class="news-feed" id="newsFeed"></div>
+
+  </div>
+
+  <footer>
+    本頁面內容為新聞整理，非投資建議・資料由 Claude 依對話當下搜尋整理寫入<br>
+    PChome 資深工程師的每日觀盤儀表板
+  </footer>
+
+</div>
+
+<script>
+// 這份是Claude每次幫你更新時，重新寫入的當日資料種子。
+// 邏輯：如果種子的日期比storage裡存的新，就覆蓋storage；否則沿用storage裡的內容。
+const SEED_DATA = {
+  "date": "2026-07-28",
+  "updated_at": "2026-07-28 15:10",
+  "data_note": "台股確切收盤點數今日搜尋當下尚未有明確標示「收盤」的來源可確認，本頁盤中數據僅供參考事件脈絡，精確收盤請以Google財經/券商App為準。",
+  "holdings": [
+    {"ticker":"2330","name":"台積電","weather":"storm","note":"股價一度失守2,300元，較昨收下跌約2-3%。市值權重逾四成，為今日大盤重挫主因，但法人認為AI晶片需求基本面未變，屬情緒性賣壓。"},
+    {"ticker":"0050","name":"元大台灣50","weather":"rainy","note":"台積電權重最高，今日隨大盤重挫同步下修。"},
+    {"ticker":"006208","name":"富邦台50","weather":"rainy","note":"成分與0050相近，走勢同步反映大盤重挫。"},
+    {"ticker":"00631L","name":"元大台灣50正2","weather":"storm","note":"追蹤大盤2倍槓桿，今日大盤重挫逾3%，正2部位波動加倍，屬於今天需要多留意的部位。"},
+    {"ticker":"00685L","name":"群益台灣加權正2","weather":"storm","note":"同樣為2倍槓桿部位，今日隨大盤重挫、記憶體與權值股跌停同步承壓。"},
+    {"ticker":"VTI","name":"全美股市場","weather":"cloudy","note":"受NVDA融資疑慮及費半重挫影響，科技股權重承壓，但分散度高，衝擊優於單押半導體的部位。"},
+    {"ticker":"VOO","name":"S&P 500","weather":"sunny","note":"早盤受中東停火利多帶動走高，午後受科技股賣壓回吐部分漲幅，仍屬上漲。"},
+    {"ticker":"VT","name":"全球股市","weather":"cloudy","note":"同時含台股與美股曝險，今日兩地科技股賣壓同步反映在淨值上。"},
+    {"ticker":"VUAA","name":"S&P 500(UCITS)","weather":"sunny","note":"走勢同VOO，早盤地緣政治利多、午後NVDA消息影響回檔，仍屬上漲。"},
+    {"ticker":"VWRA","name":"全球股市(UCITS)","weather":"cloudy","note":"走勢同VT，同時反映台股與美股科技股今日賣壓。"}
+  ],
+  "news": [
+    {
+      "category":"macro",
+      "title":"Fed本週召開利率會議，市場預期按兵不動但升息機率升溫",
+      "summary":"聯準會7/28-29召開FOMC會議，29日美東下午2點公布結果，由新任主席華許召開記者會。華許上任後取消前瞻指引，市場對按兵不動（3.50%-3.75%）仍是主流預期，但受中東情勢推升油價、關稅通膨疑慮影響，市場定價本次意外升息機率已升至約33.7%，高於兩週前的一成。焦點在會後記者會對9月政策路徑的表態。",
+      "source":"中央社/TradingKey"
+    },
+    {
+      "category":"macro",
+      "title":"美伊戰事暫停，油價從高點回落",
+      "summary":"美國與伊朗確認暫停攻擊，市場緊張情緒緩解，帶動WTI原油價格從高點回落至每桶84美元附近。地緣政治風險降溫是本週初市場上漲的主要動能之一，但荷莫茲海峽通行細節仍有爭議，市場對停火持續性保持觀望。",
+      "source":"24/7 Wall St."
+    },
+    {
+      "category":"macro",
+      "title":"中國DUV曝光機量產傳聞，衝擊全球半導體設備股壟斷格局",
+      "summary":"上海一家具官方背景的企業傳出已量產自製浸潤式DUV曝光機，市場擔憂中國半導體設備國產化提速，衝擊荷蘭ASML等西方設備商的壟斷地位。分析指出，該公司今年規劃產量僅5台，相較ASML年出貨約130台仍有明顯差距，此波下跌偏向「壟斷地位可能被打破」的情緒性反應，而非基本面立即受衝擊。",
+      "source":"財報狗/Newtalk新聞"
+    },
+    {
+      "category":"us",
+      "title":"美股週一收盤：道瓊獨紅創高，費半重挫近3%",
+      "summary":"美股四大指數週一（7/27）表現分歧：道瓊終場上漲262.83點（+0.51%）收52,210.08點；標普500小漲1.2點（+0.02%）收7,413.18點；那斯達克下跌43.74點（-0.18%）收24,932.08點；費城半導體指數重挫264.01點（-2.23%）收11,554.88點，30檔成分股全數跌破50日均線，為2025年4月以來首見。",
+      "source":"ETtoday財經雲（引用交易所資料）"
+    },
+    {
+      "category":"us",
+      "title":"輝達單日市值蒸發2,500億美元，痛失市值王寶座",
+      "summary":"市場傳出NVDA正洽談為OpenAI租用資料中心提供約2,500億美元融資擔保，引發投資人對AI產業「循環融資」的疑慮——即客戶需依賴輝達提供的資金才能採購其晶片。消息帶動NVDA收跌4.99%至196.51美元，市值降至4.77兆美元，被蘋果反超，失去全球市值最高公司頭銜。",
+      "source":"FTNN新聞網"
+    },
+    {
+      "category":"us",
+      "title":"ASML ADR重挫逾5%，記憶體概念股全面下殺",
+      "summary":"受中國DUV量產消息衝擊，ASML美股ADR盤中一度重挫近7%，終場下跌5.8%。美光、SK海力士ADR、SanDisk等記憶體與設備概念股同步下殺，市場擔憂中國半導體供應鏈加速本土化，將侵蝕西方設備商在中國市場的市占率。",
+      "source":"鉅亨網"
+    },
+    {
+      "category":"us",
+      "title":"本週美股焦點：蘋果、微軟、Meta、亞馬遜齊發財報",
+      "summary":"本週適逢Fed利率決議、多家科技巨頭財報、及多項經濟數據公布同時撞期，市場波動可能加劇。蘋果將於週四盤後公布財報，市場預期營收約1,080億美元、每股獲利約1.89美元，焦點在iPhone銷售動能、服務業務成長，以及AI布局進展。",
+      "source":"24/7 Wall St."
+    },
+    {
+      "category":"tw",
+      "title":"台股今日開盤重挫，盤中最深跌1,818點創史上第6大跌點",
+      "summary":"受DUV設備新聞及美股費半重挫拖累，日韓股市同步重挫（日經開盤半小時內跌逾2,590點、韓股一度觸發熔斷暫停交易），台股今日開盤即重挫，盤中最深跌1,818.41點。記憶體族群受創最重，旺宏、南亞科、華邦電、群聯開盤半小時內即同步跌停，指標股國巨也摜壓至跌停價563元。",
+      "source":"ETtoday財經雲"
+    },
+    {
+      "category":"tw",
+      "title":"台積電盤中失守2,300元關卡",
+      "summary":"台積電今日股價盤中下探至約2,270元，較昨收下跌約80元、跌幅約3.4%。因占大盤市值逾四成，是加權指數重挫的主要拖累來源，惟法人普遍認為AI晶片需求基本面未受影響，此波偏向設備壟斷議題引發的情緒性賣壓，而非產業基本面惡化。",
+      "source":"ETtoday財經雲/自由財經"
+    },
+    {
+      "category":"tw",
+      "title":"台指期夜盤同步重挫，收盤險守43,000點",
+      "summary":"台指期夜盤同步反映DUV設備新聞衝擊，盤中一度急殺逾千點，終場下跌708點，收在43,172點，險守4萬3關卡，顯示國際資金對台股後續走勢仍存戒心，隔日開盤動能有待觀察。",
+      "source":"鉅亨網"
+    }
+  ]
+};
+
+async function loadBriefing(){
+  let stored = null;
+  try{
+    stored = await window.storage.get('briefing:latest');
+  }catch(e){
+    stored = null;
+  }
+
+  let storedData = null;
+  if(stored && stored.value){
+    try{ storedData = JSON.parse(stored.value); }catch(e){ storedData = null; }
+  }
+
+  // 如果種子日期比storage新（或storage是空的），就寫入新內容
+  if(!storedData || SEED_DATA.date >= storedData.date){
+    try{
+      await window.storage.set('briefing:latest', JSON.stringify(SEED_DATA));
+    }catch(e){ /* 寫入失敗就先用種子資料顯示，不阻擋畫面 */ }
+    render(SEED_DATA);
+    return;
+  }
+
+  render(storedData);
+}
+
+const CAT_LABEL = { macro: '總經', us: '美股', tw: '台股' };
+
+function render(data){
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+
+  document.getElementById('dateLine').textContent = data.date || '';
+  document.getElementById('updatedBadge').textContent = '更新於 ' + (data.updated_at || '');
+
+  const noteEl = document.getElementById('dataNote');
+  if(data.data_note){
+    noteEl.textContent = data.data_note;
+    noteEl.style.display = 'block';
+  }else{
+    noteEl.style.display = 'none';
+  }
+
+  fillHoldings(data.holdings || []);
+  fillNewsFeed(data.news || []);
+}
+
+const WEATHER_ICON = {
+  sunny: '☀️',
+  cloudy: '⛅',
+  rainy: '🌧️',
+  storm: '⛈️'
+};
+
+function fillHoldings(items){
+  const grid = document.getElementById('holdingsGrid');
+  grid.innerHTML = '';
+  if(items.length === 0){
+    grid.innerHTML = '<p class="empty-col">尚無持股觀察資料</p>';
+    return;
+  }
+  items.forEach(h=>{
+    const card = document.createElement('div');
+    card.className = 'holding-card';
+    const icon = WEATHER_ICON[h.weather] || '⛅';
+    card.innerHTML = `
+      <div class="tick-row">
+        <div class="ticker-group">
+          <span class="weather-icon">${icon}</span>
+          <span class="ticker">${h.ticker || ''}</span>
+        </div>
+        <span class="name">${h.name || ''}</span>
+      </div>
+      <div class="note">${h.note || '今天暫無特別動態'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function fillNewsFeed(items){
+  const feed = document.getElementById('newsFeed');
+  feed.innerHTML = '';
+  if(!items || items.length === 0){
+    feed.innerHTML = '<p class="empty-col">今天暫無相關新聞</p>';
+    return;
+  }
+  items.forEach(item=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'news-item';
+
+    const catRow = document.createElement('div');
+    catRow.className = 'cat-row';
+    const tag = document.createElement('span');
+    const cat = item.category || 'macro';
+    tag.className = 'cat-tag cat-' + cat;
+    tag.textContent = CAT_LABEL[cat] || '焦點';
+    catRow.appendChild(tag);
+    wrap.appendChild(catRow);
+
+    const h3 = document.createElement('h3');
+    h3.textContent = item.title || '';
+    wrap.appendChild(h3);
+
+    const p = document.createElement('p');
+    p.textContent = item.summary || '';
+    wrap.appendChild(p);
+
+    if(item.source){
+      const src = document.createElement('div');
+      src.className = 'source-tag';
+      src.textContent = '— ' + item.source;
+      wrap.appendChild(src);
+    }
+    feed.appendChild(wrap);
+  });
+}
+
+loadBriefing();
+</script>
+</body>
+</html>
