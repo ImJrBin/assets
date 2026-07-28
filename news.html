@@ -17,6 +17,7 @@
     --stamp-soft:#C96A5A;
     --gold:#9C7A3C;
     --green:#3E6B4F;
+    --olive:#8A8F4F;
   }
   *{box-sizing:border-box;}
   body{
@@ -223,52 +224,66 @@
     color:var(--ink-soft);
   }
 
-  /* Sentiment gauge */
+  /* Sentiment gauge - semicircle dial */
   .gauge-wrap{
     margin-bottom:30px;
+    text-align:center;
   }
-  .gauge-label-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    margin-bottom:8px;
-  }
-  .gauge-label-row .gauge-title{
+  .gauge-wrap .gauge-title{
     font-family:'Noto Serif TC', serif;
     font-weight:700;
     font-size:16px;
+    display:block;
+    margin-bottom:10px;
   }
-  .gauge-label-row .gauge-state{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    letter-spacing:.05em;
+  .gauge-svg-wrap{
+    max-width:320px;
+    margin:0 auto;
   }
-  .gauge-track{
-    position:relative;
-    height:10px;
-    border-radius:5px;
-    background:linear-gradient(to right, var(--green), var(--gold), var(--stamp));
-    margin-bottom:6px;
+  .gauge-needle{
+    transform-origin:150px 150px;
+    transition:transform 0.8s cubic-bezier(.34,1.2,.64,1);
   }
-  .gauge-marker{
-    position:absolute;
-    top:-5px;
-    width:2px;
-    height:20px;
-    background:var(--ink);
+  .gauge-number{
+    font-family:'Noto Serif TC', serif;
+    font-weight:900;
+    font-size:44px;
+    line-height:1;
+    margin:8px 0 2px;
   }
-  .gauge-scale{
+  .gauge-legend{
     display:flex;
-    justify-content:space-between;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px 14px;
+    margin:6px 0 16px;
+  }
+  .gauge-legend-item{
+    display:flex;
+    align-items:center;
+    gap:5px;
     font-family:'IBM Plex Mono', monospace;
     font-size:11px;
     color:var(--ink-soft);
-    margin-bottom:10px;
+  }
+  .gauge-legend-dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    display:inline-block;
+  }
+  .gauge-state{
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:17px;
+    display:block;
+    margin-bottom:16px;
   }
   .gauge-note{
     font-size:14px;
     line-height:1.75;
     color:var(--ink-soft);
+    text-align:left;
   }
 
   /* Holdings light-wall */
@@ -419,14 +434,27 @@
   <div id="content" style="display:none;">
 
     <div class="gauge-wrap">
-      <div class="gauge-label-row">
-        <span class="gauge-title">今日情勢儀表</span>
-        <span class="gauge-state" id="gaugeStateLabel"></span>
+      <span class="gauge-title">今日情勢儀表</span>
+      <div class="gauge-svg-wrap">
+        <svg viewBox="0 0 300 160" width="100%">
+          <path d="M30,150 A120,120 0 0,1 50.52,82.90" fill="none" stroke="var(--green)" stroke-width="22" stroke-linecap="round"/>
+          <path d="M55.44,76.12 A120,120 0 0,1 108.96,37.24" fill="none" stroke="var(--olive)" stroke-width="22" stroke-linecap="round"/>
+          <path d="M116.93,34.64 A120,120 0 0,1 183.07,34.64" fill="none" stroke="var(--gold)" stroke-width="22" stroke-linecap="round"/>
+          <path d="M191.04,37.24 A120,120 0 0,1 244.56,76.12" fill="none" stroke="var(--stamp-soft)" stroke-width="22" stroke-linecap="round"/>
+          <path d="M249.48,82.90 A120,120 0 0,1 270,150" fill="none" stroke="var(--stamp)" stroke-width="22" stroke-linecap="round"/>
+          <line id="gaugeNeedle" class="gauge-needle" x1="150" y1="150" x2="150" y2="58" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="150" cy="150" r="10" fill="var(--ink)"/>
+        </svg>
       </div>
-      <div class="gauge-track">
-        <div class="gauge-marker" id="gaugeMarker"></div>
+      <div class="gauge-legend">
+        <span class="gauge-legend-item"><span class="gauge-legend-dot" style="background:var(--green);"></span>平靜</span>
+        <span class="gauge-legend-item"><span class="gauge-legend-dot" style="background:var(--olive);"></span>偏平靜</span>
+        <span class="gauge-legend-item"><span class="gauge-legend-dot" style="background:var(--gold);"></span>觀察</span>
+        <span class="gauge-legend-item"><span class="gauge-legend-dot" style="background:var(--stamp-soft);"></span>偏警戒</span>
+        <span class="gauge-legend-item"><span class="gauge-legend-dot" style="background:var(--stamp);"></span>警戒</span>
       </div>
-      <div class="gauge-scale"><span>平靜</span><span>觀察</span><span>警戒</span></div>
+      <span class="gauge-number" id="gaugeNumber"></span>
+      <span class="gauge-state" id="gaugeStateLabel"></span>
       <p class="gauge-note" id="gaugeNote"></p>
     </div>
 
@@ -447,41 +475,49 @@
 // 邏輯：如果種子的日期比storage裡存的新，就覆蓋storage；否則沿用storage裡的內容。
 const SEED_DATA = {
   "date": "2026-07-28",
-  "updated_at": "2026-07-28 15:27",
-  "data_note": "台股今日終場已收盤：加權指數收41,603.36點，跌2030.83點（-4.65%），為史上第3大跌點，成交量8094.82億元。",
+  "updated_at": "2026-07-28 16:06",
+  "data_note": "台股今日已收盤：加權指數收41,603.36點，跌2030.83點（-4.65%），為史上第3大跌點，成交量8094.82億元，三大法人賣超1,169.39億元。歐股已開盤約1小時，半導體重挫尚未蔓延至歐洲。",
   "gauge": {
-    "level": 76,
-    "state": "警戒",
-    "note": "台股今天大跌2030點，寫下史上第3大跌點，主因是中國DUV曝光機量產傳聞持續延燒，拖累日韓股市同步重挫，屬同一波半導體設備壟斷疑慮的情緒性賣壓，非基本面突然惡化；但明天（29日）Fed利率決議公布前市場本就緊張，若決議意外偏鷹，才是真正需要重新檢視配置的時刻。你的00631L、00685L今天波動加倍最劇烈，是本週最需要留意的部位。"
+    "level": 74,
+    "state": "偏警戒",
+    "note": "台股今天收跌2030點，史上第3大跌點，主因是中國DUV曝光機量產傳聞從美股燒到亞股，日韓股市重挫更深（韓股一度熔斷、跌逾10%），屬同一波半導體設備壟斷疑慮的情緒性賣壓；但歐股開盤約1小時，Stoxx 600、DAX、CAC都小幅上漲，科技股開盤持平，賣壓尚未蔓延到歐洲，代表這波恐慌還侷限在亞洲時段。明天（29日）Fed利率決議才是真正需要重新檢視配置的時刻。"
   },
   "holdings": [
-    {"ticker":"2330","name":"台積電","level":"danger","note":"終場收2280元，跌70元（-2.98%），為今日大盤重挫最大權重來源，AI晶片需求基本面未變，屬情緒性賣壓。"},
+    {"ticker":"2330","name":"台積電","level":"danger","note":"終場收2280元，跌70元（-2.98%），跌破季線也跌破7/17低點2290元，為今日大盤重挫最大權重來源，AI晶片需求基本面未變。"},
     {"ticker":"0050","name":"元大台灣50","level":"danger","note":"台積電權重最高，隨大盤重挫2030點（-4.65%）同步下修。"},
     {"ticker":"006208","name":"富邦台50","level":"danger","note":"成分與0050相近，走勢同步反映大盤史上第3大跌點。"},
     {"ticker":"00631L","name":"台灣50正2","level":"danger","note":"2倍槓桿，大盤跌4.65%，今天波動加倍最劇烈，是最需要留意的部位。"},
-    {"ticker":"00685L","name":"加權正2","level":"danger","note":"同為2倍槓桿，記憶體與權值股全面重挫下承壓最深。"},
-    {"ticker":"VTI","name":"全美股市場","level":"warning","note":"費半指數跌2.23%收11,554.88點，衝擊科技股權重，但分散度高，影響有限。"},
+    {"ticker":"00685L","name":"加權正2","level":"danger","note":"同為2倍槓桿，台達電、聯發科、聯電、欣興等權值股皆跌停，承壓最深。"},
+    {"ticker":"VTI","name":"全美股市場","level":"warning","note":"費半指數7/27跌2.23%收11,554.88點，衝擊科技股權重，但分散度高，影響有限。"},
     {"ticker":"VOO","name":"S&P 500","level":"warning","note":"美股7/27終場漲跌互現，標普僅微漲0.02%收7,413.18點，接近平盤。"},
-    {"ticker":"VT","name":"全球股市","level":"warning","note":"同時含台股與美股曝險，台股重挫、美股走平，兩地訊號分歧。"},
-    {"ticker":"VUAA","name":"S&P 500(UCITS)","level":"warning","note":"走勢同VOO，美股大致持平。"},
-    {"ticker":"VWRA","name":"全球股市(UCITS)","level":"warning","note":"走勢同VT，反映台股重挫、美股持平的分歧格局。"}
+    {"ticker":"VT","name":"全球股市","level":"warning","note":"同時含台股、美股、歐股曝險；台股重挫、美股走平、歐股小漲，三地訊號分歧。"},
+    {"ticker":"VUAA","name":"S&P 500(UCITS)","level":"warning","note":"倫敦交易，今天已開盤約1小時，追蹤美股走平表現，短線無明顯波動。"},
+    {"ticker":"VWRA","name":"全球股市(UCITS)","level":"success","note":"倫敦交易，今天開盤約1小時，歐股本身小幅上漲、科技股持平，半導體賣壓尚未蔓延到歐洲盤面，目前相對抗跌。"}
   ],
   "chains": [
     {
       "event":"中國DUV曝光機量產傳聞持續延燒",
-      "reaction":"上海國企傳出已量產浸潤式DUV曝光機，今年內將交付中芯國際、長鑫存儲等客戶，ASML ADR重挫逾5%，設備、記憶體概念股全面承壓",
+      "reaction":"上海國企傳出已量產浸潤式DUV曝光機，今年內將交付中芯國際、長鑫存儲等客戶，ASML昨日暴跌逾8%，設備、記憶體概念股全面承壓",
       "impact":"2330 / 0050 / 006208 / 00631L / 00685L",
       "level":"danger",
       "conclusion":"情緒性重新定價中國半導體自主化的長線變數，非台積電基本面突然惡化，00631L、00685L槓桿部位是今天波動最大的持股。",
-      "source":"MoneyDJ新聞/INSIDE"
+      "source":"技術新報/中時新聞網"
     },
     {
       "event":"台股終場收41,603.36點，跌2030.83點，史上第3大跌點",
-      "reaction":"日韓股市同步重挫，KOSPI一度觸發熔斷機制，日經開盤半小時殺低約2,590點，台股盤中最深跌1,818點，記憶體族群多檔開盤半小時內即跌停",
+      "reaction":"日韓股市同步重挫更深，KOSPI暴跌10.84%觸發熔斷、三星跌13.4%、SK海力士跌逾14.7%，日經收跌3.95%；台股台達電、聯發科、聯電、欣興打入跌停",
       "impact":"2330 / 0050 / 006208 / 00631L / 00685L",
       "level":"danger",
       "conclusion":"與DUV新聞同源，屬區域性連鎖去槓桿賣壓，本月稍早（17日）才發生史上最大單日跌點，短線波動明顯放大。",
-      "source":"TVBS新聞網/ETtoday財經雲"
+      "source":"聯合新聞網/CNBC"
+    },
+    {
+      "event":"歐股開盤約1小時，賣壓尚未蔓延",
+      "reaction":"Stoxx 600開盤上漲0.2%，英股、法股、德股同步小漲，科技股開盤持平，亞洲的半導體賣壓尚未反映到歐股盤面",
+      "impact":"VUAA / VWRA / VT / VWRA",
+      "level":"success",
+      "conclusion":"歐股目前相對抗跌，你手上的VUAA、VWRA短線受影響有限，但仍需持續觀察歐股午盤是否跟進。",
+      "source":"CNBC"
     },
     {
       "event":"美股7/27收盤漲跌互現",
@@ -490,14 +526,6 @@ const SEED_DATA = {
       "level":"warning",
       "conclusion":"美股半導體同步承壓但大盤指數受道瓊、標普撐住，分散配置沖淡單一族群衝擊，值得追蹤但不用行動。",
       "source":"自由財經/NOWnews"
-    },
-    {
-      "event":"美伊軍事衝突週末暫停，油價回落",
-      "reaction":"西德州原油跌至每桶84美元附近，地緣政治風險降溫，帶動道瓊早盤一度上漲逾600點",
-      "impact":"VOO / VUAA 早盤上漲動能",
-      "level":"success",
-      "conclusion":"利多帶動早盤，惟隨後被半導體賣壓部分抵銷，終場僅道瓊守住漲勢，屬正向因子但力道有限。",
-      "source":"經濟日報"
     },
     {
       "event":"Fed本週召開利率會議，29日（明天）公布決議",
@@ -555,10 +583,22 @@ function render(data){
   fillChainList(data.chains || []);
 }
 
+function gaugeZoneColor(level){
+  if(level < 20) return getComputedStyle(document.documentElement).getPropertyValue('--green');
+  if(level < 40) return getComputedStyle(document.documentElement).getPropertyValue('--olive');
+  if(level < 60) return getComputedStyle(document.documentElement).getPropertyValue('--gold');
+  if(level < 80) return getComputedStyle(document.documentElement).getPropertyValue('--stamp-soft');
+  return getComputedStyle(document.documentElement).getPropertyValue('--stamp');
+}
+
 function fillGauge(gauge){
   const level = typeof gauge.level === 'number' ? gauge.level : 30;
-  document.getElementById('gaugeMarker').style.left = level + '%';
-  document.getElementById('gaugeStateLabel').textContent = gauge.state || '';
+  const rotation = (level * 1.8) - 90;
+  document.getElementById('gaugeNeedle').style.transform = 'rotate(' + rotation + 'deg)';
+  document.getElementById('gaugeNumber').textContent = level;
+  const stateEl = document.getElementById('gaugeStateLabel');
+  stateEl.textContent = gauge.state || '';
+  stateEl.style.color = gaugeZoneColor(level).trim();
   document.getElementById('gaugeNote').textContent = gauge.note || '';
 }
 
