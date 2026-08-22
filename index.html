@@ -1082,6 +1082,7 @@ function parseSheet(rows, sheetName) {
   // ── 個股細項（202607 起，前綴「台股-」「美股-」）──
   const h0050   = getVal('台股-元大台灣50', rows) || 0;
   const h00631  = getVal('台股-元大台灣50正2', rows) || getVal('台股-元大台灣50正', rows) || 0;
+  const h00685  = getVal('台股-群義台灣正2', rows) || getVal('台股-群益台灣正2', rows) || 0;
   const h00878  = getVal('台股-元大高股息', rows) || 0;
   const h006208 = getVal('台股-富邦台50', rows) || 0;
   const h2330   = getVal('台股-台積電', rows) || 0;
@@ -1093,12 +1094,13 @@ function parseSheet(rows, sheetName) {
   const hVWRA   = getVal('美股-IB-VWRA', rows) || 0;
   const hVUAA_total = hVOO + hVTI + hVUAA;
   const hVWRA_total = hVT + hVWRA;
-  const hasTwDetail = h0050 + h00631 + h00878 + h006208 + h2330 > 0;
+  const hasTwDetail = h0050 + h00631 + h00685 + h00878 + h006208 + h2330 > 0;
   const hasUsDetail = hVUAA_total + hVWRA_total > 0;
   const holdings = (hasTwDetail || hasUsDetail) ? {
     tw: hasTwDetail ? [
       { l: '0050 元大台灣50',  v: h0050,   c: '#7c6af7' },
       { l: '00631L 台灣50正2', v: h00631,  c: '#f06060' },
+      { l: '00685L 群益台灣正2',v: h00685,  c: '#f06090' },
       { l: '00878 高股息',     v: h00878,  c: '#3ecf8e' },
       { l: '006208 富邦台50',  v: h006208, c: '#5090f0' },
       { l: '2330 台積電',      v: h2330,   c: '#f0a050' },
