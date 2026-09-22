@@ -6,29 +6,29 @@
 <title>每日損益日曆</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
-  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#18212C; --muted:#647184; --line:#D9DFE7;
-  --accent:#2B5C8F; --accent-ink:#FFFFFF; --field:#F6F8FA;
-  --red:#C4122F; --green:#0B7A50;
+  --bg:#EEEAE0; --surface:#FBF9F3; --ink:#262320; --muted:#7A7368; --line:#DDD5C4;
+  --accent:#2F4468; --accent-ink:#F5F1E6; --field:#F3EEE1;
+  --red:#AD5138; --green:#57694C;
   --gain:var(--red); --loss:var(--green);
-  --danger:#B3261E;
+  --danger:#A1402C;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#10151C; --surface:#18202A; --ink:#E7ECF2; --muted:#93A0B2; --line:#2A3441;
-    --accent:#6FA3D8; --accent-ink:#0E1620; --field:#121922;
-    --red:#FF6B7D; --green:#3ED597; --danger:#FF8A80;
+    --bg:#191C22; --surface:#22262E; --ink:#E9E4D8; --muted:#9B9488; --line:#3A3E46;
+    --accent:#8FA6C9; --accent-ink:#161A22; --field:#1D2129;
+    --red:#D98B6E; --green:#8FAE7D; --danger:#E0876C;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#10151C; --surface:#18202A; --ink:#E7ECF2; --muted:#93A0B2; --line:#2A3441;
-  --accent:#6FA3D8; --accent-ink:#0E1620; --field:#121922;
-  --red:#FF6B7D; --green:#3ED597; --danger:#FF8A80;
+  --bg:#191C22; --surface:#22262E; --ink:#E9E4D8; --muted:#9B9488; --line:#3A3E46;
+  --accent:#8FA6C9; --accent-ink:#161A22; --field:#1D2129;
+  --red:#D98B6E; --green:#8FAE7D; --danger:#E0876C;
 }
 :root[data-updown="us"]{ --gain:var(--green); --loss:var(--red); }
 html{ scroll-padding-top:env(safe-area-inset-top,0px); }
@@ -38,18 +38,19 @@ body{
   font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   font-size:15px; line-height:1.5; -webkit-text-size-adjust:100%;
 }
+h1,h2,.big,.amt,.v,.who b,.dhead h3{ font-family:"Zen Maru Gothic","Noto Sans TC",sans-serif; }
 button,input,select,textarea{ font:inherit; color:inherit; }
 button{ cursor:pointer; }
 :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .wrap{ max-width:1100px; margin:0 auto; padding:16px 14px 40px; }
 .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
 h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:.02em; }
-.btn{ border:1px solid var(--line); background:var(--surface); border-radius:8px; padding:7px 12px; }
+.btn{ border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:7px 12px; }
 .btn:hover{ border-color:var(--accent); }
-.primary{ background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent); border-radius:8px; padding:8px 14px; font-weight:500; }
+.primary{ background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent); border-radius:10px; padding:8px 14px; font-weight:500; }
 .primary:hover{ filter:brightness(1.07); }
 .danger{ color:var(--danger); border-color:var(--danger); }
-.warn{ background:color-mix(in srgb,var(--danger) 12%,var(--surface)); border:1px solid var(--danger); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:14px; }
+.warn{ background:color-mix(in srgb,var(--danger) 12%,var(--surface)); border:1px solid var(--danger); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:14px; }
 
 .layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start; }
 @media (max-width:860px){ .layout{ grid-template-columns:minmax(0,1fr); } }
@@ -57,9 +58,9 @@ h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:.02em; }
 .bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
 .nav{ display:flex; align-items:center; gap:6px; }
 .nav h2{ font-size:19px; margin:0 6px; min-width:6.5em; text-align:center; font-weight:700; }
-.ic{ width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--surface); font-size:18px; line-height:1; }
+.ic{ width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--surface); font-size:18px; line-height:1; }
 .ic:hover{ border-color:var(--accent); }
-.seg{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); }
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); }
 .seg button{ border:0; background:transparent; padding:7px 14px; }
 .seg button[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); }
 
@@ -73,7 +74,7 @@ h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:.02em; }
 .dow{ font-size:12px; color:var(--muted); text-align:center; margin-bottom:4px; }
 .cal{ display:grid; gap:4px; }
 .cell{
-  min-width:0; min-height:78px; padding:6px 6px 5px; border-radius:6px;
+  min-width:0; min-height:78px; padding:6px 6px 5px; border-radius:10px;
   border:1px solid var(--line); background:var(--surface);
   display:flex; flex-direction:column; justify-content:space-between; align-items:flex-start;
   text-align:left; overflow:hidden;
@@ -91,7 +92,7 @@ h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:.02em; }
 .wsum{ display:flex; align-items:center; justify-content:flex-end; padding:0 4px; font-size:clamp(10px,2.2vw,13px); font-weight:500; font-variant-numeric:tabular-nums; text-align:right; }
 .note{ font-size:12.5px; color:var(--muted); margin:12px 2px 0; }
 
-.panel{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px; position:sticky; top:12px; }
+.panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; position:sticky; top:12px; }
 @media (max-width:860px){ .panel{ position:static; } }
 .phead{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
 .phead h2{ font-size:17px; margin:0; font-weight:700; }
@@ -103,9 +104,9 @@ h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:.02em; }
 .who{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; min-width:0; align-self:center; }
 .who b{ font-size:16px; }
 .who span{ font-size:13px; color:var(--muted); overflow-wrap:anywhere; }
-.tag{ font-size:11px; border:1px solid var(--line); border-radius:4px; padding:0 5px; color:var(--muted); }
+.tag{ font-size:11px; border:1px solid var(--line); border-radius:6px; padding:0 5px; color:var(--muted); }
 input.px,#fxIn,.fld input,.fld select,.fgrid input,.fgrid select,.lotadd input,.lotadd select,textarea{
-  width:100%; border:1px solid var(--line); background:var(--field); border-radius:8px; padding:8px 10px; font-variant-numeric:tabular-nums;
+  width:100%; border:1px solid var(--line); background:var(--field); border-radius:10px; padding:8px 10px; font-variant-numeric:tabular-nums;
 }
 input.px{ text-align:right; font-size:16px; }
 input.bad{ border-color:var(--danger); }
@@ -118,18 +119,18 @@ input.bad{ border-color:var(--danger); }
 .pfoot .saved{ color:var(--accent); min-height:1.4em; }
 .empty{ color:var(--muted); }
 
-dialog{ border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); padding:0; width:min(560px,calc(100% - 24px)); max-height:88vh; }
+dialog{ border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); padding:0; width:min(560px,calc(100% - 24px)); max-height:88vh; }
 dialog::backdrop{ background:rgba(8,12,18,.55); }
 .dhead{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--surface); z-index:1; }
 .dhead h3{ margin:0; font-size:17px; }
 .dbody{ padding:14px 16px 18px; }
 .dbody h4{ margin:18px 0 8px; font-size:15px; }
 .dbody h4:first-child{ margin-top:0; }
-.hitem{ border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+.hitem{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
 .hhead{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; }
 .hsub{ font-size:13px; color:var(--muted); }
 .hbtns{ display:flex; gap:6px; }
-.hbtns button,.mini{ border:1px solid var(--line); background:var(--surface); border-radius:6px; padding:4px 10px; font-size:13px; }
+.hbtns button,.mini{ border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:4px 10px; font-size:13px; }
 .lots{ width:100%; border-collapse:collapse; margin:10px 0 8px; font-size:14px; font-variant-numeric:tabular-nums; }
 .lots td{ padding:5px 4px; border-bottom:1px solid var(--line); }
 .lots td:last-child{ text-align:right; }
@@ -145,7 +146,7 @@ textarea{ min-height:96px; font-size:12px; font-family:ui-monospace,Menlo,Consol
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>每日損益日曆</h1>
+    <h1>每日損益日曆 <span aria-hidden="true" style="font-size:.7em;opacity:.75">🐾</span></h1>
     <div class="row" style="margin:0">
       <button class="btn" id="openHold" type="button">持股</button>
       <button class="btn" id="openSet" type="button">設定與備份</button>
