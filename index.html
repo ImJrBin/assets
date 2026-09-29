@@ -1742,8 +1742,10 @@ function renderUnemployed() {
   const monthlyExp = recent ? recent.exp : 74300;
   const totalCost  = monthlyExp * months;
 
-  // 失業期間資產自然成長（用 7% 年報酬，月複利）
-  const monthRate = Math.pow(1.07, 1/12) - 1;
+  // 取得使用者設定的報酬率，並計算月複利
+  const { growthRate } = getFireParams();
+  const monthRate = Math.pow(1 + growthRate, 1/12) - 1;
+
   let projected = net;
   for (let m = 0; m < months; m++) projected = projected * (1 + monthRate) - monthlyExp;
   const netAfter = projected;
