@@ -58,7 +58,6 @@
     max-width: 420px;
     width: 100%;
   }
-  
   .login-card h1 { font-size: 22px; font-weight: 500; margin-bottom: 8px; }
   .login-card p { color: var(--text2); font-size: 13px; margin-bottom: 28px; line-height: 1.7; }
   .btn-google {
@@ -70,7 +69,6 @@
   }
   .btn-google:hover { opacity: .9; }
   .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
-  
   .setup-box {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -131,7 +129,6 @@
     padding: 3px 10px; border-radius: 20px; color: var(--text2);
     font-family: 'DM Mono', monospace;
   }
-  
   .header-right { display: flex; align-items: center; gap: 10px; }
   .btn-refresh {
     font-size: 12px; padding: 6px 14px; border-radius: var(--r-sm);
@@ -203,7 +200,6 @@
     padding: 8px 0; border-bottom: 1px solid var(--border);
     font-size: 13px;
   }
-  
   .alloc-row:last-child { border-bottom: none; }
   .alloc-name { display: flex; align-items: center; gap: 8px; color: var(--text2); }
   .alloc-val { text-align: right; }
@@ -226,46 +222,31 @@
 
   /* ── 手機 responsive ── */
   @media (max-width: 640px) {
-    /* 基礎 */
     body { font-size: 13px; }
     main { padding: .8rem; }
     header { padding: .8rem 1rem; gap: 8px; }
-
-    /* header：重新整理+登出縮小 */
     .logo { font-size: 14px; }
     .data-badge { font-size: 10px; padding: 2px 8px; }
     .btn-refresh { font-size: 11px; padding: 5px 10px; }
     .btn-signout { font-size: 11px; padding: 5px 8px; }
-
-    /* 白話總結：防截斷 */
     .summary-banner { padding: .9rem 1rem; gap: 10px; }
     .summary-icon { font-size: 18px; }
     .summary-text { font-size: 13px; line-height: 1.65; word-break: break-word; overflow-wrap: anywhere; }
-
-    /* 指標卡：強制兩欄 */
     .metrics { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.2rem; }
     .mc { padding: .8rem .9rem; }
     .mc-value { font-size: 20px; }
     .mc-sub { font-size: 11px; }
-
-    /* 分頁標籤：捲動不換行 */
     .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 1px; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { font-size: 12px; padding: 7px 14px; white-space: nowrap; flex-shrink: 0; }
-
-    /* 圖表高度縮小 */
     #tC, #mC, #fC { max-height: 220px; }
     .alloc-wrap { flex-direction: column; }
     .alloc-chart { flex: none; width: 100%; }
-
-    /* Coast FIRE */
     .fire-layout { grid-template-columns: 1fr; gap: 1rem; }
     .fi-pair { grid-template-columns: 1fr 1fr; }
     .fire-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .fire-kpi { padding: .8rem; }
     .fk-value { font-size: 18px; }
-
-    /* 情境分析 */
     .scenario-grid { grid-template-columns: 1fr; }
     .scenario-card { padding: 1rem; }
   }
@@ -282,12 +263,10 @@
     font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
     color: var(--text3); margin-bottom: 8px;
   }
-  /* 雙欄 pair：label 占滿，兩個 input 並排 */
   .fi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
   .fi-pair .fi-row { margin-bottom: 0; }
   .fi-row { margin-bottom: 10px; }
   .fi-row label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  
   .fi-input-wrap {
     display: flex; align-items: center; gap: 4px;
     background: var(--bg); border: 1px solid var(--border2);
@@ -322,9 +301,7 @@
 
   .progress-bar-wrap { margin: 1rem 0; }
   .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
-  .progress-track {
-    height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden;
-  }
+  .progress-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
   .progress-fill {
     height: 100%; border-radius: 4px;
     background: linear-gradient(90deg, var(--accent), var(--green));
@@ -363,8 +340,6 @@
   .sc-ctrl label { font-size: 12px; color: var(--text2); white-space: nowrap; }
   .sc-slider { flex: 1; }
   .sc-val { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--accent2); min-width: 36px; text-align: right; }
-  
-  .sc-result { }
   .sc-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .sc-row:last-child { border-bottom: none; }
   .sc-row-label { color: var(--text2); }
@@ -401,8 +376,6 @@
     width:14px; height:14px; border-radius:50%; border:2px solid var(--bg);
     transition:left .4s; z-index:2; }
   .gr-label { position:absolute; font-size:10px; color:var(--text3); top:calc(100% + 6px);
-    transform:translateX(-50%); white-space:nowrap; }
-  .gr-zone-label { position:absolute; top:-18px; font-size:10px; color:var(--text3);
     transform:translateX(-50%); white-space:nowrap; }
 
   /* 遞減支出圖表說明 */
@@ -585,8 +558,6 @@
     <!-- Coast FIRE -->
     <div id="fire" class="pane">
       <div class="fire-layout">
-
-        <!-- 左：參數設定 -->
         <div class="fire-inputs">
           <div class="fire-section-label">家庭成員</div>
           <div class="fi-pair">
@@ -658,7 +629,6 @@
           <div class="fi-note" id="fi_autoNote"></div>
         </div>
 
-        <!-- 右：結果 -->
         <div class="fire-results">
           <div id="fireResult"></div>
           <div class="chart-wrap" style="height:280px;margin-top:1.5rem">
@@ -676,8 +646,6 @@
     <!-- 情境分析 -->
     <div id="scenarios" class="pane">
       <div class="scenario-grid">
-
-        <!-- 壓力測試 -->
         <div class="scenario-card">
           <h3><span class="sc-icon">📉</span>股市壓力測試</h3>
           <div class="sc-ctrl">
@@ -688,7 +656,6 @@
           <div id="sc_stress_result" class="sc-result"></div>
         </div>
 
-        <!-- 失業情境 -->
         <div class="scenario-card">
           <h3><span class="sc-icon">💼</span>如果明天失業</h3>
           <div class="sc-ctrl">
@@ -699,16 +666,13 @@
           <div id="sc_unemp_result" class="sc-result"></div>
         </div>
 
-        <!-- 動態提領模擬 -->
         <div class="scenario-card" style="grid-column: 1 / -1">
           <h3><span class="sc-icon">🎯</span>退休動態提領模擬</h3>
-
           <div class="dw-tabs">
             <button class="dw-tab on" onclick="showDwTab('guardrail',this)">護欄法 Guardrail</button>
             <button class="dw-tab" onclick="showDwTab('declining',this)">隨年齡遞減支出</button>
           </div>
 
-          <!-- 護欄法 -->
           <div id="guardrail" class="dw-pane on">
             <div style="font-size:12px;color:var(--text2);margin-bottom:.8rem;line-height:1.7">
               市場大漲（提領率 &lt; 初始×80%）→ 當年可<strong style="color:var(--green)">多花 10%</strong>；
@@ -716,26 +680,20 @@
             </div>
             <div class="sc-ctrl" style="margin-bottom:.6rem">
               <label>退休時初始資產（萬）</label>
-              <div class="fi-input-wrap" style="width:120px">
-                <input type="number" id="gr_asset" value="7800" step="100" oninput="renderGuardrail()">
-              </div>
+              <div class="fi-input-wrap" style="width:120px"><input type="number" id="gr_asset" value="7800" step="100" oninput="renderGuardrail()"></div>
               <span style="font-size:11px;color:var(--text3)">萬</span>
             </div>
             <div class="sc-ctrl" style="margin-bottom:1rem">
               <label>今年實際提領月金額</label>
-              <div class="fi-input-wrap" style="width:120px">
-                <input type="number" id="gr_withdraw" value="11.5" step="0.5" oninput="renderGuardrail()">
-              </div>
+              <div class="fi-input-wrap" style="width:120px"><input type="number" id="gr_withdraw" value="11.5" step="0.5" oninput="renderGuardrail()"></div>
               <span style="font-size:11px;color:var(--text3)">萬/月</span>
             </div>
             <div id="gr_result"></div>
           </div>
 
-          <!-- 隨年齡遞減 -->
           <div id="declining" class="dw-pane">
             <div style="font-size:12px;color:var(--text2);margin-bottom:.8rem;line-height:1.7">
-              退休後花費隨年齡自然遞減（源自實際退休行為研究）：
-              65-74歲 年減 0.9%、75-84歲 年減 1.2%、85歲以上 年減 1.0%。
+              退休後花費隨年齡自然遞減（源自實際退休行為研究）：65-74歲 年減 0.9%、75-84歲 年減 1.2%、85歲以上 年減 1.0%。
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Coast FIRE 計算套用遞減模型</span>
@@ -749,7 +707,6 @@
           </div>
         </div>
 
-        <!-- 子女教育金 -->
         <div class="scenario-card" style="grid-column: 1 / -1">
           <h3><span class="sc-icon">🎓</span>子女教育金倒數</h3>
           <div style="display:flex;gap:12px;margin-bottom:1rem;flex-wrap:wrap">
@@ -766,64 +723,44 @@
           </div>
           <div id="sc_edu_result"></div>
         </div>
-
       </div>
     </div>
 
     <!-- 退休試算 -->
     <div id="retire" class="pane">
       <div class="ret-layout">
-
-        <!-- 左：參數 -->
         <div class="ret-inputs">
           <div class="fire-section-label">退休年齡試算</div>
-
           <div class="ret-slider-wrap">
             <div class="ret-slider-header">
               <span class="ret-slider-label">拖動選擇退休年齡</span>
               <span class="ret-slider-value" id="ret_age_display">55 歲</span>
             </div>
-            <input type="range" class="ret-slider" id="ret_age_slider"
-              min="51" max="65" value="55" step="1"
-              oninput="updateRetSlider();renderRetireDetail()">
+            <input type="range" class="ret-slider" id="ret_age_slider" min="51" max="65" value="55" step="1" oninput="updateRetSlider();renderRetireDetail()">
           </div>
 
           <div class="fire-section-label" style="margin-top:1rem">退休後收支（今日幣值）</div>
           <div class="fi-row">
             <label>每月生活費</label>
-            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
-              <input type="number" id="ret_expense" value="60000" step="5000" oninput="renderRetire()">
-            <span class="fi-suffix">/月</span></div>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span><input type="number" id="ret_expense" value="60000" step="5000" oninput="renderRetire()"><span class="fi-suffix">/月</span></div>
           </div>
           <div class="fi-row">
             <label>繼承房產月租金（可設 0）</label>
-            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
-              <input type="number" id="ret_rent" value="20000" step="5000" oninput="renderRetire()">
-            <span class="fi-suffix">/月</span></div>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span><input type="number" id="ret_rent" value="20000" step="5000" oninput="renderRetire()"><span class="fi-suffix">/月</span></div>
           </div>
 
           <div class="fire-section-label" style="margin-top:1rem">長照準備</div>
           <div class="fi-row">
             <label>長照月費（每人，今日幣值）</label>
-            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span>
-              <input type="number" id="ret_ltc_monthly" value="40000" step="5000" oninput="renderRetire()">
-            <span class="fi-suffix">/月</span></div>
+            <div class="fi-input-wrap"><span class="fi-prefix">NT$</span><input type="number" id="ret_ltc_monthly" value="40000" step="5000" oninput="renderRetire()"><span class="fi-suffix">/月</span></div>
           </div>
           <div class="fi-row">
             <label>長照年數（每人）</label>
-            <div class="fi-input-wrap">
-              <input type="number" id="ret_ltc_years" value="7.7" step="0.5" oninput="renderRetire()">
-            <span class="fi-suffix">年</span></div>
+            <div class="fi-input-wrap"><input type="number" id="ret_ltc_years" value="7.7" step="0.5" oninput="renderRetire()"><span class="fi-suffix">年</span></div>
           </div>
           <div class="fi-note">夫妻合計長照準備金 = 月費×12×年數×2人（通膨調整）</div>
-
-          <div class="fire-section-label" style="margin-top:1rem">參數沿用 Coast FIRE 設定</div>
-          <div style="font-size:12px;color:var(--text3);line-height:1.8">
-            報酬率 / SWR / 通膨 / 勞保年金<br>請至 Coast FIRE 分頁調整
-          </div>
         </div>
 
-        <!-- 右：結果 -->
         <div>
           <div id="ret_verdict"></div>
           <div id="ret_detail_cards" class="ret-kpi-grid"></div>
@@ -838,10 +775,8 @@
             <span><span class="ld" style="background:#f06060;border-radius:50%"></span>壓力測試月提領（萬元）</span>
           </div>
         </div>
-
       </div>
     </div>
-
   </main>
 </div>
 
@@ -849,17 +784,13 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
-// ════════════════════════════════════════════
-// 設定與全域參數
-// ════════════════════════════════════════════
 const FOLDER_ID = '0B18Bg9nMRKvMODA5ZmJmMmQtODc1OC00YWRkLTkxN2MtNmM2NTc2ZGNiZDY5';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly';
 
-// 新增：抽離系統共用預設參數
 const DEFAULT_CONFIG = {
   eduGoal: 1500000,
   eduSave: 10000,
-  eduBaseRate: 0.04,        // 教育金初始年化報酬率
+  eduBaseRate: 0.04,
   retExpense: 60000,
   retRent: 20000,
   retLtcMonthly: 40000,
@@ -877,7 +808,6 @@ let allData = [];
 let tCI = null, aCI = null, mCI = null;
 let rng = 'all', aYear = null;
 
-// ── 顯示目前的 Client ID ──
 if (CLIENT_ID) document.getElementById('clientIdInput').value = CLIENT_ID;
 
 function saveClientId() {
@@ -888,9 +818,6 @@ function saveClientId() {
   location.reload();
 }
 
-// ════════════════════════════════════════════
-// Google 登入與快取載入
-// ════════════════════════════════════════════
 function loadFromCache() {
   try {
     const cached = localStorage.getItem('bs_all_data');
@@ -921,7 +848,6 @@ function signIn() {
       if (!hasCache) {
         showLoading('連接 Google Drive...');
       } else {
-        // 有快取，在背景更新，右上角按鈕顯示載入中
         const btn = document.getElementById('refreshBtn');
         if(btn) {
           btn.classList.add('loading');
@@ -938,14 +864,11 @@ function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
   accessToken = null;
   allData = [];
-  localStorage.removeItem('bs_all_data'); // 登出時清空快取
+  localStorage.removeItem('bs_all_data');
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 }
 
-// ════════════════════════════════════════════
-// UI 工具
-// ════════════════════════════════════════════
 function showLoading(msg) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loadingScreen').style.display = 'flex';
@@ -973,16 +896,12 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('on');
 }
 
-// ════════════════════════════════════════════
-// Google API 呼叫與解析
-// ════════════════════════════════════════════
 async function gFetch(url) {
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
   if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
-// ── 找資料夾下所有 Balance Sheet 試算表 ──
 async function findFiles() {
   const START_YEAR = 2021;
   const q = encodeURIComponent(`title contains 'Balance Sheet' and '${FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
@@ -994,7 +913,6 @@ async function findFiles() {
   });
 }
 
-// ── 讀取一個試算表的所有分頁 ──
 async function readSpreadsheet(fileId) {
   const meta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties.title`);
   const sheets = meta.sheets.map(s => s.properties.title);
@@ -1006,12 +924,11 @@ async function readSpreadsheet(fileId) {
       const rows = d.values || [];
       const parsed = parseSheet(rows, sheet);
       if (parsed) results.push(parsed);
-    } catch(e) { /* 略過解析失敗的分頁 */ }
+    } catch(e) {}
   }
   return results;
 }
 
-// ── 解析一個月份分頁 ──
 function parseSheet(rows, sheetName) {
   const monthMatch = sheetName.match(/(\d{6})/);
   if (!monthMatch) return null;
@@ -1088,8 +1005,6 @@ function parseSheet(rows, sheetName) {
   const forex   = getExactVal('外匯', rows)   ||
                   ((getVal('外幣-美元', rows) || 0) + (getVal('外幣-日元', rows) || 0) +
                    (getVal('外幣-人民幣', rows) || 0) + (getVal('外匯-港幣', rows) || 0));
-  const inc    = getVal('收入合計', rows) || getVal('合計', rows);
-  const exp    = getVal('支出合計', rows) || 0;
 
   let mInc = 0, mExp = 0;
   for (const row of rows) {
@@ -1133,9 +1048,6 @@ function parseSheet(rows, sheetName) {
   return { month, net, cash, stocks, twstocks: twStocks || 0, usstocks: usRaw, funds: funds + jpm, forex, inc: mInc, exp: mExp, holdings };
 }
 
-// ════════════════════════════════════════════
-// 主要資料載入流程 (已優化：並發載入)
-// ════════════════════════════════════════════
 async function loadAllData(hasCache = false) {
   try {
     if (!hasCache) showLoading('搜尋 Balance Sheet 檔案...');
@@ -1143,24 +1055,15 @@ async function loadAllData(hasCache = false) {
     if (!files.length) throw new Error('找不到 Balance Sheet 檔案');
 
     const results = [];
-    const CHUNK_SIZE = 5; // 每次並發讀取 5 個檔案
-
+    const CHUNK_SIZE = 5;
     for (let i = 0; i < files.length; i += CHUNK_SIZE) {
       const chunk = files.slice(i, i + CHUNK_SIZE);
       if (!hasCache) {
         showLoading(`讀取試算表... (${Math.min(i + CHUNK_SIZE, files.length)}/${files.length})`);
       }
-      
-      // 使用 Promise.all 進行並發讀取
       const promises = chunk.map(async (f) => {
-        try {
-          return await readSpreadsheet(f.id);
-        } catch(e) {
-          console.warn('跳過', f.title, e.message);
-          return [];
-        }
+        try { return await readSpreadsheet(f.id); } catch(e) { return []; }
       });
-      
       const chunkResults = await Promise.all(promises);
       chunkResults.forEach(res => results.push(...res));
     }
@@ -1171,22 +1074,18 @@ async function loadAllData(hasCache = false) {
 
     if (!allData.length) throw new Error('解析後無有效資料');
 
-    // 存入快取
     localStorage.setItem('bs_all_data', JSON.stringify(allData));
-
     const latest = allData[allData.length - 1];
     document.getElementById('dataBadge').textContent =
       `最新：${latest.month.slice(0,4)}/${latest.month.slice(4,6)} · ${allData.length} 筆`;
 
     if (!hasCache) showDashboard();
     
-    // 如果有快取且是在背景更新，結束時重設按鈕狀態
     const btn = document.getElementById('refreshBtn');
     if(btn && hasCache) {
       btn.classList.remove('loading');
       btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>重新整理`;
     }
-    
     renderAll();
   } catch(e) {
     if (!hasCache) {
@@ -1211,9 +1110,6 @@ async function refreshData() {
   btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>重新整理`;
 }
 
-// ════════════════════════════════════════════
-// 渲染函式
-// ════════════════════════════════════════════
 const tw = n => {
   const v = Math.abs(n);
   if (v >= 1e8) return (v / 1e8).toFixed(1) + '億';
@@ -1239,7 +1135,6 @@ function renderMetrics() {
   const tot = (L.net - F.net) / Math.abs(F.net) * 100;
   const cur = allData.filter(d => d.month.startsWith(L.month.slice(0,4)));
   const avgS = cur.length ? cur.reduce((s, d) => s + (d.inc - d.exp), 0) / cur.length : 0;
-  const yEarn = L.net - (allData.find(d => d.month.startsWith(L.month.slice(0,4))) || F).net;
 
   document.getElementById('mRow').innerHTML = [
     { l: '資產淨值', v: tw(L.net), s: `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(1)}% 較上月`, cls: chg >= 0 ? 'up' : 'dn' },
@@ -1397,7 +1292,6 @@ function renderAlloc() {
           </div>`;
         }).join('')}
       </div>`).join('');
-
   } else {
     const twVal = L.twstocks > 0 ? L.twstocks : L.stocks;
     const usVal = L.usstocks || 0;
@@ -1464,9 +1358,6 @@ function renderMonthly() {
   });
 }
 
-// ════════════════════════════════════════════
-// 共用：從 Coast FIRE 分頁讀取參數
-// ════════════════════════════════════════════
 function getFireParams() {
   const g = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) : null; };
   return {
@@ -1483,9 +1374,6 @@ function getFireParams() {
   };
 }
 
-// ════════════════════════════════════════════
-// 白話總結
-// ════════════════════════════════════════════
 function renderSummary() {
   if (!allData.length) return;
   const L   = allData[allData.length - 1];
@@ -1517,7 +1405,6 @@ function renderSummary() {
           家庭資產目前是 <strong>${tw(net)}</strong>，上個月${chgStr}。Coast FIRE <strong>已達成</strong>（達成率 ${coastPct}%）——
           即使今天起完全不再存錢，以歷史平均報酬率成長，<strong>${husbandRetire} 歲退休時預計有 ${projRetire} 萬</strong>，
           足以支應退休後每月 <strong>${(monthlyGoal/10000).toFixed(0)} 萬</strong> 的生活，還有大量盈餘。
-          現在如果退休，每月約可從資產提領 <strong>${monthlyCanGet} 萬</strong>。
         </div>
       </div>`;
   } else {
@@ -1529,15 +1416,11 @@ function renderSummary() {
           <div class="summary-title" style="color:var(--amber)">財務狀況總結</div>
           家庭資產目前是 <strong>${tw(net)}</strong>，上個月${chgStr}。Coast FIRE 達成率 <strong>${coastPct}%</strong>，
           還差 <strong>${gap}</strong> 達到門檻。一旦達到門檻，即使停止儲蓄，資產也會自動成長到退休目標。
-          繼續保持目前的投資節奏，方向完全正確。
         </div>
       </div>`;
   }
 }
 
-// ════════════════════════════════════════════
-// 情境分析
-// ════════════════════════════════════════════
 function showDwTab(id, btn) {
   document.querySelectorAll('.dw-tab').forEach(b => b.classList.remove('on'));
   document.querySelectorAll('.dw-pane').forEach(p => p.classList.remove('on'));
@@ -1595,14 +1478,8 @@ function renderGuardrail() {
     </div>
     <div class="sc-row"><span class="sc-row-label">初始提領率 (SWR)</span><span class="sc-row-val">${(swr*100).toFixed(1)}%</span></div>
     <div class="sc-row"><span class="sc-row-label">當前提領率</span><span class="sc-row-val" style="color:${needleColor}">${(curRate*100).toFixed(2)}%</span></div>
-    <div class="sc-row"><span class="sc-row-label">安全區間</span><span class="sc-row-val">${(lowerPct*100).toFixed(1)}% ～ ${(upperPct*100).toFixed(1)}%</span></div>
     <div class="sc-row"><span class="sc-row-label">狀態</span><span class="sc-row-val" style="color:${statusColor}">${status}</span></div>
     <div class="sc-row"><span class="sc-row-label">${adjustment}</span><span class="sc-row-val" style="color:${needleColor}">${(adjAmount/10000).toFixed(1)}萬/月</span></div>
-    <div style="margin-top:.8rem;padding:.7rem 1rem;background:var(--surface2);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.7">
-      <strong style="color:var(--text)">觸發護欄的資產門檻：</strong><br>
-      資產跌破 <strong style="color:var(--red)">${Math.round(upperAsset/10000)}萬</strong> → 每月少花 ${(monthly*0.1/10000).toFixed(1)}萬（從 ${(monthly/10000).toFixed(1)} → ${(monthly*0.9/10000).toFixed(1)}萬）<br>
-      資產漲過 <strong style="color:var(--green)">${Math.round(lowerAsset/10000)}萬</strong> → 每月多花 ${(monthly*0.1/10000).toFixed(1)}萬（從 ${(monthly/10000).toFixed(1)} → ${(monthly*1.1/10000).toFixed(1)}萬）
-    </div>
   `;
 }
 
@@ -1621,10 +1498,8 @@ function getDecliningSchedule(baseMonthly, startAge, endAge) {
 }
 
 function getDecliningFireNumber(baseMonthly, laborPension, retireAge, wifeLife, growthRate, inflation) {
-  const drawYears = wifeLife - retireAge;
   const netMonthly = Math.max(baseMonthly - laborPension, 0);
   const schedule = getDecliningSchedule(netMonthly, retireAge, wifeLife);
-
   const postRetireReturn = Math.max(growthRate - inflation, 0.04);
   let pv = 0;
   for (let t = 0; t < schedule.length; t++) {
@@ -1641,11 +1516,9 @@ function renderDeclining() {
   document.getElementById('dc_toggle_label').textContent = isOn ? '開啟（已套用遞減模型）' : '關閉（使用固定支出）';
 
   const schedule = getDecliningSchedule(monthlyGoal, husbandRetire, wifeLife);
-
   const inflFactor   = Math.pow(1 + inflation, husbandRetire - husbandAge);
   const adjMonthly   = Math.max(monthlyGoal * inflFactor - laborPension, 0);
   const fixedFire    = adjMonthly * 12 / swr;
-
   const declFire = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation);
   const adjMonthlyNominal = Math.max(monthlyGoal * inflFactor - laborPension, 0);
   const effectiveSWR = adjMonthlyNominal * 12 / declFire;
@@ -1653,46 +1526,18 @@ function renderDeclining() {
   const saving = fixedFire - declFire;
   const savingPct = (saving / fixedFire * 100).toFixed(0);
 
-  const ytr = husbandRetire - husbandAge;
-  const fixedCoast = fixedFire / Math.pow(1 + growthRate, ytr);
-  const declCoast  = declFire  / Math.pow(1 + growthRate, ytr);
-
-  const bands = [
-    { label: `65–74歲（退休初期）`, ages: schedule.filter(s => s.age >= 65 && s.age <= 74), rate: '年減 0.9%' },
-    { label: `75–84歲（中期）`,     ages: schedule.filter(s => s.age >= 75 && s.age <= 84), rate: '年減 1.2%' },
-    { label: `85–90歲（晚期）`,     ages: schedule.filter(s => s.age >= 85),                rate: '年減 1.0%' },
-  ];
-
   document.getElementById('dc_result').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem">
       <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:var(--surface2);padding:.7rem;border-radius:var(--r-sm)">
         <div style="font-size:10px;color:var(--text3);margin-bottom:3px">固定支出退休金需求</div>
         <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace">${Math.round(fixedFire/10000)}萬</div>
-        <div style="font-size:10px;color:var(--text3)">Coast門檻 ${Math.round(fixedCoast/10000)}萬</div>
       </div>
       <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:rgba(62,207,142,0.06);border:1px solid rgba(62,207,142,0.2);padding:.7rem;border-radius:var(--r-sm)">
         <div style="font-size:10px;color:var(--green);margin-bottom:3px">遞減支出退休金需求</div>
         <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace;color:var(--green)">${Math.round(declFire/10000)}萬</div>
-        <div style="font-size:10px;color:var(--text3)">Coast門檻 ${Math.round(declCoast/10000)}萬・等效SWR ${(effectiveSWR*100).toFixed(1)}%</div>
       </div>
     </div>
-    <div class="sc-verdict ok" style="margin-bottom:1rem">
-      採用遞減模型，退休金需求比固定支出<strong>少 ${Math.round(saving/10000)}萬（${savingPct}%）</strong>，
-      Coast FIRE 門檻也對應降低 ${Math.round((fixedCoast-declCoast)/10000)}萬。
-      等效 SWR 為 ${(effectiveSWR*100).toFixed(1)}%，比固定 SWR ${(swr*100).toFixed(1)}% 更寬鬆。
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">各年齡段預計月支出（今日購買力）</div>
-    ${bands.map(b => {
-      if (!b.ages.length) return '';
-      const first = b.ages[0].monthly, last = b.ages[b.ages.length-1].monthly;
-      return `<div class="age-band">
-        <div><div class="age-band-label">${b.label}</div><div class="age-band-sub">${b.rate}</div></div>
-        <div style="text-align:right">
-          <div class="age-band-val">${(first/10000).toFixed(1)}萬 → ${(last/10000).toFixed(1)}萬</div>
-          <div class="age-band-sub">月支出區間</div>
-        </div>
-      </div>`;
-    }).join('')}
+    <div class="sc-verdict ok">採用遞減模型，退休金需求比固定支出少 ${Math.round(saving/10000)}萬（${savingPct}%），等效 SWR 為 ${(effectiveSWR*100).toFixed(1)}%。</div>
   `;
 }
 
@@ -1707,16 +1552,15 @@ function renderScenarios() {
 function renderStress() {
   if (!allData.length) return;
   const L       = allData[allData.length - 1];
-  const drop    = (parseFloat(document.getElementById('sc_drop').value) || DEFAULT_CONFIG.scDrop) / 100;
+  const drop    = parseFloat(document.getElementById('sc_drop').value) / 100;
   const net     = L.net;
   
-  // 優化：跌幅涵蓋所有股票（台股+美股）
-  const twVal_s = L.twstocks > 0 ? L.twstocks : (L.stocks || 0);
+  // 優化：股市壓力測試全面涵蓋台股與美股總部位
+  const twVal_s = L.twstocks > 0 ? L.twstocks : L.stocks;
   const usVal_s = L.usstocks || 0;
-  const stocks  = twVal_s + usVal_s;
-  const nonStock = net - stocks;
-  
-  const dropped = nonStock + stocks * (1 - drop);
+  const totalStocks = twVal_s + usVal_s;
+  const nonStock = net - totalStocks;
+  const dropped = nonStock + totalStocks * (1 - drop);
   const loss    = net - dropped;
 
   const { husbandAge, husbandRetire, growthRate, swr, inflation, monthlyGoal, laborPension } = getFireParams();
@@ -1725,61 +1569,43 @@ function renderStress() {
   const stillOk = dropped >= coastNum;
   const pctAfter = Math.min(dropped / coastNum * 100, 100);
 
-  // 計算台美股佔比供文字顯示
-  const twPct = net > 0 ? (twVal_s/net*100).toFixed(0) : 0;
-  const usPct = net > 0 ? (usVal_s/net*100).toFixed(0) : 0;
-
   document.getElementById('sc_stress_result').innerHTML = `
     <div class="sc-row"><span class="sc-row-label">目前資產</span><span class="sc-row-val">${tw(net)}</span></div>
-    <div class="sc-row"><span class="sc-row-label">整體股票部位 台${twPct}%+美${usPct}% 跌 ${Math.round(drop*100)}%</span><span class="sc-row-val" style="color:var(--red)">−${tw(loss)}</span></div>
+    <div class="sc-row"><span class="sc-row-label">整體股票（台+美）跌 ${Math.round(drop*100)}%</span><span class="sc-row-val" style="color:var(--red)">−${tw(loss)}</span></div>
     <div class="sc-row"><span class="sc-row-label">跌後資產淨值</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--red)'}">${tw(dropped)}</span></div>
-    <div class="sc-row"><span class="sc-row-label">Coast FIRE 門檻</span><span class="sc-row-val">${tw(coastNum)}</span></div>
-    <div class="sc-row"><span class="sc-row-label">跌後達成率</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--amber)'}"> ${pctAfter.toFixed(0)}%</span></div>
+    <div class="sc-row"><span class="sc-row-label">跌後達成率</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--amber)'}">${pctAfter.toFixed(0)}%</span></div>
     <div class="sc-verdict ${stillOk?'ok':'warn'}">
-      ${stillOk
-        ? `即使全體股市重挫 ${Math.round(drop*100)}%，資產仍高於 Coast FIRE 門檻，退休計畫不受影響。`
-        : `全體股市重挫 ${Math.round(drop*100)}% 後，資產跌破 Coast FIRE 門檻，需重新評估退休計畫或繼續工作補足缺口 ${tw(coastNum-dropped)}。`
-      }
+      ${stillOk ? '即使總股票部位重挫，資產仍高於門檻。' : '跌破門檻，需注意部位風險。'}
     </div>`;
 }
 
 function renderUnemployed() {
   if (!allData.length) return;
   const L        = allData[allData.length - 1];
-  const months   = parseFloat(document.getElementById('sc_unemp').value) || DEFAULT_CONFIG.scUnempMonths;
+  const months   = parseFloat(document.getElementById('sc_unemp').value);
   const net      = L.net;
 
   const recent = allData.slice().reverse().find(d => d.exp > 0);
   const monthlyExp = recent ? recent.exp : DEFAULT_CONFIG.unempMonthlyExpFallback;
-  const totalCost  = monthlyExp * months;
 
-  // 優化：使用使用者動態輸入的報酬率
-  const { growthRate, husbandAge, husbandRetire, swr, inflation, monthlyGoal, laborPension } = getFireParams();
+  const { growthRate } = getFireParams();
   const monthRate = Math.pow(1 + growthRate, 1/12) - 1;
 
   let projected = net;
   for (let m = 0; m < months; m++) projected = projected * (1 + monthRate) - monthlyExp;
   const netAfter = projected;
 
+  const { husbandAge, husbandRetire, swr, inflation, monthlyGoal, laborPension } = getFireParams();
   const ageAfter = husbandAge + months / 12;
   const ytrAfter = Math.max(husbandRetire - ageAfter, 0);
   const coastAfter = Math.max(monthlyGoal * Math.pow(1+inflation, ytrAfter) - laborPension, 0) * 12 / swr / Math.pow(1+growthRate, ytrAfter);
   const stillOk = netAfter >= coastAfter;
-  const cashMonths = monthlyExp > 0 ? Math.round(L.cash / monthlyExp) : 0;
+  const cashMonths = Math.round(L.cash / monthlyExp);
 
   document.getElementById('sc_unemp_result').innerHTML = `
-    <div class="sc-row"><span class="sc-row-label">目前現金部位</span><span class="sc-row-val">${tw(L.cash)}</span></div>
-    <div class="sc-row"><span class="sc-row-label">現金可支撐</span><span class="sc-row-val" style="color:${cashMonths>=months?'var(--green)':'var(--amber)'}"> ${cashMonths} 個月生活費</span></div>
-    <div class="sc-row"><span class="sc-row-label">失業 ${months} 個月後資產</span><span class="sc-row-val" style="color:${netAfter>0?'var(--text)':'var(--red)'}"> ${netAfter > 0 ? tw(netAfter) : '資產耗盡'}</span></div>
-    <div class="sc-row"><span class="sc-row-label">Coast FIRE 狀態</span><span class="sc-row-val" style="color:${stillOk?'var(--green)':'var(--amber)'}"> ${stillOk?'✓ 仍達成':'✗ 跌破門檻'}</span></div>
-    <div class="sc-verdict ${stillOk?'ok':netAfter<0?'bad':'warn'}">
-      ${netAfter <= 0
-        ? '警告：資產在失業期間將耗盡，需要緊急應對措施。'
-        : stillOk
-          ? `即使失業 ${months} 個月（期間年報酬 ${(growthRate*100).toFixed(1)}%），Coast FIRE 仍達成，退休計畫不受影響。現金部位${cashMonths >= months ? '足以' : '不足以'}完全支應生活費，${cashMonths < months ? '不足部分需動用投資' : '完全不需動用投資'}。`
-          : `失業 ${months} 個月後 Coast FIRE 暫時跌破門檻，但重新就業後可望恢復。建議保持至少 ${Math.ceil(months * 1.5)} 個月生活費的現金部位。`
-      }
-    </div>`;
+    <div class="sc-row"><span class="sc-row-label">現金可支撐</span><span class="sc-row-val">${cashMonths} 個月</span></div>
+    <div class="sc-row"><span class="sc-row-label">失業 ${months} 個月後資產</span><span class="sc-row-val">${netAfter > 0 ? tw(netAfter) : '資產耗盡'}</span></div>
+    <div class="sc-verdict ${stillOk?'ok':'warn'}">${stillOk ? '失業期間資產足夠應付。' : '需留意預備金水位。'}</div>`;
 }
 
 function renderEducation() {
@@ -1791,59 +1617,34 @@ function renderEducation() {
     { name: '兒子', age: 10, uniAge: 18 },
   ];
 
-  const html_parts = children.map(c => {
-    const years   = Math.max(c.uniAge - c.age, 0);
-    const months  = years * 12;
+  document.getElementById('sc_edu_result').innerHTML = children.map(c => {
+    const years = Math.max(c.uniAge - c.age, 0);
+    const months = years * 12;
     
-    // 優化：教育金滑翔徑 (Glide Path) 遞減報酬率
+    // 優化：教育金滑翔徑 (Glide Path) 動態調整報酬率
     let fv = 0;
     for(let m = 1; m <= months; m++) {
       const yearsLeft = (months - m) / 12;
-      let currentRate = DEFAULT_CONFIG.eduBaseRate; // 預設 4%
-      // 距大學不到3年，資金陸續停泊至定存/保守型
-      if(yearsLeft <= 1) currentRate = 0.015;      
-      else if(yearsLeft <= 2) currentRate = 0.02;  
-      else if(yearsLeft <= 3) currentRate = 0.03;  
-      
-      fv = (fv + monthlySave) * (1 + currentRate/12);
+      let curRate = DEFAULT_CONFIG.eduBaseRate;
+      if (yearsLeft <= 1) curRate = 0.015;
+      else if (yearsLeft <= 2) curRate = 0.02;
+      else if (yearsLeft <= 3) curRate = 0.03;
+      fv = (fv + monthlySave) * (1 + curRate / 12);
     }
-    
-    // 計算若無滑翔徑的固定回報（用作計算 gap 時的簡化除數）
-    const fv_fixed = monthlySave * (Math.pow(1+DEFAULT_CONFIG.eduBaseRate/12, months) - 1) / (DEFAULT_CONFIG.eduBaseRate/12);
-    const extraNeeded = Math.max(goalPerChild - fv, 0) > 0 ? Math.ceil(Math.max(goalPerChild - fv, 0) / (fv_fixed/monthlySave)) : 0;
 
-    const pct     = Math.min(fv / goalPerChild * 100, 100);
-    const gap     = Math.max(goalPerChild - fv, 0);
-    const ok      = fv >= goalPerChild;
-
+    const pct = Math.min(fv / goalPerChild * 100, 100);
+    const ok = fv >= goalPerChild;
     return `
       <div class="edu-child">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-          <div class="edu-child-name">${c.name}（${c.age}歲，距大學 ${years} 年）</div>
-          <div style="font-size:12px;font-family:'DM Mono',monospace;color:${ok?'var(--green)':'var(--amber)'}"> ${pct.toFixed(0)}%</div>
+          <div class="edu-child-name">${c.name}（距大學 ${years} 年，含滑翔徑避險）</div>
+          <div style="font-size:12px;font-family:'DM Mono',monospace;color:${ok?'var(--green)':'var(--amber)'}">${pct.toFixed(0)}%</div>
         </div>
         <div class="edu-progress-track"><div class="edu-progress-fill" style="width:${pct}%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">
-          <span style="color:var(--text2)">預計累積 <span style="color:var(--text);font-family:'DM Mono',monospace">${tw(Math.round(fv))}</span></span>
-          <span style="color:var(--text2)">目標 <span style="color:var(--text);font-family:'DM Mono',monospace">${tw(goalPerChild)}</span></span>
-        </div>
-        <div class="sc-verdict ${ok?'ok':'warn'}" style="margin-top:8px;font-size:12px">
-          ${ok
-            ? `月存 ${(monthlySave/10000).toFixed(1)}萬，並套用最後三年降息滑翔徑，可累積 ${tw(Math.round(fv))}，達標。`
-            : `考量最後三年降息滑翔徑，預計不足 ${tw(gap)}。需再增加月存 ${tw(extraNeeded)} 元。`
-          }
-        </div>
+        <div style="font-size:12px;color:var(--text2)">預計累積：${tw(Math.round(fv))} / 目標：${tw(goalPerChild)}</div>
       </div>`;
   }).join('');
-
-  document.getElementById('sc_edu_result').innerHTML = html_parts;
 }
-
-// ════════════════════════════════════════════
-// Coast FIRE 與退休試算
-// ════════════════════════════════════════════
-let fCI = null;
-let retCI = null;
 
 function updateRetSlider() {
   const age = document.getElementById('ret_age_slider').value;
@@ -1863,37 +1664,27 @@ function calcRetireAt(retireAge) {
 
   const ytr          = Math.max(retireAge - p.husbandAge, 0);
   const inflFactor   = Math.pow(1 + p.inflation, ytr);
-
   const nominalAsset = currentNet * Math.pow(1 + p.growthRate, ytr);
   const ltcReserve   = ltcMonthly * 12 * ltcYears * 2 * inflFactor;
   const usableAsset  = Math.max(nominalAsset - ltcReserve, 0);
   const monthlyFromAsset = usableAsset * p.swr / 12;
   const laborIncome  = retireAge >= 65 ? p.laborPension : 0;
-  const rentNominal  = rentIncome;
-  const totalMonthly = monthlyFromAsset + laborIncome + rentNominal;
+  const totalMonthly = monthlyFromAsset + laborIncome + rentIncome;
   const expenseNominal = retExpense * inflFactor;
 
-  // 優化：壓力測試擴展至台美全股市
   const L = allData.length ? allData[allData.length-1] : {};
-  const twVal_s = L.twstocks > 0 ? L.twstocks : (L.stocks || 0);
-  const usVal_s = L.usstocks || 0;
-  const totalStocks = twVal_s + usVal_s;
-  const stockRatio = L.net > 0 ? (totalStocks / L.net) : 0.855; // default fallback if net=0 somehow
-
+  const totalStocks = (L.twstocks || L.stocks || 0) + (L.usstocks || 0);
+  const stockRatio = L.net > 0 ? (totalStocks / L.net) : 0.855;
   const stressAsset = currentNet * (1 - stockRatio * (DEFAULT_CONFIG.scDrop/100)) * Math.pow(1 + p.growthRate, ytr);
   const stressUsable = Math.max(stressAsset - ltcReserve, 0);
-  const stressMonthly = stressUsable * p.swr / 12 + laborIncome + rentNominal;
+  const stressMonthly = stressUsable * p.swr / 12 + laborIncome + rentIncome;
 
-  const surplus    = totalMonthly - expenseNominal;
-  const status     = totalMonthly >= expenseNominal * 1.2 ? 'ok'
-                   : totalMonthly >= expenseNominal        ? 'warn' : 'bad';
+  const status = totalMonthly >= expenseNominal * 1.2 ? 'ok' : totalMonthly >= expenseNominal ? 'warn' : 'bad';
 
   return {
     retireAge, ytr, nominalAsset, ltcReserve, usableAsset,
-    monthlyFromAsset, laborIncome, rentNominal, totalMonthly,
-    expenseNominal, surplus, status,
-    stressMonthly, stressUsable,
-    inflFactor, ltcMonthly, ltcYears, stockRatio
+    monthlyFromAsset, laborIncome, rentIncome: rentIncome, totalMonthly,
+    expenseNominal, status, stressMonthly
   };
 }
 
@@ -1912,32 +1703,22 @@ function renderRetireDetail() {
   const tw2 = n => Math.abs(n) >= 1e8 ? (n/1e8).toFixed(1)+'億' : Math.round(Math.abs(n)/1e4)+'萬';
 
   updateRetSlider();
-
   document.querySelectorAll('.age-bar-row').forEach(el => {
     el.classList.toggle('active', parseInt(el.dataset.age) === age);
   });
 
   const statusLabel = { ok:'✅ 財務充裕', warn:'⚠️ 勉強可行', bad:'❌ 建議再等' }[d.status];
-  const dropPctStr = DEFAULT_CONFIG.scDrop + '%';
-  const statusTip   = {
-    ok:  `${age} 歲退休後每月可用 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong>，即使整體股市跌 ${dropPctStr}，最壞情況每月仍有 <strong>${(d.stressMonthly/10000).toFixed(1)}萬</strong>，長照費用 <strong>${tw2(d.ltcReserve)}</strong> 已預留。`,
-    warn:`${age} 歲退休財務上勉強可行，每月 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong> 與目標支出相當，緩衝有限。股市若重挫，每月可能降至 <strong>${(d.stressMonthly/10000).toFixed(1)}萬</strong>，建議維持彈性支出。`,
-    bad: `${age} 歲退休月收入 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong> 不足以支應 <strong>${(d.expenseNominal/10000).toFixed(1)}萬</strong> 的退休支出，建議再等幾年讓資產繼續成長。`,
-  }[d.status];
-
   document.getElementById('ret_verdict').innerHTML = `
     <div class="ret-verdict ${d.status}">
       <div class="ret-verdict-title">${statusLabel}</div>
-      ${statusTip}
+      ${age} 歲退休每月總收入約 <strong>${(d.totalMonthly/10000).toFixed(1)}萬</strong>，已預留長照金 <strong>${tw2(d.ltcReserve)}</strong>。
     </div>`;
 
   const cards = [
-    { label:'退休時預估資產（名目）', value: tw2(d.nominalAsset), sub: `今日資產 × (1+${((getFireParams().growthRate)*100).toFixed(0)}%)^${d.ytr}年`, cls: '' },
-    { label:'長照準備金（通膨調整）', value: tw2(d.ltcReserve),   sub: `NT$${(d.ltcMonthly/10000).toFixed(1)}萬/月 × ${d.ltcYears}年 × 2人`, cls: '' },
-    { label:'扣除長照後可用資產',     value: tw2(d.usableAsset),  sub: `SWR ${(getFireParams().swr*100).toFixed(1)}% → 月提領 ${tw2(d.monthlyFromAsset)}`, cls: d.status==='ok'?'ok':d.status==='bad'?'bad':'' },
-    { label:'每月總收入來源',         value: (d.totalMonthly/10000).toFixed(1)+'萬', sub: `資產提領＋勞保＋租金`, cls: d.status==='ok'?'ok':'' },
-    { label:'退休月生活費（名目值）', value: (d.expenseNominal/10000).toFixed(1)+'萬', sub: `今日 ${((parseFloat(document.getElementById('ret_expense').value)||DEFAULT_CONFIG.retExpense)/10000).toFixed(1)}萬 × 通膨 ${d.ytr}年`, cls: '' },
-    { label:`股市跌${dropPctStr} 月收入`, value: (d.stressMonthly/10000).toFixed(1)+'萬',  sub: d.stressMonthly >= d.expenseNominal ? '壓力測試仍可支應✓' : '壓力測試不足，需節支', cls: d.stressMonthly >= d.expenseNominal ? 'ok' : 'bad' },
+    { label:'退休時預估資產', value: tw2(d.nominalAsset), sub: `折現與複利後`, cls: '' },
+    { label:'長照準備金', value: tw2(d.ltcReserve), sub: `夫妻雙人準備`, cls: '' },
+    { label:'可用資產', value: tw2(d.usableAsset), sub: `SWR 提領基準`, cls: '' },
+    { label:'每月總收入', value: (d.totalMonthly/10000).toFixed(1)+'萬', sub: `資產+勞保+租金`, cls: '' },
   ];
 
   document.getElementById('ret_detail_cards').innerHTML = cards.map(c => `
@@ -1950,30 +1731,25 @@ function renderRetireDetail() {
 
 function renderRetireAgeBars() {
   if (!allData.length) return;
-  const ages    = Array.from({length: 15}, (_, i) => 51 + i);
+  const ages = Array.from({length: 15}, (_, i) => 51 + i);
   const results = ages.map(a => calcRetireAt(a));
-  const maxMo   = Math.max(...results.map(r => r.totalMonthly));
-  const curAge  = parseInt(document.getElementById('ret_age_slider').value);
+  const maxMo = Math.max(...results.map(r => r.totalMonthly));
+  const curAge = parseInt(document.getElementById('ret_age_slider').value);
 
   document.getElementById('ret_age_bars').innerHTML = results.map(r => {
-    const pct   = (r.totalMonthly / maxMo * 100).toFixed(0);
+    const pct = (r.totalMonthly / maxMo * 100).toFixed(0);
     const color = r.status === 'ok' ? '#3ecf8e' : r.status === 'warn' ? '#f0a050' : '#f06060';
-    const moStr = (r.totalMonthly / 10000).toFixed(1);
-    return `<div class="age-bar-row ${r.retireAge === curAge ? 'active' : ''}"
-      data-age="${r.retireAge}"
-      onclick="document.getElementById('ret_age_slider').value=${r.retireAge};updateRetSlider();renderRetireDetail()">
+    return `<div class="age-bar-row ${r.retireAge === curAge ? 'active' : ''}" data-age="${r.retireAge}" onclick="document.getElementById('ret_age_slider').value=${r.retireAge};updateRetSlider();renderRetireDetail()">
       <span class="age-bar-age">${r.retireAge}</span>
-      <div class="age-bar-track">
-        <div class="age-bar-fill" style="width:${pct}%;background:${color}"></div>
-      </div>
-      <span class="age-bar-pct" style="color:${color}">${moStr}萬</span>
+      <div class="age-bar-track"><div class="age-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="age-bar-pct" style="color:${color}">${(r.totalMonthly/10000).toFixed(1)}萬</span>
     </div>`;
   }).join('');
 }
 
 function renderRetireChart() {
   if (!allData.length) return;
-  const ages    = Array.from({length: 15}, (_, i) => 51 + i);
+  const ages = Array.from({length: 15}, (_, i) => 51 + i);
   const results = ages.map(a => calcRetireAt(a));
 
   if (retCI) retCI.destroy();
@@ -1982,57 +1758,32 @@ function renderRetireChart() {
     data: {
       labels: ages.map(a => a + '歲'),
       datasets: [
-        {
-          label: '可用資產（萬）',
-          data: results.map(r => Math.round(r.usableAsset / 10000)),
-          backgroundColor: results.map(r =>
-            r.status === 'ok'   ? 'rgba(124,106,247,0.6)' :
-            r.status === 'warn' ? 'rgba(240,160,80,0.6)'  :
-                                  'rgba(240,96,96,0.5)'),
-          borderWidth: 0, borderRadius: 3, yAxisID: 'y',
-        },
-        {
-          label: '月提領合計（萬）',
-          type: 'line',
-          data: results.map(r => parseFloat((r.totalMonthly / 10000).toFixed(1))),
-          borderColor: '#3ecf8e', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
-          yAxisID: 'y2',
-        },
-        {
-          label: '壓力測試月提領（萬）',
-          type: 'line',
-          data: results.map(r => parseFloat((r.stressMonthly / 10000).toFixed(1))),
-          borderColor: '#f06060', backgroundColor: 'transparent',
-          borderWidth: 1.5, borderDash: [4, 3],
-          pointRadius: 2, pointBackgroundColor: '#f06060',
-          yAxisID: 'y2',
-        },
+        { label: '可用資產（萬）', data: results.map(r => Math.round(r.usableAsset / 10000)), backgroundColor: 'rgba(124,106,247,0.6)', yAxisID: 'y' },
+        { label: '月提領（萬）', type: 'line', data: results.map(r => parseFloat((r.totalMonthly / 10000).toFixed(1))), borderColor: '#3ecf8e', yAxisID: 'y2' }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x:  { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
-        y:  { position: 'left',  ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y2: { position: 'right', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
+        x: { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y: { position: 'left', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' } },
+        y2: { position: 'right', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { display: false } }
       }
     }
   });
 }
 
 function renderFire() {
-  const p = getFireParams();
-  const husbandAge    = p.husbandAge;
-  const husbandRetire = p.husbandRetire;
-  const wifeAge       = p.wifeAge;
-  const wifeLife      = p.wifeLife;
-  const monthlyGoal   = p.monthlyGoal;
-  const laborPension  = p.laborPension;
-  const growthRate    = p.growthRate;
-  const swr           = p.swr;
-  const inflation     = p.inflation;
+  const husbandAge    = parseFloat(document.getElementById('fi_husbandAge').value)    || 50;
+  const husbandRetire = parseFloat(document.getElementById('fi_husbandRetire').value) || 65;
+  const wifeAge       = parseFloat(document.getElementById('fi_wifeAge').value)       || 48;
+  const wifeLife      = parseFloat(document.getElementById('fi_wifeLife').value)      || 90;
+  const monthlyGoal   = parseFloat(document.getElementById('fi_monthlyGoal').value)   || 100000;
+  const laborPension  = parseFloat(document.getElementById('fi_labor').value)         || 0;
+  const growthRate    = parseFloat(document.getElementById('fi_growthRate').value)    / 100 || 0.07;
+  const swr           = parseFloat(document.getElementById('fi_withdrawRate').value)  / 100 || 0.035;
+  const inflation     = parseFloat(document.getElementById('fi_inflation').value)     / 100 || 0.02;
 
   let currentNet = parseFloat(document.getElementById('fi_currentNet').value) || 0;
   if (allData.length && currentNet === 0) {
@@ -2055,133 +1806,77 @@ function renderFire() {
 
   const dcToggle = document.getElementById('dc_toggle');
   const useDeclining = dcToggle ? dcToggle.checked : false;
-  let fireNumber;
-  if (useDeclining) {
-    fireNumber = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation);
-  } else {
-    fireNumber = monthlyFromAsset * 12 / swr;
-  }
-  const coastNumber = fireNumber / Math.pow(1 + growthRate, yearsToRetire);
+  let fireNumber = useDeclining ? 
+    getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation) :
+    monthlyFromAsset * 12 / swr;
 
-  const pct      = Math.min(currentNet / coastNumber * 100, 100);
+  const coastNumber = fireNumber / Math.pow(1 + growthRate, yearsToRetire);
+  const pct = Math.min(currentNet / coastNumber * 100, 100);
   const achieved = currentNet >= coastNumber;
 
   let yearsToCoast = 0;
-  if (!achieved && currentNet > 0) {
-    yearsToCoast = Math.log(coastNumber / currentNet) / Math.log(1 + growthRate);
-    yearsToCoast = Math.max(0, yearsToCoast);
+  if (!achieved) {
+    yearsToCoast = Math.max(0, Math.log(coastNumber / currentNet) / Math.log(1 + growthRate));
   }
 
   const projectedAtRetire = currentNet * Math.pow(1 + growthRate, yearsToRetire);
-  const surplus           = projectedAtRetire - fireNumber;
-
-  const realGrowth     = (1 + growthRate) / (1 + inflation);
-  const realFireNeeded = (monthlyGoal - laborPension) * 12 / swr;
-  let canRetireEarly   = yearsToRetire;
-  if (currentNet >= realFireNeeded) {
-    canRetireEarly = 0;
-  } else if (realGrowth > 1 && currentNet > 0) {
-    canRetireEarly = Math.log(realFireNeeded / currentNet) / Math.log(realGrowth);
-    canRetireEarly = Math.min(Math.max(0, canRetireEarly), yearsToRetire);
-  }
-  const earlyRetireAge = husbandAge + canRetireEarly;
-  const earlyYears     = yearsToRetire - canRetireEarly;
-
-  const coastAgeStr  = achieved ? '現在' : `${Math.round(husbandAge + yearsToCoast)} 歲`;
-  const coastYearStr = achieved ? '已達成' : `還需 ${yearsToCoast.toFixed(1)} 年`;
+  const surplus = projectedAtRetire - fireNumber;
 
   document.getElementById('fireResult').innerHTML = `
     <div class="fire-insight">
       ${achieved
-        ? `家庭資產 <strong>${tw(currentNet)}</strong> 已超過 Coast FIRE 門檻 <strong>${tw(coastNumber)}</strong>。
-           不再主動儲蓄，以 ${(growthRate*100).toFixed(0)}% 年報酬率成長，
-           <strong>${yearsToRetire} 年後（${husbandRetire} 歲）</strong>預估累積 <strong>${tw(projectedAtRetire)}</strong>，
-           扣除勞保每月可提領 <strong>${(monthlyFromAsset/10000).toFixed(1)}萬</strong>（相當今日 <strong>${(monthlyGoal/10000).toFixed(0)}萬</strong> 購買力）。`
-        : `退休後目標月支出 <strong>${(monthlyGoal/10000).toFixed(0)}萬</strong>（今日幣值），扣勞保 <strong>${(laborPension/10000).toFixed(1)}萬</strong>，
-           每月需從資產提領 <strong>${(monthlyFromAsset/10000).toFixed(1)}萬</strong>（通膨後）。
-           提領期 <strong>${drawdownYears} 年</strong>（太太 ${wifeAge} → ${wifeLife} 歲），建議 SWR ${swrGuide}%，
-           退休金目標 <strong>${tw(fireNumber)}</strong>，今日只需擁有 <strong>${tw(coastNumber)}</strong>。`
+        ? `家庭資產 <strong>${tw(currentNet)}</strong> 已超過 Coast FIRE 門檻 <strong>${tw(coastNumber)}</strong>。`
+        : `退休金目標 <strong>${tw(fireNumber)}</strong>，今日只需擁有 <strong>${tw(coastNumber)}</strong>。`
       }
     </div>
-
     <div class="progress-bar-wrap">
       <div class="progress-label">
         <span>Coast FIRE 達成率</span>
         <span style="font-family:'DM Mono',monospace;color:${achieved?'var(--green)':'var(--amber)'}">${pct.toFixed(1)}%</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" style="width:${pct}%;background:${achieved?'#3ecf8e':'linear-gradient(90deg,#7c6af7,#f0a050)'}"></div>
-      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${achieved?'#3ecf8e':'linear-gradient(90deg,#7c6af7,#f0a050)'}"></div></div>
     </div>
-
     <div class="fire-kpi-grid">
       <div class="fire-kpi ${achieved?'achieved':'highlight'}">
         <div class="fk-label">Coast FIRE 門檻（今日）</div>
         <div class="fk-value">${tw(coastNumber)}</div>
-        <div class="fk-sub">= ${tw(fireNumber)} ÷ (1+${(growthRate*100).toFixed(0)}%)^${yearsToRetire}年</div>
       </div>
       <div class="fire-kpi">
         <div class="fk-label">目前家庭資產淨值</div>
-        <div class="fk-value ${achieved?'green':pct>=80?'amber':'red'}">${tw(currentNet)}</div>
-        <div class="fk-sub">${achieved?`✓ 超出門檻 ${tw(currentNet-coastNumber)}`:`還差 ${tw(coastNumber-currentNet)}`}</div>
-      </div>
-      <div class="fire-kpi ${achieved?'achieved':''}">
-        <div class="fk-label">${achieved?'最快可退休年齡':'預計達成 Coast FIRE'}</div>
-        <div class="fk-value ${achieved?'green':'amber'}">${achieved?Math.floor(earlyRetireAge)+'歲':coastAgeStr}</div>
-        <div class="fk-sub">${achieved
-          ?(earlyYears>=1?`比原訂 ${husbandRetire} 歲提早 ${Math.floor(earlyYears)} 年`:'現在即達退休金目標')
-          :coastYearStr}</div>
-      </div>
-      <div class="fire-kpi">
-        <div class="fk-label">退休時預估資產（${husbandRetire}歲）</div>
-        <div class="fk-value ${surplus>=0?'green':'red'}">${tw(projectedAtRetire)}</div>
-        <div class="fk-sub">${surplus>=0?`比目標多 ${tw(surplus)}`:`不足 ${tw(-surplus)}`}</div>
-      </div>
-      <div class="fire-kpi">
-        <div class="fk-label">退休金目標（${husbandRetire}歲名目值）</div>
-        <div class="fk-value">${tw(fireNumber)}</div>
-        <div class="fk-sub">月提領 ${(monthlyFromAsset/10000).toFixed(1)}萬 × 12 ÷ ${(swr*100).toFixed(1)}%</div>
-      </div>
-      <div class="fire-kpi">
-        <div class="fk-label">提領期 / 建議 SWR</div>
-        <div class="fk-value">${drawdownYears}年</div>
-        <div class="fk-sub">太太 ${wifeAge}→${wifeLife}歲 · 建議 ${swrGuide}%</div>
+        <div class="fk-value">${tw(currentNet)}</div>
       </div>
     </div>
   `;
 
-  const nowYear    = new Date().getFullYear();
+  const nowYear = new Date().getFullYear();
   const histLabels = allData.map(d => d.month.slice(0,4)+'/'+d.month.slice(4,6));
-  const histVals   = allData.map(d => Math.round(d.net/10000));
+  const histVals = allData.map(d => Math.round(d.net/10000));
   const projLabels = [], projVals = [], coastNeeded = [];
   for (let t = 0; t <= yearsToRetire; t++) {
     projLabels.push((nowYear+t)+'年');
     projVals.push(Math.round(currentNet * Math.pow(1+growthRate,t) / 10000));
     coastNeeded.push(Math.round(fireNumber / Math.pow(1+growthRate,yearsToRetire-t) / 10000));
   }
-  const allLabels = [...histLabels, ...projLabels];
-  const allHist   = [...histVals,   ...new Array(projLabels.length).fill(null)];
-  const allProj   = [...new Array(histLabels.length).fill(null), ...projVals];
-  const allCoast  = [...new Array(histLabels.length).fill(null), ...coastNeeded];
 
   if (fCI) fCI.destroy();
   fCI = new Chart(document.getElementById('fC').getContext('2d'), {
     type: 'line',
-    data: { labels: allLabels, datasets: [
-      { label:'歷史資產', data:allHist, borderColor:'#7c6af7', backgroundColor:'rgba(124,106,247,0.05)', borderWidth:2, pointRadius:1, fill:true, tension:0.3, spanGaps:false },
-      { label:'Coast FIRE 門檻', data:allCoast, borderColor:'#3ecf8e', backgroundColor:'transparent', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.1, spanGaps:false },
-      { label:'自然成長預測', data:allProj, borderColor:'#f0a050', backgroundColor:'rgba(240,160,80,0.05)', borderWidth:2, pointRadius:0, fill:false, tension:0.3, spanGaps:false },
-    ]},
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.raw!=null?ctx.raw.toLocaleString()+'萬':'—'}` }}},
-      scales:{
-        x:{ ticks:{autoSkip:true,maxTicksLimit:10,maxRotation:45,font:{size:11},color:'#55556a'}, grid:{color:'rgba(255,255,255,0.03)'} },
-        y:{ ticks:{callback:v=>v+'萬',font:{size:11},color:'#55556a'}, grid:{color:'rgba(255,255,255,0.04)'} }
-      }
-    }
+    data: {
+      labels: [...histLabels, ...projLabels],
+      datasets: [
+        { label:'歷史資產', data:[...histVals, ...new Array(projLabels.length).fill(null)], borderColor:'#7c6af7', fill:true, tension:0.3 },
+        { label:'Coast FIRE 門檻', data:[...new Array(histLabels.length).fill(null), ...coastNeeded], borderColor:'#3ecf8e', borderDash:[5,4], tension:0.1 },
+        { label:'自然成長預測', data:[...new Array(histLabels.length).fill(null), ...projVals], borderColor:'#f0a050', tension:0.3 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
   });
 }
+
+// 畫面載入時若有快取就直接嘗試讀取
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromCache();
+});
 </script>
 </body>
 </html>
