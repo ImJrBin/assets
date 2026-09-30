@@ -473,6 +473,25 @@
   .age-bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
   .age-bar-pct  { font-size: 11px; font-family: 'DM Mono', monospace; width: 36px; text-align: right; flex-shrink: 0; }
   .age-bar-row.active .age-bar-fill { outline: 2px solid var(--accent2); outline-offset: 1px; }
+
+  /* ── 情境報酬率比較 ── */
+  .scenario-compare {
+    margin-top: 1.5rem; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--r); padding: 1.2rem;
+  }
+  .sc-compare-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text3); margin-bottom: .8rem;
+  }
+  .sc-compare-legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    font-size: 12px; color: var(--text2); margin-bottom: 10px;
+  }
+  .sc-compare-legend span { display: flex; align-items: center; gap: 5px; }
+  .sc-compare-note {
+    font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.6;
+    padding: .6rem .8rem; border-left: 2px solid var(--border2);
+  }
 </style>
 </head>
 <body>
@@ -842,6 +861,36 @@
             <span><span class="ld" style="background:#3ecf8e"></span>月提領合計（萬元）</span>
             <span><span class="ld" style="background:#f06060;border-radius:50%"></span>壓力測試月提領（萬元）</span>
           </div>
+
+          <!-- 三情境報酬率比較 -->
+          <div class="scenario-compare">
+            <div class="sc-compare-title">報酬率情境比較（退休後資產軌跡）</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+              <div class="sc-ctrl" style="gap:6px;margin:0">
+                <label style="font-size:12px;color:var(--text2)">退休年齡</label>
+                <select id="sc_retire_age" onchange="renderScenarioCompare()" style="font-size:12px">
+                  ${Array.from({length:15},(_,i)=>51+i).map(a=>`<option value="${a}"${a===55?' selected':''}>${a}歲</option>`).join('')}
+                </select>
+              </div>
+              <div class="sc-ctrl" style="gap:6px;margin:0">
+                <label style="font-size:12px;color:var(--text2)">每月提領</label>
+                <div class="fi-input-wrap" style="width:110px">
+                  <input type="number" id="sc_monthly_draw" value="12" step="1" oninput="renderScenarioCompare()">
+                  <span class="fi-suffix">萬</span>
+                </div>
+              </div>
+            </div>
+            <div class="sc-compare-legend">
+              <span><span class="ld" style="background:#f06060"></span>悲觀 4%（低成長/失落年代）</span>
+              <span><span class="ld" style="background:#f0a050"></span>基準 7%（歷史平均）</span>
+              <span><span class="ld" style="background:#3ecf8e"></span>樂觀 10%（強多頭）</span>
+            </div>
+            <div class="chart-wrap" style="height:260px">
+              <canvas id="scC" role="img" aria-label="三種報酬率情境下退休後資產軌跡"></canvas>
+            </div>
+            <div class="sc-compare-note" id="sc_compare_note"></div>
+          </div>
+
         </div>
 
       </div>
@@ -1895,6 +1944,7 @@ function renderRetire() {
   renderRetireDetail();
   renderRetireChart();
   renderRetireAgeBars();
+  renderScenarioCompare();
 }
 
 function renderRetireDetail() {
@@ -1971,6 +2021,132 @@ function renderRetireChart() {
   if (!allData.length) return;
   const ages    = Array.from({length: 15}, (_, i) => 51 + i);
   const results = ages.map(a => calcRetireAt(a));
+
+// ════════════════════════════════════════════
+// 三情境報酬率比較（退休後資產軌跡）
+// ════════════════════════════════════════════
+let scCI = null;
+
+function renderScenarioCompare() {
+  if (!allData.length) return;
+  const p           = getFireParams();
+  const currentNet  = allData[allData.length-1].net;
+  const retireAge   = parseInt(document.getElementById('sc_retire_age').value) || 55;
+  const monthlyDraw = (parseFloat(document.getElementById('sc_monthly_draw').value) || 12) * 10000;
+  const ltcMonthly  = parseFloat(document.getElementById('ret_ltc_monthly').value) || 40000;
+  const ltcYears    = parseFloat(document.getElementById('ret_ltc_years').value)   || 7.7;
+  const rentIncome  = parseFloat(document.getElementById('ret_rent').value)        || 0;
+
+  const ytr         = Math.max(retireAge - p.husbandAge, 0);
+  const inflFactor  = Math.pow(1 + p.inflation, ytr);
+  const ltcReserve  = ltcMonthly * 12 * ltcYears * 2 * inflFactor;
+
+  // 三種報酬率情境
+  const scenarios = [
+    { label: '悲觀 4%',  rate: 0.04, color: '#f06060', dash: [] },
+    { label: '基準 7%',  rate: 0.07, color: '#f0a050', dash: [] },
+    { label: '樂觀 10%', rate: 0.10, color: '#3ecf8e', dash: [] },
+  ];
+
+  // 計算退休時各情境的起始資產
+  // 勞保（65歲起）
+  const wifeLife    = p.wifeLife || 90;
+  const drawYears   = Math.max(wifeLife - retireAge, 0);
+  const annualDraw  = monthlyDraw * 12;
+  const laborAnnual = p.laborPension * 12; // 65歲起才有
+  const rentAnnual  = rentIncome * 12;
+
+  // 各情境資產成長到退休時
+  const datasets = scenarios.map(sc => {
+    const startAsset = currentNet * Math.pow(1 + sc.rate, ytr) - ltcReserve;
+    const points = [];
+    let asset = Math.max(startAsset, 0);
+
+    for (let yr = 0; yr <= drawYears; yr++) {
+      points.push(Math.round(asset / 10000));
+      // 計算本年提領（勞保65歲起加入）
+      const currentAge = retireAge + yr;
+      const labor      = currentAge >= 65 ? laborAnnual : 0;
+      const netDraw    = Math.max(annualDraw - labor - rentAnnual, 0);
+      // 資產成長後提領
+      asset = asset * (1 + sc.rate) - netDraw;
+      if (asset < 0) asset = 0;
+    }
+    return { ...sc, points, startAsset };
+  });
+
+  const labels = Array.from({length: drawYears + 1}, (_, i) => {
+    const age = retireAge + i;
+    return age % 5 === 0 || age === retireAge || age === wifeLife ? age + '歲' : '';
+  });
+
+  if (scCI) scCI.destroy();
+  scCI = new Chart(document.getElementById('scC').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: datasets.map(sc => ({
+        label: sc.label,
+        data: sc.points,
+        borderColor: sc.color,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => {
+              const age = retireAge + ctx[0].dataIndex;
+              return age + '歲';
+            },
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw > 0 ? ctx.raw.toLocaleString() + '萬' : '資產耗盡'}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#55556a', maxRotation: 0 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // 說明文字
+  const pessimistic = datasets[0];
+  const base        = datasets[1];
+  const optimistic  = datasets[2];
+  const finalPess   = pessimistic.points[pessimistic.points.length - 1];
+  const finalBase   = base.points[base.points.length - 1];
+  const finalOpt    = optimistic.points[optimistic.points.length - 1];
+
+  // 悲觀情境下資產是否耗盡
+  const pessZeroAge = (() => {
+    for (let i = 0; i < pessimistic.points.length; i++) {
+      if (pessimistic.points[i] <= 0) return retireAge + i;
+    }
+    return null;
+  })();
+
+  const drawNote = pessZeroAge
+    ? `⚠️ 悲觀情境（4%）下，資產在 <strong>${pessZeroAge} 歲</strong>時耗盡，需要降低月提領或延後退休。`
+    : `✅ 即使最悲觀的 4% 報酬率，資產到 ${wifeLife} 歲仍剩 <strong>${finalPess.toLocaleString()} 萬</strong>，退休計畫安全。`;
+
+  document.getElementById('sc_compare_note').innerHTML = `
+    ${drawNote}<br>
+    基準（7%）：${wifeLife} 歲剩 <strong>${finalBase.toLocaleString()} 萬</strong>。
+    樂觀（10%）：${wifeLife} 歲剩 <strong>${finalOpt.toLocaleString()} 萬</strong>。<br>
+    <span style="color:var(--text3)">計算條件：月提領 ${(monthlyDraw/10000).toFixed(0)} 萬、${retireAge} 歲退休、
+    65 歲起加入勞保 ${(p.laborPension/10000).toFixed(1)} 萬、房租 ${(rentIncome/10000).toFixed(1)} 萬，
+    長照 ${tw(ltcReserve)} 已於退休時預留扣除。</span>
+  `;
+}
+
+
 
   if (retCI) retCI.destroy();
   retCI = new Chart(document.getElementById('retC').getContext('2d'), {
