@@ -53,8 +53,20 @@
     </div>
     <div class="mt-4 md:mt-0 flex items-center gap-3">
       <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
-        <div class="text-xs text-slate-400">當前起始總資產</div>
-        <div class="text-xl font-bold text-emerald-400" id="displayInitialAssets">3,382 萬元</div>
+        <div class="flex items-center justify-end gap-1.5 text-xs text-slate-400">
+          <span>當前起始總資產</span>
+          <button id="btnSyncSheet" title="從 Google Sheet 重新讀取 F28" class="p-1 hover:bg-slate-700 rounded-lg text-sky-400 transition-colors">
+            <svg id="syncIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          </button>
+        </div>
+        <div class="text-xl font-bold text-emerald-400 flex items-center justify-end gap-1 mt-0.5">
+          <input type="number" id="inputInitialAssets" value="3382" step="1" class="w-28 bg-slate-900 border border-slate-700 rounded text-right px-2 py-0.5 text-emerald-400 font-bold outline-none focus:border-emerald-500 text-xl" />
+          <span class="text-sm text-slate-300 font-normal">萬元</span>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-1 text-right flex items-center justify-end gap-1" id="sheetSyncStatus">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" id="syncDot"></span>
+          <span id="syncText">連接 Google Sheet F28 中...</span>
+        </div>
       </div>
     </div>
   </div>
@@ -336,9 +348,10 @@
 <!-- JavaScript Logic -->
 <script>
   // Initial Conditions & State
-  const INITIAL_ASSETS = 3382; // 萬元
+  let INITIAL_ASSETS = 3382; // 萬元 (預設值)
   const START_AGE = 50;
   const END_AGE = 90;
+  const SPREADSHEET_ID = '1H681Er4cqZSKo8HDYWgWz5wyYA2JLCHTnTEM8XuukoE';
 
   // Selected state
   let currentRetireAge = 51;
@@ -351,6 +364,95 @@
   let monthlyInvest = 7.0; // 7 萬/月 (退休前月加碼)
   let initialCashBuffer = 240; // 240 萬元現金緩衝池
   let selectedScenario = 'normal'; // normal, crash_early, crash_2008, boom_early
+
+  /**
+   * Fetch cell F28 value from the Google Sheet's latest tab
+   */
+  async function fetchGoogleSheetAsset() {
+    const syncDot = document.getElementById('syncDot');
+    const syncText = document.getElementById('syncText');
+    const syncIcon = document.getElementById('syncIcon');
+
+    if (syncIcon) syncIcon.classList.add('animate-spin');
+    if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping';
+    if (syncText) syncText.textContent = '讀取 Google Sheet 中...';
+
+    try {
+      // 1. Fetch HTML view to extract tab/sheet names
+      let sheetName = '';
+      try {
+        const htmlRes = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/htmlview`);
+        if (htmlRes.ok) {
+          const htmlText = await htmlRes.text();
+          const matches = [...htmlText.matchAll(/id="sheet-button-([^"]+)">([^<]+)</g)];
+          if (matches && matches.length > 0) {
+            // Pick the latest tab (usually the last month tab)
+            sheetName = matches[matches.length - 1][2].trim();
+          }
+        }
+      } catch (e) {
+        console.warn('Could not inspect tab list, fetching default sheet:', e);
+      }
+
+      // 2. Query cell F28 via GViz API endpoint
+      let gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
+      if (sheetName) {
+        gvizUrl += `&sheet=${encodeURIComponent(sheetName)}`;
+      }
+
+      const res = await fetch(gvizUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+
+      // Parse JSON from google.visualization.Query.setResponse(...)
+      const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+      if (!jsonMatch) throw new Error('Invalid GViz response');
+
+      const data = JSON.parse(jsonMatch[1]);
+      const table = data.table;
+
+      // F28 corresponds to row index 27 (0-indexed), column index 5 (F = 6th column)
+      let rawVal = null;
+      if (table && table.rows && table.rows.length >= 28 && table.rows[27]?.c?.[5]) {
+        rawVal = table.rows[27].c[5].v ?? table.rows[27].c[5].f;
+      } else if (table && table.rows) {
+        // Fallback row search if indexing differs
+        for (let r = 0; r < table.rows.length; r++) {
+          if (r === 27 && table.rows[r]?.c?.[5]) {
+            rawVal = table.rows[r].c[5].v ?? table.rows[r].c[5].f;
+            break;
+          }
+        }
+      }
+
+      if (rawVal !== null && rawVal !== undefined) {
+        let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
+        if (!isNaN(numVal) && numVal > 0) {
+          // If value is in NTD (> 100,000), convert to 萬元
+          if (numVal > 100000) {
+            INITIAL_ASSETS = Math.round(numVal / 10000);
+          } else {
+            INITIAL_ASSETS = Math.round(numVal);
+          }
+
+          const inputEl = document.getElementById('inputInitialAssets');
+          if (inputEl) inputEl.value = INITIAL_ASSETS;
+
+          if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+          if (syncText) syncText.textContent = `已同步 (F28${sheetName ? ' · ' + sheetName : ''})`;
+          renderAll();
+          return;
+        }
+      }
+      throw new Error('F28 欄位數值無效');
+    } catch (err) {
+      console.warn('Google Sheet fetch error:', err);
+      if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400 inline-block';
+      if (syncText) syncText.textContent = '讀取失敗 (使用預設值)';
+    } finally {
+      if (syncIcon) syncIcon.classList.remove('animate-spin');
+    }
+  }
 
   // Series Colors
   const SERIES_COLORS = {
@@ -800,11 +902,24 @@
     renderAll();
   });
 
+  document.getElementById('inputInitialAssets').addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && val >= 0) {
+      INITIAL_ASSETS = val;
+      renderAll();
+    }
+  });
+
+  document.getElementById('btnSyncSheet').addEventListener('click', () => {
+    fetchGoogleSheetAsset();
+  });
+
   window.addEventListener('resize', renderChart);
 
   // Initialize
   populateDropdown();
   renderAll();
+  fetchGoogleSheetAsset(); // Auto-fetch on page load
 </script>
 </body>
 </html>
