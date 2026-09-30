@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>51y-65y 退休資產動態模擬與比較表</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+  .glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .table-row-hover:hover {
+    background-color: rgba(51, 65, 85, 0.5);
+  }
+  input[type="range"] {
+    accent-color: #38bdf8;
+  }
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+</style>
+</head>
+<body class="min-h-screen pb-12">
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+  <!-- Header Section -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 mb-8">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-semibold mb-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算模擬模型
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與比較表</h1>
+      <p class="text-slate-400 text-sm mt-1">獨立計算子女至 18 歲扣款、退休生活費、雙人長照與勞保勞退年金之資產軌跡</p>
+    </div>
+    <div class="mt-4 md:mt-0 flex items-center gap-3">
+      <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
+        <div class="text-xs text-slate-400">當前起始總資產</div>
+        <div class="text-xl font-bold text-emerald-400" id="displayInitialAssets">3,382 萬元</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Parameter Control Panel -->
+  <div class="glass-card rounded-2xl p-6 mb-8 shadow-xl">
+    <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+      核心試算參數調整
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- Parameter 1: Real Return Rate -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">年化實質報酬率 (扣除通膨)</span>
+          <span class="text-sky-400 font-bold" id="valRealReturn">3.5%</span>
+        </div>
+        <input type="range" id="inputRealReturn" min="2.0" max="6.0" step="0.1" value="3.5" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>2.0% (保守)</span>
+          <span>3.5% (基準)</span>
+          <span>6.0% (積極)</span>
+        </div>
+      </div>
+
+      <!-- Parameter 2: Annual Living Expense -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">退休月生活費</span>
+          <span class="text-sky-400 font-bold" id="valMonthlyExpense">10 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyExpense" min="6" max="18" step="0.5" value="10" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>6 萬</span>
+          <span>10 萬</span>
+          <span>18 萬</span>
+        </div>
+      </div>
+
+      <!-- Parameter 3: LTC Monthly Expense -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">雙人月長照費 (75~85歲)</span>
+          <span class="text-sky-400 font-bold" id="valLTCExpense">8 萬元/月</span>
+        </div>
+        <input type="range" id="inputLTCExpense" min="0" max="12" step="1" value="8" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>0 萬</span>
+          <span>8 萬</span>
+          <span>12 萬</span>
+        </div>
+      </div>
+
+      <!-- Parameter 4: USD Exchange Rate -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">美金/台幣 匯率</span>
+          <span class="text-sky-400 font-bold" id="valUSDRate">32.0 NTD</span>
+        </div>
+        <input type="range" id="inputUSDRate" min="28.0" max="35.0" step="0.5" value="32.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>28.0</span>
+          <span>32.0</span>
+          <span>35.0</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Parameter Note -->
+    <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap gap-4">
+      <span class="flex items-center gap-1">
+        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+        女兒定期定額 (250鎂/月)：扣至您 56 歲止 (滿 18 歲)
+      </span>
+      <span class="flex items-center gap-1">
+        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+        兒子定期定額 (250鎂/月)：扣至您 58 歲止 (滿 18 歲)
+      </span>
+      <span class="flex items-center gap-1">
+        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+        勞保勞退年金：滿 65 歲開始領取 (按工作年資遞增)
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Comparative Table: Retirement Ages 51y to 65y -->
+  <div class="glass-card rounded-2xl p-6 mb-8 shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          51y ～ 65y 各退休年齡資產對比總表
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">點擊任意資料列，可在下方查看該退休年齡的各年度詳細現金流</p>
+      </div>
+      <div class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+        單位：新台幣萬元 (實質價值，已剔除通膨)
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-slate-700 text-slate-400 bg-slate-800/50">
+            <th class="py-3 px-4 font-semibold">退休年齡</th>
+            <th class="py-3 px-4 font-semibold text-right">退休當下資產</th>
+            <th class="py-3 px-4 font-semibold text-right">65歲資產 (年金開始)</th>
+            <th class="py-3 px-4 font-semibold text-right">75歲資產 (長照前)</th>
+            <th class="py-3 px-4 font-semibold text-right">85歲資產 (長照後)</th>
+            <th class="py-3 px-4 font-semibold text-right text-sky-400">90歲終末資產</th>
+            <th class="py-3 px-4 font-semibold text-center">資金安全評估</th>
+            <th class="py-3 px-4 font-semibold text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody" class="divide-y divide-slate-800">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="glass-card rounded-2xl p-6 mb-8 shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+          退休資產動態演變曲線 (50歲 ~ 90歲)
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">比較代表性退休年齡（51歲、53歲、55歲、58歲、60歲、62歲、65歲）之資產累積與消耗曲線</p>
+      </div>
+    </div>
+
+    <!-- SVG Canvas Chart -->
+    <div class="relative w-full overflow-hidden">
+      <svg id="trajectoryChart" class="w-full h-[380px] sm:h-[450px]" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <!-- Chart Legend -->
+    <div class="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-800 text-xs" id="chartLegend">
+      <!-- Dynamic legend items -->
+    </div>
+  </div>
+
+  <!-- Detailed Cashflow Log Section -->
+  <div class="glass-card rounded-2xl p-6 shadow-xl" id="detailSection">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span id="detailTitle">51 歲退休 - 年度現金流與資產變化明細</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">即時檢視每一年的投資獲利、生活開銷、子女補貼、長照費用與年金收入</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="selectRetireAge" class="text-xs text-slate-300 font-medium">切換退休年齡：</label>
+        <select id="selectRetireAge" class="bg-slate-800 border border-slate-700 text-sky-400 font-bold rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500">
+          <!-- Options 51 to 65 -->
+        </select>
+      </div>
+    </div>
+
+    <!-- Year by Year Table -->
+    <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-xl border border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead class="sticky top-0 bg-slate-800 text-slate-300 text-xs uppercase z-10 border-b border-slate-700">
+          <tr>
+            <th class="py-3 px-4">您的年齡</th>
+            <th class="py-3 px-4">狀態</th>
+            <th class="py-3 px-4 text-right">年初資產</th>
+            <th class="py-3 px-4 text-right">投資收益</th>
+            <th class="py-3 px-4 text-right text-rose-400">生活費支出</th>
+            <th class="py-3 px-4 text-right text-amber-400">子女250鎂扣款</th>
+            <th class="py-3 px-4 text-right text-purple-400">長照費用</th>
+            <th class="py-3 px-4 text-right text-emerald-400">勞保勞退年金</th>
+            <th class="py-3 px-4 text-right font-bold text-sky-400">年底淨資產</th>
+          </tr>
+        </thead>
+        <tbody id="detailTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+  // Initial Conditions & State
+  const INITIAL_ASSETS = 3382; // 萬元
+  const START_AGE = 50; // Current age baseline
+  const END_AGE = 90;
+
+  // Selected state
+  let currentRetireAge = 51;
+  let realReturnRate = 0.035; // 3.5% default
+  let monthlyExpense = 10; // 10 萬/月
+  let monthlyLTC = 8; // 8 萬/月
+  let usdRate = 32.0;
+
+  // Colors for representative series
+  const SERIES_COLORS = {
+    51: '#38bdf8', // Sky blue
+    53: '#34d399', // Emerald
+    55: '#facc15', // Yellow
+    58: '#f97316', // Orange
+    60: '#a855f7', // Purple
+    62: '#ec4899', // Pink
+    65: '#6366f1'  // Indigo
+  };
+
+  /**
+   * Run single simulation scenario
+   * @param {number} retireAge - Age at retirement (51 ~ 65)
+   * @returns {Array} annual simulation data from age 50 to 90
+   */
+  function runScenario(retireAge) {
+    const annualLivingCost = monthlyExpense * 12; // 萬元/年
+    const annualLTCCost = monthlyLTC * 12; // 萬元/年
+    const monthlyKidUSD = 250; // 美元/月
+    const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; // 萬元/年 (約 9.6 萬)
+
+    // Calculate labor pension starting at age 65
+    // Age 51 retirement -> 30 萬/年; Age 65 retirement -> 46.2 萬/年
+    const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
+
+    let asset = INITIAL_ASSETS;
+    const history = [];
+
+    for (let age = START_AGE; age <= END_AGE; age++) {
+      const isRetired = age >= retireAge;
+
+      // 1. Kids deduction ($250 USD/mo = ~9.6萬/年 per child until age 18)
+      // Daughter (12yo at user age 50): reaches 18 when user is 56 -> pays during ages 50, 51, 52, 53, 54, 55 (6 yrs)
+      // Son (10yo at user age 50): reaches 18 when user is 58 -> pays during ages 50, 51, 52, 53, 54, 55, 56, 57 (8 yrs)
+      let kidCost = 0;
+      if (age < 56) kidCost += annualKidNTD; // Daughter
+      if (age < 58) kidCost += annualKidNTD; // Son
+
+      // 2. Living Expense
+      const livingCost = isRetired ? annualLivingCost : 0;
+
+      // 3. LTC Cost (Ages 75 ~ 84, 10 years total)
+      const ltcCost = (age >= 75 && age < 85) ? annualLTCCost : 0;
+
+      // 4. Pension Income (Starts at age 65)
+      const pensionIncome = (age >= 65) ? pensionAt65 : 0;
+
+      // Beginning of year asset
+      const startAsset = asset;
+
+      // Investment Growth during the year
+      const investmentYield = startAsset * realReturnRate;
+
+      // End of year calculation
+      const netCashflow = investmentYield - livingCost - kidCost - ltcCost + pensionIncome;
+      const endAsset = Math.max(0, startAsset + netCashflow);
+
+      history.push({
+        age,
+        isRetired,
+        startAsset,
+        investmentYield,
+        livingCost,
+        kidCost,
+        ltcCost,
+        pensionIncome,
+        endAsset
+      });
+
+      asset = endAsset;
+    }
+
+    return history;
+  }
+
+  function updateSummaryTable() {
+    const tbody = document.getElementById('summaryTableBody');
+    tbody.replaceChildren();
+
+    for (let rAge = 51; rAge <= 65; rAge++) {
+      const data = runScenario(rAge);
+      
+      const atRetire = data.find(d => d.age === rAge)?.startAsset || 0;
+      const at65 = data.find(d => d.age === 65)?.endAsset || 0;
+      const at75 = data.find(d => d.age === 75)?.startAsset || 0;
+      const at85 = data.find(d => d.age === 85)?.startAsset || 0;
+      const at90 = data.find(d => d.age === 90)?.endAsset || 0;
+
+      const isSelected = rAge === currentRetireAge;
+
+      const tr = document.createElement('tr');
+      tr.className = `table-row-hover cursor-pointer transition-colors ${isSelected ? 'bg-sky-900/30 border-l-4 border-sky-400 font-medium' : ''}`;
+      tr.onclick = () => {
+        currentRetireAge = rAge;
+        document.getElementById('selectRetireAge').value = rAge;
+        renderAll();
+      };
+
+      const safetyBadge = at90 > 2000
+        ? '<span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">極度充裕</span>'
+        : (at90 > 0 
+          ? '<span class="px-2.5 py-1 rounded-full text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20">完全足夠</span>'
+          : '<span class="px-2.5 py-1 rounded-full text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20">注意缺口</span>');
+
+      tr.innerHTML = `
+        <td class="py-3.5 px-4 font-bold text-white flex items-center gap-2">
+          ${rAge} 歲退休
+          ${isSelected ? '<span class="text-xs text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded">目前檢視</span>' : ''}
+        </td>
+        <td class="py-3.5 px-4 text-right font-mono">${Math.round(atRetire).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at65).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at75).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at85).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono font-bold text-sky-400">${Math.round(at90).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-center">${safetyBadge}</td>
+        <td class="py-3.5 px-4 text-center">
+          <button class="text-xs px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">明細</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderChart() {
+    const svg = document.getElementById('trajectoryChart');
+    svg.replaceChildren();
+
+    const width = svg.clientWidth || 900;
+    const height = svg.clientHeight || 420;
+    const padding = { top: 30, right: 30, bottom: 50, left: 75 };
+
+    const representativeAges = [51, 53, 55, 58, 60, 62, 65];
+    const allScenarios = representativeAges.map(age => ({ age, history: runScenario(age) }));
+
+    // Find max asset value for scaling
+    let maxAsset = 0;
+    allScenarios.forEach(sc => {
+      sc.history.forEach(h => {
+        if (h.endAsset > maxAsset) maxAsset = h.endAsset;
+      });
+    });
+    maxAsset = Math.ceil(maxAsset / 1000) * 1000 || 5000;
+
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+
+    const getX = (age) => padding.left + ((age - START_AGE) / (END_AGE - START_AGE)) * plotWidth;
+    const getY = (val) => padding.top + plotHeight - (val / maxAsset) * plotHeight;
+
+    // Gridlines & Y-axis Ticks
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+      const val = (maxAsset / ySteps) * i;
+      const y = getY(val);
+
+      // Grid line
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', padding.left);
+      line.setAttribute('y1', y);
+      line.setAttribute('x2', width - padding.right);
+      line.setAttribute('y2', y);
+      line.setAttribute('stroke', '#334155');
+      line.setAttribute('stroke-dasharray', '3 3');
+      line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+
+      // Label
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', padding.left - 12);
+      text.setAttribute('y', y + 4);
+      text.setAttribute('fill', '#94a3b8');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('text-anchor', 'end');
+      text.textContent = `${Math.round(val).toLocaleString()}萬`;
+      svg.appendChild(text);
+    }
+
+    // X-axis Ticks (Ages 50, 55, 60, 65, 70, 75, 80, 85, 90)
+    for (let age = 50; age <= 90; age += 5) {
+      const x = getX(age);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x);
+      text.setAttribute('y', height - padding.bottom + 24);
+      text.setAttribute('fill', '#94a3b8');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('text-anchor', 'middle');
+      text.textContent = `${age}歲`;
+      svg.appendChild(text);
+    }
+
+    // Draw Long-Term Care Shaded Region (Ages 75 ~ 85)
+    const x75 = getX(75);
+    const x85 = getX(85);
+    const ltcBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    ltcBg.setAttribute('x', x75);
+    ltcBg.setAttribute('y', padding.top);
+    ltcBg.setAttribute('width', x85 - x75);
+    ltcBg.setAttribute('height', plotHeight);
+    ltcBg.setAttribute('fill', 'rgba(168, 85, 247, 0.08)');
+    svg.appendChild(ltcBg);
+
+    const ltcText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    ltcText.setAttribute('x', (x75 + x85) / 2);
+    ltcText.setAttribute('y', padding.top + 18);
+    ltcText.setAttribute('fill', '#c084fc');
+    ltcText.setAttribute('font-size', '11');
+    ltcText.setAttribute('font-weight', 'bold');
+    ltcText.setAttribute('text-anchor', 'middle');
+    ltcText.textContent = '雙人長照期 (75y~85y)';
+    svg.appendChild(ltcText);
+
+    // Draw trajectory lines
+    allScenarios.forEach(sc => {
+      const color = SERIES_COLORS[sc.age] || '#38bdf8';
+      const isSelected = sc.age === currentRetireAge;
+
+      let d = '';
+      sc.history.forEach((h, idx) => {
+        const x = getX(h.age);
+        const y = getY(h.endAsset);
+        d += (idx === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+      });
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', isSelected ? '4' : '2');
+      path.setAttribute('opacity', isSelected ? '1' : '0.55');
+      svg.appendChild(path);
+    });
+
+    // Update Chart Legend
+    const legendContainer = document.getElementById('chartLegend');
+    legendContainer.replaceChildren();
+
+    representativeAges.forEach(age => {
+      const color = SERIES_COLORS[age];
+      const isSelected = age === currentRetireAge;
+
+      const item = document.createElement('div');
+      item.className = `flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-md transition-all ${isSelected ? 'bg-slate-800 border border-slate-700' : 'opacity-70'}`;
+      item.onclick = () => {
+        currentRetireAge = age;
+        document.getElementById('selectRetireAge').value = age;
+        renderAll();
+      };
+      item.innerHTML = `
+        <span class="w-3 h-3 rounded-full inline-block" style="background-color: ${color}"></span>
+        <span class="text-slate-200 font-medium">${age} 歲退休</span>
+      `;
+      legendContainer.appendChild(item);
+    });
+  }
+
+  function updateDetailTable() {
+    document.getElementById('detailTitle').textContent = `${currentRetireAge} 歲退休 - 各年度現金流與資產變化明細`;
+
+    const tbody = document.getElementById('detailTableBody');
+    tbody.replaceChildren();
+
+    const data = runScenario(currentRetireAge);
+
+    data.forEach(h => {
+      const tr = document.createElement('tr');
+      tr.className = `table-row-hover ${h.age === currentRetireAge ? 'bg-sky-950/40 border-l-4 border-sky-400' : ''}`;
+
+      const statusBadge = h.isRetired 
+        ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 font-medium">退休</span>'
+        : '<span class="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-300">工作累積</span>';
+
+      tr.innerHTML = `
+        <td class="py-2.5 px-4 font-bold text-white">${h.age} 歲</td>
+        <td class="py-2.5 px-4">${statusBadge}</td>
+        <td class="py-2.5 px-4 text-right font-mono text-slate-300">${Math.round(h.startAsset).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-4 text-right font-mono text-emerald-400">+${Math.round(h.investmentYield).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-4 text-right font-mono text-rose-400">${h.livingCost > 0 ? '-' + Math.round(h.livingCost).toLocaleString() + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-4 text-right font-mono text-amber-400">${h.kidCost > 0 ? '-' + (h.kidCost).toFixed(1) + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-4 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-4 text-right font-mono text-emerald-400">${h.pensionIncome > 0 ? '+' + (h.pensionIncome).toFixed(1) + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-4 text-right font-mono font-bold text-sky-400">${Math.round(h.endAsset).toLocaleString()} 萬</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function populateDropdown() {
+    const select = document.getElementById('selectRetireAge');
+    select.replaceChildren();
+    for (let age = 51; age <= 65; age++) {
+      const opt = document.createElement('option');
+      opt.value = age;
+      opt.textContent = `${age} 歲退休`;
+      if (age === currentRetireAge) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  function renderAll() {
+    updateSummaryTable();
+    renderChart();
+    updateDetailTable();
+  }
+
+  // Event Listeners
+  document.getElementById('inputRealReturn').addEventListener('input', (e) => {
+    realReturnRate = parseFloat(e.target.value) / 100;
+    document.getElementById('valRealReturn').textContent = `${e.target.value}%`;
+    renderAll();
+  });
+
+  document.getElementById('inputMonthlyExpense').addEventListener('input', (e) => {
+    monthlyExpense = parseFloat(e.target.value);
+    document.getElementById('valMonthlyExpense').textContent = `${monthlyExpense} 萬元/月`;
+    renderAll();
+  });
+
+  document.getElementById('inputLTCExpense').addEventListener('input', (e) => {
+    monthlyLTC = parseFloat(e.target.value);
+    document.getElementById('valLTCExpense').textContent = `${monthlyLTC} 萬元/月`;
+    renderAll();
+  });
+
+  document.getElementById('inputUSDRate').addEventListener('input', (e) => {
+    usdRate = parseFloat(e.target.value);
+    document.getElementById('valUSDRate').textContent = `${usdRate.toFixed(1)} NTD`;
+    renderAll();
+  });
+
+  document.getElementById('selectRetireAge').addEventListener('change', (e) => {
+    currentRetireAge = parseInt(e.target.value);
+    renderAll();
+  });
+
+  window.addEventListener('resize', renderChart);
+
+  // Initialize
+  populateDropdown();
+  renderAll();
+</script>
+</body>
+</html>
