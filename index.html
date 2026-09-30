@@ -1650,19 +1650,26 @@ function getDecliningSchedule(baseMonthly, startAge, endAge) {
 
 // 計算遞減模型下的等效 SWR（讓 Coast FIRE 更精確）
 // 用 PV of declining cash flows 求出真正需要的退休金
-function getDecliningFireNumber(baseMonthly, laborPension, retireAge, wifeLife, growthRate, inflation) {
-  const drawYears = wifeLife - retireAge;
-  const netMonthly = Math.max(baseMonthly - laborPension, 0);
-  const schedule = getDecliningSchedule(netMonthly, retireAge, wifeLife);
+function getDecliningFireNumber(baseMonthly, laborPension, retireAge, wifeLife, growthRate, inflation, yearsToRetire) {
+  // baseMonthly：今日幣值的月支出目標
+  // yearsToRetire：距退休年數（用來把今日幣值轉為退休當年名目值）
+  // 目的：算出「退休當年名目值」的所需資產，跟固定支出模型同一基準
 
-  // 退休時的名目退休金需求（PV of nominal cash flows）
-  // 每年提領 = 今日購買力 × (1+inf)^t（名目化），再折現
-  // 這裡用退休後資產成長率 5%（名目7%-通膨2%）保守估算
-  const postRetireReturn = Math.max(growthRate - inflation, 0.04);
+  // 退休當年名目月支出（通膨調整）
+  const inflFactor     = Math.pow(1 + inflation, yearsToRetire);
+  const nominalMonthly = baseMonthly * inflFactor;  // 退休當年名目月支出
+  const nominalNet     = Math.max(nominalMonthly - laborPension, 0); // 扣勞保
+
+  // 遞減時間表：從退休當年名目值開始遞減
+  const schedule = getDecliningSchedule(nominalNet, retireAge, wifeLife);
+
+  // PV of declining nominal cash flows（折現率用名目報酬率）
+  // 這樣算出來的是「退休時需要多少資產」，跟固定支出的 fireNumber 同一尺度
   let pv = 0;
   for (let t = 0; t < schedule.length; t++) {
-    const nominalWithdrawal = schedule[t].monthly * 12 * Math.pow(1 + inflation, t);
-    pv += nominalWithdrawal / Math.pow(1 + postRetireReturn, t);
+    // schedule[t].monthly 已是退休當年幣值，再通膨調整後續年份
+    const yearlyWithdrawal = schedule[t].monthly * 12 * Math.pow(1 + inflation, t);
+    pv += yearlyWithdrawal / Math.pow(1 + growthRate, t);
   }
   return Math.round(pv);
 }
@@ -1681,7 +1688,8 @@ function renderDeclining() {
   const fixedFire    = adjMonthly * 12 / swr;
 
   // 遞減支出需要的退休金
-  const declFire = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation);
+  const ytr2 = husbandRetire - husbandAge;
+  const declFire = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation, ytr2);
   // 對應的等效 SWR
   const adjMonthlyNominal = Math.max(monthlyGoal * inflFactor - laborPension, 0);
   const effectiveSWR = adjMonthlyNominal * 12 / declFire;
@@ -2235,7 +2243,7 @@ function renderFire() {
   let fireNumber;
   if (useDeclining) {
     // 遞減模型：用 PV of declining cash flows
-    fireNumber = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation);
+    fireNumber = getDecliningFireNumber(monthlyGoal, laborPension, husbandRetire, wifeLife, growthRate, inflation, yearsToRetire);
   } else {
     fireNumber = monthlyFromAsset * 12 / swr;                               // 退休時名目需要總資產
   }
