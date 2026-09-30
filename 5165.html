@@ -46,10 +46,10 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 mb-8">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-semibold mb-2">
-        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型 v2.1
       </div>
       <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與市場波動壓力測試</h1>
-      <p class="text-slate-400 text-sm mt-1">涵蓋子女扣款、退休生活費、自訂長照起始年齡與年數、勞保勞退與順序報酬風險防禦</p>
+      <p class="text-slate-400 text-sm mt-1">涵蓋子女每月250鎂扣款至18歲、退休前月加碼、自訂長照起始年齡、勞保勞退與順序報酬風險防禦</p>
     </div>
     <div class="mt-4 md:mt-0 flex items-center gap-3">
       <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
@@ -141,7 +141,7 @@
     <div class="pt-4 border-t border-slate-800">
       <div class="flex items-center gap-2 mb-3">
         <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
-        <h3 class="text-sm font-semibold text-purple-300">長照風險彈性設定（可測試提早長照情境）</h3>
+        <h3 class="text-sm font-semibold text-purple-300">長照風險彈性設定（可測試早發長照情境）</h3>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Parameter: LTC Monthly Expense -->
@@ -248,7 +248,7 @@
           <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           51y ～ 65y 各退休年齡資產對比總表
         </h2>
-        <p class="text-xs text-slate-400 mt-1">點擊任意資料列，可在下方查看該退休年齡的各年度詳細現金流與水庫提撥狀況</p>
+        <p class="text-xs text-slate-400 mt-1">點擊任意資料列，可滑動至下方查看該退休年齡的各年度詳細現金流與水庫提撥狀況</p>
       </div>
       <div class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
         單位：新台幣萬元 (實質價值)
@@ -300,14 +300,14 @@
   </div>
 
   <!-- Detailed Cashflow Log Section -->
-  <div class="glass-card rounded-2xl p-6 shadow-xl" id="detailSection">
+  <div class="glass-card rounded-2xl p-6 shadow-xl scroll-mt-6" id="detailSection">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
       <div>
         <h2 class="text-xl font-bold text-white flex items-center gap-2">
           <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
           <span id="detailTitle">51 歲退休 - 年度現金流與資產變化明細</span>
         </h2>
-        <p class="text-xs text-slate-400 mt-1">即時檢視市場報酬率、投資獲利、水庫提撥與資產餘額變化</p>
+        <p class="text-xs text-slate-400 mt-1">即時檢視市場報酬率、投資收益、水庫提撥與資產餘額變化</p>
       </div>
       <div class="flex items-center gap-2">
         <label for="selectRetireAge" class="text-xs text-slate-300 font-medium">切換退休年齡：</label>
@@ -329,7 +329,7 @@
             <th class="py-3 px-3 text-right">當期投資收益</th>
             <th class="py-3 px-3 text-right text-sky-300">月加碼買股</th>
             <th class="py-3 px-3 text-right text-rose-400">生活開銷</th>
-            <th class="py-3 px-3 text-right text-amber-400">子女250鎂</th>
+            <th class="py-3 px-3 text-right text-amber-400">子女250鎂/補足</th>
             <th class="py-3 px-3 text-right text-purple-400">長照費用</th>
             <th class="py-3 px-3 text-right text-emerald-400">年金收入</th>
             <th class="py-3 px-3 text-right text-teal-300">現金緩衝水庫</th>
@@ -345,7 +345,6 @@
 
 </div>
 
-<!-- JavaScript Logic -->
 <script>
   // Initial Conditions & State
   let INITIAL_ASSETS = 3382; // 萬元 (預設值)
@@ -367,14 +366,12 @@
 
   /**
    * Helper to extract numeric asset value from Google Visualization API response object.
-   * Flexibly checks rows, cols, and cleans string formats (e.g. NT$, 萬元, commas).
    */
   function extractValueFromSheetData(data) {
     if (!data || !data.table) return null;
     const table = data.table;
     const candidates = [];
 
-    // 1. Check rows[0].c array
     if (table.rows && table.rows.length > 0) {
       const row0 = table.rows[0];
       if (row0 && row0.c) {
@@ -387,7 +384,6 @@
       }
     }
 
-    // 2. Check cols[0] label/id (GViz often puts single range cell into cols if header assumption applies)
     if (table.cols && table.cols.length > 0) {
       for (let col of table.cols) {
         if (col) {
@@ -397,7 +393,6 @@
       }
     }
 
-    // 3. Check F28 directly if full sheet is returned (Row index 27, Col index 5)
     if (table.rows && table.rows.length >= 28) {
       const row27 = table.rows[27];
       if (row27 && row27.c && row27.c[5]) {
@@ -407,7 +402,6 @@
       }
     }
 
-    // Process all candidates to parse out numeric value
     for (let raw of candidates) {
       if (typeof raw === 'number' && !isNaN(raw) && raw > 0) {
         return raw;
@@ -417,7 +411,6 @@
       if (!str) continue;
 
       const isTenThousandUnit = /萬|万/.test(str);
-      // Strip all non-digit and non-period characters
       const cleaned = str.replace(/[^0-9.]/g, '');
       const num = parseFloat(cleaned);
 
@@ -430,7 +423,7 @@
   }
 
   /**
-   * Fetch cell F28 value from the Google Sheet
+   * Fetch cell F28 value from Google Sheet
    */
   function fetchGoogleSheetAsset() {
     const syncDot = document.getElementById('syncDot');
@@ -447,7 +440,6 @@
 
     let resolved = false;
 
-    // Timeout fallback (5s)
     const timeout = setTimeout(() => {
       if (!resolved) {
         resolved = true;
@@ -455,7 +447,6 @@
       }
     }, 5000);
 
-    // Global callback handler for Google Visualization JSONP
     window.handleSheetResponse = function(data) {
       if (resolved) return;
       resolved = true;
@@ -467,7 +458,6 @@
         if (rawVal !== null && rawVal !== undefined) {
           let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
           if (!isNaN(numVal) && numVal > 0) {
-            // Convert NTD to 萬元 if > 100,000
             INITIAL_ASSETS = numVal > 100000 ? Math.round(numVal / 10000) : Math.round(numVal);
             
             const inputEl = document.getElementById('inputInitialAssets');
@@ -483,7 +473,7 @@
         throw new Error('未找到 F28 有效數值');
       } catch (err) {
         console.warn('Sheet parse error:', err);
-        showSyncError('解析失敗 (請檢查 F28 格式)');
+        showSyncError('解析失敗 (使用預設值)');
       } finally {
         cleanup();
       }
@@ -502,7 +492,6 @@
       if (syncIcon) syncIcon.classList.remove('animate-spin');
     }
 
-    // Inject JSONP script requesting range=F28 with headers=0
     const script = document.createElement('script');
     script.id = scriptId;
     script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetResponse&range=F28&headers=0&_=${Date.now()}`;
@@ -548,80 +537,117 @@
   }
 
   /**
-   * Run single simulation scenario
+   * Run single simulation scenario with fully accurate depletion logic
    */
   function runScenario(retireAge) {
-    const annualLivingCost = monthlyExpense * 12;
-    const annualLTCCost = monthlyLTC * 12;
+    const annualLivingCost = monthlyExpense * 12; // 萬元/年
+    const annualLTCCost = monthlyLTC * 12; // 萬元/年
     const monthlyKidUSD = 250;
     const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; // ~9.6 萬/年
-    const annualWorkInvest = monthlyInvest * 12; // ~84 萬/年
+    const annualWorkInvest = monthlyInvest * 12; // 萬元/年
+    const workingLivingCost = 79.8584; // 萬元/年 (現行基本生活+稅費)
 
     // Pension starting at 65
     const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
 
-    let cashBuffer = Math.min(initialCashBuffer, INITIAL_ASSETS * 0.3);
+    // Cash buffer setup
+    let cashBuffer = Math.min(initialCashBuffer, INITIAL_ASSETS);
     let equityAsset = INITIAL_ASSETS - cashBuffer;
 
     const history = [];
-
     const ltcEndAge = ltcStartAge + ltcDuration;
+
+    // Track kids ETF explicitly
+    let daughterVTI = 23.6204; // 萬元
+    let sonVOO = 23.7545; // 萬元
 
     for (let age = START_AGE; age <= END_AGE; age++) {
       const isRetired = age >= retireAge;
       const r = getMarketRateForAge(age, retireAge);
 
-      // 1. Kids Cost (Daughter < 56, Son < 58)
-      let kidCost = 0;
-      if (age < 56) kidCost += annualKidNTD;
-      if (age < 58) kidCost += annualKidNTD;
+      // 1. Kids ETF tracking
+      let ongoingKidETFContrib = 0;
+      let kidTopupDeduction = 0;
 
-      // 2. Pre-retirement extra monthly investment
-      const workInvest = !isRetired ? annualWorkInvest : 0;
+      // Daughter: age 50 is 12yo -> age 56 is 18yo
+      if (age < 56) {
+        daughterVTI = daughterVTI * (1 + r) + annualKidNTD;
+        ongoingKidETFContrib += annualKidNTD;
+      } else if (age === 56) {
+        const topup = Math.max(0, 100 - daughterVTI);
+        kidTopupDeduction += topup;
+      }
 
-      // 3. Living Cost
-      const livingCost = isRetired ? annualLivingCost : 0;
+      // Son: age 50 is 10yo -> age 58 is 18yo
+      if (age < 58) {
+        sonVOO = sonVOO * (1 + r) + annualKidNTD;
+        ongoingKidETFContrib += annualKidNTD;
+      } else if (age === 58) {
+        const topup = Math.max(0, 100 - sonVOO);
+        kidTopupDeduction += topup;
+      }
 
-      // 4. LTC Cost (ltcStartAge ~ ltcEndAge)
+      // 2. Outflows & Inflows
+      const livingCost = isRetired ? annualLivingCost : workingLivingCost;
       const ltcCost = (age >= ltcStartAge && age < ltcEndAge) ? annualLTCCost : 0;
-
-      // 5. Pension Income (65+)
       const pensionIncome = (age >= 65) ? pensionAt65 : 0;
+      const workInvest = !isRetired ? annualWorkInvest : 0;
 
       // Start of year asset status
       const startEquity = equityAsset;
       const startCashBuffer = cashBuffer;
       const startTotal = startEquity + startCashBuffer;
 
-      // Market growth on equity
-      const equityYield = startEquity * r;
-
-      // Total required outlay
-      const totalExpenseNeeded = livingCost + kidCost + ltcCost;
-      const totalIncome = workInvest + pensionIncome;
-      const netCashOutflowNeeded = totalExpenseNeeded - totalIncome;
-
-      let drawnFromBuffer = 0;
-      let drawnFromEquity = 0;
+      // Market yield on equity
+      const equityYield = startEquity > 0 ? startEquity * r : 0;
 
       if (!isRetired) {
-        // Working years: add savings or invest
-        if (netCashOutflowNeeded < 0) {
-          equityAsset = startEquity + equityYield - netCashOutflowNeeded;
-        } else {
-          equityAsset = startEquity + equityYield - netCashOutflowNeeded;
-        }
+        // Working years:
+        // Net salary savings = 92.4 - 79.86 = ~12.54 萬
+        const salaryNet = 92.4 - workingLivingCost;
+        const netAddedToAsset = salaryNet + workInvest - ongoingKidETFContrib - kidTopupDeduction;
+
+        equityAsset = startEquity + equityYield + netAddedToAsset;
+        cashBuffer = startCashBuffer;
       } else {
-        // Retired years: Check if market is crashing (r < 0) and buffer is available
-        if (r < 0 && cashBuffer > 0 && netCashOutflowNeeded > 0) {
-          drawnFromBuffer = Math.min(cashBuffer, netCashOutflowNeeded);
-          drawnFromEquity = netCashOutflowNeeded - drawnFromBuffer;
+        // Retired years:
+        const totalExpenseNeeded = livingCost + ltcCost + ongoingKidETFContrib + kidTopupDeduction;
+        const netOutflowNeeded = totalExpenseNeeded - pensionIncome;
+
+        let drawnFromBuffer = 0;
+        let drawnFromEquity = 0;
+
+        // Buffer strategy check
+        if (r < 0 && startCashBuffer > 0 && netOutflowNeeded > 0) {
+          drawnFromBuffer = Math.min(startCashBuffer, netOutflowNeeded);
+          drawnFromEquity = netOutflowNeeded - drawnFromBuffer;
         } else {
-          drawnFromEquity = netCashOutflowNeeded;
+          drawnFromEquity = netOutflowNeeded;
         }
 
-        cashBuffer = Math.max(0, startCashBuffer - drawnFromBuffer);
-        equityAsset = Math.max(0, startEquity + equityYield - drawnFromEquity);
+        // Apply draw to cash buffer
+        cashBuffer = startCashBuffer - drawnFromBuffer;
+        if (cashBuffer < 0) {
+          drawnFromEquity += Math.abs(cashBuffer);
+          cashBuffer = 0;
+        }
+
+        // Apply draw to equity asset
+        equityAsset = startEquity + equityYield - drawnFromEquity;
+
+        // ACCURATE DEPLETION FIX:
+        // If equityAsset becomes negative (equity depleted), consume remaining Cash Buffer first!
+        if (equityAsset < 0 && cashBuffer > 0) {
+          const equityDeficit = Math.abs(equityAsset);
+          const extraFromBuffer = Math.min(cashBuffer, equityDeficit);
+          cashBuffer -= extraFromBuffer;
+          equityAsset += extraFromBuffer;
+        }
+
+        // If Cash Buffer is also depleted, total asset reflects cumulative deficit (negative number)
+        if (equityAsset < 0 && cashBuffer === 0) {
+          // Both depleted: equityAsset holds the negative net worth (deficit)
+        }
       }
 
       const endTotal = equityAsset + cashBuffer;
@@ -636,7 +662,7 @@
         equityYield,
         workInvest,
         livingCost,
-        kidCost,
+        kidCost: ongoingKidETFContrib + kidTopupDeduction,
         ltcCost,
         pensionIncome,
         cashBufferEnd: cashBuffer,
@@ -671,7 +697,8 @@
         currentRetireAge = rAge;
         document.getElementById('selectRetireAge').value = rAge;
         renderAll();
-        // Smooth scroll to detail section for clear visual feedback
+        
+        // Smooth scroll to detail section for clear feedback
         const detailEl = document.getElementById('detailSection');
         if (detailEl) {
           detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -680,11 +707,19 @@
 
       tr.onclick = selectAndScroll;
 
-      const safetyBadge = at90 > 2000
-        ? '<span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">極度充裕</span>'
-        : (at90 > 0 
-          ? '<span class="px-2.5 py-1 rounded-full text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20">完全足夠</span>'
-          : '<span class="px-2.5 py-1 rounded-full text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20">注意缺口</span>');
+      // ACCURATE SAFETY BADGE:
+      // Checks exact value at age 90
+      let safetyBadge = '';
+      if (at90 > 2000) {
+        safetyBadge = '<span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">極度充裕</span>';
+      } else if (at90 > 0) {
+        safetyBadge = '<span class="px-2.5 py-1 rounded-full text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold">完全足夠</span>';
+      } else {
+        // Find exact age of depletion
+        const runOutItem = data.find(d => d.endTotal <= 0);
+        const runOutAge = runOutItem ? runOutItem.age : '未定';
+        safetyBadge = `<span class="px-2.5 py-1 rounded-full text-xs bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold animate-pulse" title="${runOutAge}歲資產耗盡">缺口(${runOutAge}歲耗盡)</span>`;
+      }
 
       tr.innerHTML = `
         <td class="py-3.5 px-4 font-bold text-white flex items-center gap-2">
@@ -692,10 +727,10 @@
           ${isSelected ? '<span class="text-xs text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded">目前檢視</span>' : ''}
         </td>
         <td class="py-3.5 px-4 text-right font-mono">${Math.round(atRetire).toLocaleString()} 萬</td>
-        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at65).toLocaleString()} 萬</td>
-        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at75).toLocaleString()} 萬</td>
-        <td class="py-3.5 px-4 text-right font-mono">${Math.round(at85).toLocaleString()} 萬</td>
-        <td class="py-3.5 px-4 text-right font-mono font-bold text-sky-400">${Math.round(at90).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono ${at65 < 0 ? 'text-rose-400 font-bold' : ''}">${Math.round(at65).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono ${at75 < 0 ? 'text-rose-400 font-bold' : ''}">${Math.round(at75).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono ${at85 < 0 ? 'text-rose-400 font-bold' : ''}">${Math.round(at85).toLocaleString()} 萬</td>
+        <td class="py-3.5 px-4 text-right font-mono font-bold ${at90 < 0 ? 'text-rose-400' : 'text-sky-400'}">${Math.round(at90).toLocaleString()} 萬</td>
         <td class="py-3.5 px-4 text-center">${safetyBadge}</td>
         <td class="py-3.5 px-4 text-center">
           <button class="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium border border-sky-400/50 shadow-sm transition-all hover:scale-105 active:scale-95">查看明細</button>
@@ -717,23 +752,43 @@
     const allScenarios = representativeAges.map(age => ({ age, history: runScenario(age) }));
 
     let maxAsset = 0;
+    let minAsset = 0;
+
     allScenarios.forEach(sc => {
       sc.history.forEach(h => {
         if (h.endTotal > maxAsset) maxAsset = h.endTotal;
+        if (h.endTotal < minAsset) minAsset = h.endTotal;
       });
     });
+
     maxAsset = Math.ceil(maxAsset / 1000) * 1000 || 5000;
+    minAsset = Math.floor(minAsset / 1000) * 1000;
+    if (minAsset > 0) minAsset = 0;
 
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
 
     const getX = (age) => padding.left + ((age - START_AGE) / (END_AGE - START_AGE)) * plotWidth;
-    const getY = (val) => padding.top + plotHeight - (val / maxAsset) * plotHeight;
+    const getY = (val) => padding.top + plotHeight - ((val - minAsset) / (maxAsset - minAsset)) * plotHeight;
+
+    // Zero line if minAsset < 0
+    if (minAsset < 0) {
+      const yZero = getY(0);
+      const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      zeroLine.setAttribute('x1', padding.left);
+      zeroLine.setAttribute('y1', yZero);
+      zeroLine.setAttribute('x2', width - padding.right);
+      zeroLine.setAttribute('y2', yZero);
+      zeroLine.setAttribute('stroke', '#f43f5e');
+      zeroLine.setAttribute('stroke-dasharray', '4 4');
+      zeroLine.setAttribute('stroke-width', '1.5');
+      svg.appendChild(zeroLine);
+    }
 
     // Gridlines & Y-axis Ticks
     const ySteps = 5;
     for (let i = 0; i <= ySteps; i++) {
-      const val = (maxAsset / ySteps) * i;
+      const val = minAsset + ((maxAsset - minAsset) / ySteps) * i;
       const y = getY(val);
 
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -770,7 +825,7 @@
       svg.appendChild(text);
     }
 
-    // Dynamic Long-Term Care Region based on user settings
+    // Dynamic Long-Term Care Region
     const ltcEndAge = ltcStartAge + ltcDuration;
     const xStart = getX(Math.max(START_AGE, Math.min(END_AGE, ltcStartAge)));
     const xEnd = getX(Math.max(START_AGE, Math.min(END_AGE, ltcEndAge)));
@@ -857,7 +912,8 @@
 
     data.forEach(h => {
       const tr = document.createElement('tr');
-      tr.className = `table-row-hover ${h.age === currentRetireAge ? 'bg-sky-950/40 border-l-4 border-sky-400' : ''}`;
+      const isDeficit = h.endTotal < 0;
+      tr.className = `table-row-hover ${h.age === currentRetireAge ? 'bg-sky-950/40 border-l-4 border-sky-400' : ''} ${isDeficit ? 'bg-rose-950/20' : ''}`;
 
       const statusBadge = h.isRetired 
         ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 font-medium">退休</span>'
@@ -883,7 +939,7 @@
         <td class="py-2.5 px-3 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() + ' 萬' : '-'}</td>
         <td class="py-2.5 px-3 text-right font-mono text-emerald-400">${h.pensionIncome > 0 ? '+' + (h.pensionIncome).toFixed(1) + ' 萬' : '-'}</td>
         <td class="py-2.5 px-3 text-right font-mono text-teal-300">${Math.round(h.cashBufferEnd).toLocaleString()} 萬</td>
-        <td class="py-2.5 px-3 text-right font-mono font-bold text-sky-400">${Math.round(h.endTotal).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-3 text-right font-mono font-bold ${isDeficit ? 'text-rose-400' : 'text-sky-400'}">${Math.round(h.endTotal).toLocaleString()} 萬</td>
       `;
       tbody.appendChild(tr);
     });
@@ -907,7 +963,6 @@
     updateDetailTable();
   }
 
-  // Event Listeners
   document.getElementById('inputRealReturn').addEventListener('input', (e) => {
     realReturnRate = parseFloat(e.target.value) / 100;
     document.getElementById('valRealReturn').textContent = `${e.target.value}%`;
