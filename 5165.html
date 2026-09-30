@@ -366,6 +366,70 @@
   let selectedScenario = 'normal'; // normal, crash_early, crash_2008, boom_early
 
   /**
+   * Helper to extract numeric asset value from Google Visualization API response object.
+   * Flexibly checks rows, cols, and cleans string formats (e.g. NT$, 萬元, commas).
+   */
+  function extractValueFromSheetData(data) {
+    if (!data || !data.table) return null;
+    const table = data.table;
+    const candidates = [];
+
+    // 1. Check rows[0].c array
+    if (table.rows && table.rows.length > 0) {
+      const row0 = table.rows[0];
+      if (row0 && row0.c) {
+        for (let cell of row0.c) {
+          if (cell) {
+            if (cell.v !== null && cell.v !== undefined) candidates.push(cell.v);
+            if (cell.f !== null && cell.f !== undefined) candidates.push(cell.f);
+          }
+        }
+      }
+    }
+
+    // 2. Check cols[0] label/id (GViz often puts single range cell into cols if header assumption applies)
+    if (table.cols && table.cols.length > 0) {
+      for (let col of table.cols) {
+        if (col) {
+          if (col.label) candidates.push(col.label);
+          if (col.id && !col.id.startsWith('Col')) candidates.push(col.id);
+        }
+      }
+    }
+
+    // 3. Check F28 directly if full sheet is returned (Row index 27, Col index 5)
+    if (table.rows && table.rows.length >= 28) {
+      const row27 = table.rows[27];
+      if (row27 && row27.c && row27.c[5]) {
+        const cell = row27.c[5];
+        if (cell.v !== null && cell.v !== undefined) candidates.push(cell.v);
+        if (cell.f !== null && cell.f !== undefined) candidates.push(cell.f);
+      }
+    }
+
+    // Process all candidates to parse out numeric value
+    for (let raw of candidates) {
+      if (typeof raw === 'number' && !isNaN(raw) && raw > 0) {
+        return raw;
+      }
+
+      const str = String(raw).trim();
+      if (!str) continue;
+
+      const isTenThousandUnit = /萬|万/.test(str);
+      // Strip all non-digit and non-period characters
+      const cleaned = str.replace(/[^0-9.]/g, '');
+      const num = parseFloat(cleaned);
+
+      if (!isNaN(num) && num > 0) {
+        return isTenThousandUnit ? num * 10000 : num;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Fetch cell F28 value from the Google Sheet
    */
   function fetchGoogleSheetAsset() {
@@ -398,25 +462,22 @@
       clearTimeout(timeout);
 
       try {
-        if (data && data.status === 'ok' && data.table && data.table.rows && data.table.rows.length > 0) {
-          const cell = data.table.rows[0]?.c?.[0];
-          const rawVal = cell ? (cell.v ?? cell.f) : null;
-          
-          if (rawVal !== null && rawVal !== undefined) {
-            let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
-            if (!isNaN(numVal) && numVal > 0) {
-              // Convert NTD to 萬元 if > 100,000
-              INITIAL_ASSETS = numVal > 100000 ? Math.round(numVal / 10000) : Math.round(numVal);
-              
-              const inputEl = document.getElementById('inputInitialAssets');
-              if (inputEl) inputEl.value = INITIAL_ASSETS;
+        const rawVal = extractValueFromSheetData(data);
+        
+        if (rawVal !== null && rawVal !== undefined) {
+          let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
+          if (!isNaN(numVal) && numVal > 0) {
+            // Convert NTD to 萬元 if > 100,000
+            INITIAL_ASSETS = numVal > 100000 ? Math.round(numVal / 10000) : Math.round(numVal);
+            
+            const inputEl = document.getElementById('inputInitialAssets');
+            if (inputEl) inputEl.value = INITIAL_ASSETS;
 
-              if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
-              if (syncText) syncText.textContent = '已成功同步 F28 數據';
-              renderAll();
-              cleanup();
-              return;
-            }
+            if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+            if (syncText) syncText.textContent = '已成功同步 F28 數據';
+            renderAll();
+            cleanup();
+            return;
           }
         }
         throw new Error('未找到 F28 有效數值');
@@ -441,10 +502,10 @@
       if (syncIcon) syncIcon.classList.remove('animate-spin');
     }
 
-    // Inject JSONP script requesting range=F28 specifically
+    // Inject JSONP script requesting range=F28 with headers=0
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetResponse&range=F28&_=${Date.now()}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetResponse&range=F28&headers=0&_=${Date.now()}`;
     script.onerror = () => {
       if (!resolved) {
         resolved = true;
