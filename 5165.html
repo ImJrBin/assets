@@ -366,92 +366,95 @@
   let selectedScenario = 'normal'; // normal, crash_early, crash_2008, boom_early
 
   /**
-   * Fetch cell F28 value from the Google Sheet's latest tab
+   * Fetch cell F28 value from the Google Sheet
    */
-  async function fetchGoogleSheetAsset() {
+  function fetchGoogleSheetAsset() {
     const syncDot = document.getElementById('syncDot');
     const syncText = document.getElementById('syncText');
     const syncIcon = document.getElementById('syncIcon');
 
     if (syncIcon) syncIcon.classList.add('animate-spin');
     if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping';
-    if (syncText) syncText.textContent = '讀取 Google Sheet 中...';
+    if (syncText) syncText.textContent = '讀取 Google Sheet F28 中...';
 
-    try {
-      // 1. Fetch HTML view to extract tab/sheet names
-      let sheetName = '';
+    const scriptId = 'gviz-jsonp-script';
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    let resolved = false;
+
+    // Timeout fallback (5s)
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        showSyncError('讀取逾時，請確認試算表已開啟「公開檢視」權限');
+      }
+    }, 5000);
+
+    // Global callback handler for Google Visualization JSONP
+    window.handleSheetResponse = function(data) {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+
       try {
-        const htmlRes = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/htmlview`);
-        if (htmlRes.ok) {
-          const htmlText = await htmlRes.text();
-          const matches = [...htmlText.matchAll(/id="sheet-button-([^"]+)">([^<]+)</g)];
-          if (matches && matches.length > 0) {
-            // Pick the latest tab (usually the last month tab)
-            sheetName = matches[matches.length - 1][2].trim();
+        if (data && data.status === 'ok' && data.table && data.table.rows && data.table.rows.length > 0) {
+          const cell = data.table.rows[0]?.c?.[0];
+          const rawVal = cell ? (cell.v ?? cell.f) : null;
+          
+          if (rawVal !== null && rawVal !== undefined) {
+            let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
+            if (!isNaN(numVal) && numVal > 0) {
+              // Convert NTD to 萬元 if > 100,000
+              INITIAL_ASSETS = numVal > 100000 ? Math.round(numVal / 10000) : Math.round(numVal);
+              
+              const inputEl = document.getElementById('inputInitialAssets');
+              if (inputEl) inputEl.value = INITIAL_ASSETS;
+
+              if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+              if (syncText) syncText.textContent = '已成功同步 F28 數據';
+              renderAll();
+              cleanup();
+              return;
+            }
           }
         }
-      } catch (e) {
-        console.warn('Could not inspect tab list, fetching default sheet:', e);
+        throw new Error('未找到 F28 有效數值');
+      } catch (err) {
+        console.warn('Sheet parse error:', err);
+        showSyncError('解析失敗 (請檢查 F28 格式)');
+      } finally {
+        cleanup();
       }
+    };
 
-      // 2. Query cell F28 via GViz API endpoint
-      let gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json`;
-      if (sheetName) {
-        gvizUrl += `&sheet=${encodeURIComponent(sheetName)}`;
-      }
+    function cleanup() {
+      if (syncIcon) syncIcon.classList.remove('animate-spin');
+      delete window.handleSheetResponse;
+      const s = document.getElementById(scriptId);
+      if (s) s.remove();
+    }
 
-      const res = await fetch(gvizUrl);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-
-      // Parse JSON from google.visualization.Query.setResponse(...)
-      const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
-      if (!jsonMatch) throw new Error('Invalid GViz response');
-
-      const data = JSON.parse(jsonMatch[1]);
-      const table = data.table;
-
-      // F28 corresponds to row index 27 (0-indexed), column index 5 (F = 6th column)
-      let rawVal = null;
-      if (table && table.rows && table.rows.length >= 28 && table.rows[27]?.c?.[5]) {
-        rawVal = table.rows[27].c[5].v ?? table.rows[27].c[5].f;
-      } else if (table && table.rows) {
-        // Fallback row search if indexing differs
-        for (let r = 0; r < table.rows.length; r++) {
-          if (r === 27 && table.rows[r]?.c?.[5]) {
-            rawVal = table.rows[r].c[5].v ?? table.rows[r].c[5].f;
-            break;
-          }
-        }
-      }
-
-      if (rawVal !== null && rawVal !== undefined) {
-        let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
-        if (!isNaN(numVal) && numVal > 0) {
-          // If value is in NTD (> 100,000), convert to 萬元
-          if (numVal > 100000) {
-            INITIAL_ASSETS = Math.round(numVal / 10000);
-          } else {
-            INITIAL_ASSETS = Math.round(numVal);
-          }
-
-          const inputEl = document.getElementById('inputInitialAssets');
-          if (inputEl) inputEl.value = INITIAL_ASSETS;
-
-          if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
-          if (syncText) syncText.textContent = `已同步 (F28${sheetName ? ' · ' + sheetName : ''})`;
-          renderAll();
-          return;
-        }
-      }
-      throw new Error('F28 欄位數值無效');
-    } catch (err) {
-      console.warn('Google Sheet fetch error:', err);
+    function showSyncError(msg) {
       if (syncDot) syncDot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400 inline-block';
-      if (syncText) syncText.textContent = '讀取失敗 (使用預設值)';
-    } finally {
+      if (syncText) syncText.textContent = msg || '讀取失敗 (使用預設值)';
       if (syncIcon) syncIcon.classList.remove('animate-spin');
     }
+
+    // Inject JSONP script requesting range=F28 specifically
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetResponse&range=F28&_=${Date.now()}`;
+    script.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        showSyncError('權限不足，請將 Google Sheet 設為「知道連結的人皆可查看」');
+        cleanup();
+      }
+    };
+
+    document.head.appendChild(script);
   }
 
   // Series Colors
