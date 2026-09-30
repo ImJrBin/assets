@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>51y-65y 退休資產動態模擬與比較表</title>
+<title>51y-65y 退休資產動態模擬與市場波動壓力測試</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -47,10 +47,10 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 mb-8">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-semibold mb-2">
-        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算模擬模型
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型
       </div>
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與比較表</h1>
-      <p class="text-slate-400 text-sm mt-1">獨立計算子女至 18 歲扣款、退休生活費、雙人長照與勞保勞退年金之資產軌跡</p>
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與市場波動壓力測試</h1>
+      <p class="text-slate-400 text-sm mt-1">涵蓋子女扣款、退休生活費、雙人長照、勞保勞退與股市大漲大跌（順序報酬風險）防禦評估</p>
     </div>
     <div class="mt-4 md:mt-0 flex items-center gap-3">
       <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
@@ -64,14 +64,14 @@
   <div class="glass-card rounded-2xl p-6 mb-8 shadow-xl">
     <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
       <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-      核心試算參數調整
+      核心試算與支出參數
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       
       <!-- Parameter 1: Real Return Rate -->
       <div>
         <div class="flex justify-between items-center text-sm font-medium mb-2">
-          <span class="text-slate-300">年化實質報酬率 (扣除通膨)</span>
+          <span class="text-slate-300">基準實質報酬率 (扣通膨)</span>
           <span class="text-sky-400 font-bold" id="valRealReturn">3.5%</span>
         </div>
         <input type="range" id="inputRealReturn" min="2.0" max="6.0" step="0.1" value="3.5" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
@@ -110,7 +110,21 @@
         </div>
       </div>
 
-      <!-- Parameter 4: USD Exchange Rate -->
+      <!-- Parameter 4: Pre-retirement Monthly Investment -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">退休前月加碼買股</span>
+          <span class="text-sky-400 font-bold" id="valMonthlyInvest">7.0 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyInvest" min="0" max="15" step="0.5" value="7.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>0 萬</span>
+          <span>7 萬</span>
+          <span>15 萬</span>
+        </div>
+      </div>
+
+      <!-- Parameter 5: USD Exchange Rate -->
       <div>
         <div class="flex justify-between items-center text-sm font-medium mb-2">
           <span class="text-slate-300">美金/台幣 匯率</span>
@@ -124,36 +138,56 @@
         </div>
       </div>
 
-      <!-- Parameter 5: Pre-retirement Monthly Investment -->
+    </div>
+  </div>
+
+  <!-- Market Shock & Cash Buffer Stress Testing Panel -->
+  <div class="glass-card rounded-2xl p-6 mb-8 shadow-xl border-l-4 border-amber-400">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          股市大漲大跌與水庫防禦壓力測試
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">模擬退休初期遭逢股市暴跌或牛市大漲對資產壽命的影響（順序報酬風險）</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-300 font-medium">選擇市場情境：</span>
+        <select id="selectMarketScenario" class="bg-slate-800 border border-slate-700 text-amber-400 font-bold rounded-lg px-3 py-1.5 text-sm outline-none focus:border-amber-500">
+          <option value="normal">平穩市場 (常態基準)</option>
+          <option value="crash_early">退休初期暴跌 (第1年-25%, 第2年-15%)</option>
+          <option value="crash_2008">重現 2008 金融海嘯 (-30%, +18%, +12%)</option>
+          <option value="boom_early">退休初期大牛市 (第1年+25%, 第2年+15%)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-800/80">
+      <!-- Cash Buffer Slider -->
       <div>
         <div class="flex justify-between items-center text-sm font-medium mb-2">
-          <span class="text-slate-300">退休前月加碼投入</span>
-          <span class="text-sky-400 font-bold" id="valMonthlyInvest">7.0 萬元/月</span>
+          <span class="text-slate-300 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            現金緩衝池 (水庫策略)
+          </span>
+          <span class="text-emerald-400 font-bold" id="valCashBuffer">240 萬元</span>
         </div>
-        <input type="range" id="inputMonthlyInvest" min="0" max="15" step="0.5" value="7.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <input type="range" id="inputCashBuffer" min="0" max="400" step="20" value="240" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
         <div class="flex justify-between text-xs text-slate-500 mt-1">
-          <span>0 萬</span>
-          <span>7 萬</span>
-          <span>15 萬</span>
+          <span>0 萬 (無緩衝)</span>
+          <span>240 萬 (2年生活費)</span>
+          <span>400 萬 (防禦極佳)</span>
         </div>
       </div>
 
-    </div>
-
-    <!-- Parameter Note -->
-    <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap gap-4">
-      <span class="flex items-center gap-1">
-        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        女兒定期定額 (250鎂/月)：扣至 56 歲止 (滿 18 歲，與退休年齡解耦)
-      </span>
-      <span class="flex items-center gap-1">
-        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        兒子定期定額 (250鎂/月)：扣至 58 歲止 (滿 18 歲，與退休年齡解耦)
-      </span>
-      <span class="flex items-center gap-1">
-        <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        退休前加碼買股：每月固定撥出 7 萬元持續購買台美股 ETF
-      </span>
+      <!-- Strategy Explanation Box -->
+      <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60 text-xs text-slate-300 leading-relaxed flex flex-col justify-center">
+        <span class="font-semibold text-amber-400 mb-1 flex items-center gap-1">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+          水庫策略說明：
+        </span>
+        當股市遭遇大跌時，自動停止賣出股票，優先從現金水庫提取生活費，避免在股市低谷「賤賣資產」；待市場回升後再行補滿，可完美消弭退休初期的暴跌風險。
+      </div>
     </div>
   </div>
 
@@ -165,10 +199,10 @@
           <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           51y ～ 65y 各退休年齡資產對比總表
         </h2>
-        <p class="text-xs text-slate-400 mt-1">點擊任意資料列，可在下方查看該退休年齡的各年度詳細現金流</p>
+        <p class="text-xs text-slate-400 mt-1">點擊任意資料列，可在下方查看該退休年齡的各年度詳細現金流與水庫提撥狀況</p>
       </div>
       <div class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
-        單位：新台幣萬元 (實質價值，已剔除通膨)
+        單位：新台幣萬元 (實質價值)
       </div>
     </div>
 
@@ -201,7 +235,7 @@
           <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
           退休資產動態演變曲線 (50歲 ~ 90歲)
         </h2>
-        <p class="text-xs text-slate-400 mt-1">比較代表性退休年齡（51歲、53歲、55歲、58歲、60歲、62歲、65歲）之資產累積與消耗曲線</p>
+        <p class="text-xs text-slate-400 mt-1">代表性退休年齡資產軌跡（紫區為雙人長照期 75y~85y）</p>
       </div>
     </div>
 
@@ -224,7 +258,7 @@
           <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
           <span id="detailTitle">51 歲退休 - 年度現金流與資產變化明細</span>
         </h2>
-        <p class="text-xs text-slate-400 mt-1">即時檢視每一年的投資獲利、生活開銷、子女補貼、長照費用與年金收入</p>
+        <p class="text-xs text-slate-400 mt-1">即時檢視市場報酬率、投資獲利、水庫提拔與資產餘額變化</p>
       </div>
       <div class="flex items-center gap-2">
         <label for="selectRetireAge" class="text-xs text-slate-300 font-medium">切換退休年齡：</label>
@@ -239,16 +273,18 @@
       <table class="w-full text-left text-sm">
         <thead class="sticky top-0 bg-slate-800 text-slate-300 text-xs uppercase z-10 border-b border-slate-700">
           <tr>
-            <th class="py-3 px-4">您的年齡</th>
-            <th class="py-3 px-4">狀態</th>
-            <th class="py-3 px-4 text-right">年初資產</th>
-            <th class="py-3 px-4 text-right">投資收益</th>
-            <th class="py-3 px-4 text-right text-sky-300">退休前月加碼</th>
-            <th class="py-3 px-4 text-right text-rose-400">生活費支出</th>
-            <th class="py-3 px-4 text-right text-amber-400">子女250鎂扣款</th>
-            <th class="py-3 px-4 text-right text-purple-400">長照費用</th>
-            <th class="py-3 px-4 text-right text-emerald-400">勞保勞退年金</th>
-            <th class="py-3 px-4 text-right font-bold text-sky-400">年底淨資產</th>
+            <th class="py-3 px-3">您的年齡</th>
+            <th class="py-3 px-3">狀態</th>
+            <th class="py-3 px-3 text-center">當年度報酬率</th>
+            <th class="py-3 px-3 text-right">年初股票資產</th>
+            <th class="py-3 px-3 text-right">當期投資收益</th>
+            <th class="py-3 px-3 text-right text-sky-300">月加碼買股</th>
+            <th class="py-3 px-3 text-right text-rose-400">生活開銷</th>
+            <th class="py-3 px-3 text-right text-amber-400">子女250鎂</th>
+            <th class="py-3 px-3 text-right text-purple-400">長照費用</th>
+            <th class="py-3 px-3 text-right text-emerald-400">年金收入</th>
+            <th class="py-3 px-3 text-right text-teal-300">現金緩衝水庫</th>
+            <th class="py-3 px-3 text-right font-bold text-sky-400">年底總資產</th>
           </tr>
         </thead>
         <tbody id="detailTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40">
@@ -264,7 +300,7 @@
 <script>
   // Initial Conditions & State
   const INITIAL_ASSETS = 3382; // 萬元
-  const START_AGE = 50; // Current age baseline
+  const START_AGE = 50;
   const END_AGE = 90;
 
   // Selected state
@@ -273,9 +309,11 @@
   let monthlyExpense = 10; // 10 萬/月
   let monthlyLTC = 8; // 8 萬/月
   let usdRate = 32.0;
-  let monthlyInvest = 7.0; // 7 萬/月 (退休前月加碼買股)
+  let monthlyInvest = 7.0; // 7 萬/月 (退休前月加碼)
+  let initialCashBuffer = 240; // 240 萬元現金緩衝池
+  let selectedScenario = 'normal'; // normal, crash_early, crash_2008, boom_early
 
-  // Colors for representative series
+  // Series Colors
   const SERIES_COLORS = {
     51: '#38bdf8', // Sky blue
     53: '#34d399', // Emerald
@@ -287,67 +325,120 @@
   };
 
   /**
+   * Determine rate for specific age based on scenario and retireAge
+   */
+  function getMarketRateForAge(age, retireAge) {
+    if (selectedScenario === 'crash_early') {
+      if (age === retireAge) return -0.25; // -25% Year 1
+      if (age === retireAge + 1) return -0.15; // -15% Year 2
+    } else if (selectedScenario === 'crash_2008') {
+      if (age === retireAge) return -0.30; // -30%
+      if (age === retireAge + 1) return 0.18; // +18%
+      if (age === retireAge + 2) return 0.12; // +12%
+    } else if (selectedScenario === 'boom_early') {
+      if (age === retireAge) return 0.25; // +25%
+      if (age === retireAge + 1) return 0.15; // +15%
+    }
+    return realReturnRate;
+  }
+
+  /**
    * Run single simulation scenario
-   * @param {number} retireAge - Age at retirement (51 ~ 65)
-   * @returns {Array} annual simulation data from age 50 to 90
    */
   function runScenario(retireAge) {
-    const annualLivingCost = monthlyExpense * 12; // 萬元/年
-    const annualLTCCost = monthlyLTC * 12; // 萬元/年
-    const monthlyKidUSD = 250; // 美元/月
-    const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; // 萬元/年 (約 9.6 萬)
-    const annualWorkInvest = monthlyInvest * 12; // 萬元/年 (約 84 萬)
+    const annualLivingCost = monthlyExpense * 12;
+    const annualLTCCost = monthlyLTC * 12;
+    const monthlyKidUSD = 250;
+    const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; // ~9.6 萬/年
+    const annualWorkInvest = monthlyInvest * 12; // ~84 萬/年
 
-    // Calculate labor pension starting at age 65
+    // Pension starting at 65
     const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
 
-    let asset = INITIAL_ASSETS;
+    let cashBuffer = Math.min(initialCashBuffer, INITIAL_ASSETS * 0.3);
+    let equityAsset = INITIAL_ASSETS - cashBuffer;
+
     const history = [];
 
     for (let age = START_AGE; age <= END_AGE; age++) {
       const isRetired = age >= retireAge;
+      const r = getMarketRateForAge(age, retireAge);
 
-      // 1. Kids deduction ($250 USD/mo = ~9.6萬/年 per child until age 18, independent of retirement)
+      // 1. Kids Cost (Daughter < 56, Son < 58)
       let kidCost = 0;
-      if (age < 56) kidCost += annualKidNTD; // Daughter
-      if (age < 58) kidCost += annualKidNTD; // Son
+      if (age < 56) kidCost += annualKidNTD;
+      if (age < 58) kidCost += annualKidNTD;
 
       // 2. Pre-retirement extra monthly investment
       const workInvest = !isRetired ? annualWorkInvest : 0;
 
-      // 3. Living Expense
+      // 3. Living Cost
       const livingCost = isRetired ? annualLivingCost : 0;
 
-      // 4. LTC Cost (Ages 75 ~ 84, 10 years total)
+      // 4. LTC Cost (75 ~ 84)
       const ltcCost = (age >= 75 && age < 85) ? annualLTCCost : 0;
 
-      // 5. Pension Income (Starts at age 65)
+      // 5. Pension Income (65+)
       const pensionIncome = (age >= 65) ? pensionAt65 : 0;
 
-      // Beginning of year asset
-      const startAsset = asset;
+      // Start of year asset status
+      const startEquity = equityAsset;
+      const startCashBuffer = cashBuffer;
+      const startTotal = startEquity + startCashBuffer;
 
-      // Investment Growth during the year
-      const investmentYield = startAsset * realReturnRate;
+      // Market growth on equity
+      const equityYield = startEquity * r;
 
-      // End of year calculation
-      const netCashflow = investmentYield + workInvest - livingCost - kidCost - ltcCost + pensionIncome;
-      const endAsset = Math.max(0, startAsset + netCashflow);
+      // Total required outlay
+      const totalExpenseNeeded = livingCost + kidCost + ltcCost;
+      const totalIncome = workInvest + pensionIncome;
+      const netCashOutflowNeeded = totalExpenseNeeded - totalIncome;
+
+      let drawnFromBuffer = 0;
+      let drawnFromEquity = 0;
+
+      if (!isRetired) {
+        // Working years: add savings or invest
+        if (netCashOutflowNeeded < 0) {
+          // Surplus from salary adds to equity
+          equityAsset = startEquity + equityYield - netCashOutflowNeeded;
+        } else {
+          equityAsset = startEquity + equityYield - netCashOutflowNeeded;
+        }
+      } else {
+        // Retired years: Check if market is crashing (r < 0) and buffer is available
+        if (r < 0 && cashBuffer > 0 && netCashOutflowNeeded > 0) {
+          // Draw from cash buffer first to protect equity
+          drawnFromBuffer = Math.min(cashBuffer, netCashOutflowNeeded);
+          drawnFromEquity = netCashOutflowNeeded - drawnFromBuffer;
+        } else {
+          // Normal/boom years: draw directly from equity
+          drawnFromEquity = netCashOutflowNeeded;
+        }
+
+        cashBuffer = Math.max(0, startCashBuffer - drawnFromBuffer);
+        equityAsset = Math.max(0, startEquity + equityYield - drawnFromEquity);
+      }
+
+      const endTotal = equityAsset + cashBuffer;
 
       history.push({
         age,
         isRetired,
-        startAsset,
-        investmentYield,
+        marketRate: r,
+        startEquity,
+        startCashBuffer,
+        startTotal,
+        equityYield,
         workInvest,
         livingCost,
         kidCost,
         ltcCost,
         pensionIncome,
-        endAsset
+        cashBufferEnd: cashBuffer,
+        equityAssetEnd: equityAsset,
+        endTotal
       });
-
-      asset = endAsset;
     }
 
     return history;
@@ -360,11 +451,11 @@
     for (let rAge = 51; rAge <= 65; rAge++) {
       const data = runScenario(rAge);
       
-      const atRetire = data.find(d => d.age === rAge)?.startAsset || 0;
-      const at65 = data.find(d => d.age === 65)?.endAsset || 0;
-      const at75 = data.find(d => d.age === 75)?.startAsset || 0;
-      const at85 = data.find(d => d.age === 85)?.startAsset || 0;
-      const at90 = data.find(d => d.age === 90)?.endAsset || 0;
+      const atRetire = data.find(d => d.age === rAge)?.startTotal || 0;
+      const at65 = data.find(d => d.age === 65)?.endTotal || 0;
+      const at75 = data.find(d => d.age === 75)?.startTotal || 0;
+      const at85 = data.find(d => d.age === 85)?.startTotal || 0;
+      const at90 = data.find(d => d.age === 90)?.endTotal || 0;
 
       const isSelected = rAge === currentRetireAge;
 
@@ -412,11 +503,10 @@
     const representativeAges = [51, 53, 55, 58, 60, 62, 65];
     const allScenarios = representativeAges.map(age => ({ age, history: runScenario(age) }));
 
-    // Find max asset value for scaling
     let maxAsset = 0;
     allScenarios.forEach(sc => {
       sc.history.forEach(h => {
-        if (h.endAsset > maxAsset) maxAsset = h.endAsset;
+        if (h.endTotal > maxAsset) maxAsset = h.endTotal;
       });
     });
     maxAsset = Math.ceil(maxAsset / 1000) * 1000 || 5000;
@@ -433,7 +523,6 @@
       const val = (maxAsset / ySteps) * i;
       const y = getY(val);
 
-      // Grid line
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', padding.left);
       line.setAttribute('y1', y);
@@ -444,7 +533,6 @@
       line.setAttribute('stroke-width', '1');
       svg.appendChild(line);
 
-      // Label
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', padding.left - 12);
       text.setAttribute('y', y + 4);
@@ -455,7 +543,7 @@
       svg.appendChild(text);
     }
 
-    // X-axis Ticks (Ages 50, 55, 60, 65, 70, 75, 80, 85, 90)
+    // X-axis Ticks
     for (let age = 50; age <= 90; age += 5) {
       const x = getX(age);
 
@@ -469,7 +557,7 @@
       svg.appendChild(text);
     }
 
-    // Draw Long-Term Care Shaded Region (Ages 75 ~ 85)
+    // Long-Term Care Region
     const x75 = getX(75);
     const x85 = getX(85);
     const ltcBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -490,7 +578,7 @@
     ltcText.textContent = '雙人長照期 (75y~85y)';
     svg.appendChild(ltcText);
 
-    // Draw trajectory lines
+    // Trajectory lines
     allScenarios.forEach(sc => {
       const color = SERIES_COLORS[sc.age] || '#38bdf8';
       const isSelected = sc.age === currentRetireAge;
@@ -498,7 +586,7 @@
       let d = '';
       sc.history.forEach((h, idx) => {
         const x = getX(h.age);
-        const y = getY(h.endAsset);
+        const y = getY(h.endTotal);
         d += (idx === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
       });
 
@@ -511,7 +599,7 @@
       svg.appendChild(path);
     });
 
-    // Update Chart Legend
+    // Chart Legend
     const legendContainer = document.getElementById('chartLegend');
     legendContainer.replaceChildren();
 
@@ -535,7 +623,13 @@
   }
 
   function updateDetailTable() {
-    document.getElementById('detailTitle').textContent = `${currentRetireAge} 歲退休 - 各年度現金流與資產變化明細`;
+    const scenarioNames = {
+      normal: '平穩市場',
+      crash_early: '退休初期暴跌壓力測試',
+      crash_2008: '重現 2008 金融海嘯',
+      boom_early: '退休初期大牛市'
+    };
+    document.getElementById('detailTitle').textContent = `${currentRetireAge} 歲退休 - ${scenarioNames[selectedScenario]} (明細細項)`;
 
     const tbody = document.getElementById('detailTableBody');
     tbody.replaceChildren();
@@ -548,19 +642,29 @@
 
       const statusBadge = h.isRetired 
         ? '<span class="px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 font-medium">退休</span>'
-        : '<span class="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-300">工作累積</span>';
+        : '<span class="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-300">工作加碼</span>';
+
+      const ratePct = (h.marketRate * 100).toFixed(1);
+      let rateBadge = `<span class="text-slate-300">${ratePct}%</span>`;
+      if (h.marketRate < 0) {
+        rateBadge = `<span class="px-1.5 py-0.5 rounded text-xs bg-rose-500/20 text-rose-400 font-bold animate-pulse">${ratePct}% 暴跌</span>`;
+      } else if (h.marketRate > 0.1) {
+        rateBadge = `<span class="px-1.5 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-400 font-bold">${ratePct}% 大漲</span>`;
+      }
 
       tr.innerHTML = `
-        <td class="py-2.5 px-4 font-bold text-white">${h.age} 歲</td>
-        <td class="py-2.5 px-4">${statusBadge}</td>
-        <td class="py-2.5 px-4 text-right font-mono text-slate-300">${Math.round(h.startAsset).toLocaleString()} 萬</td>
-        <td class="py-2.5 px-4 text-right font-mono text-emerald-400">+${Math.round(h.investmentYield).toLocaleString()} 萬</td>
-        <td class="py-2.5 px-4 text-right font-mono text-sky-300">${h.workInvest > 0 ? '+' + Math.round(h.workInvest).toLocaleString() + ' 萬' : '-'}</td>
-        <td class="py-2.5 px-4 text-right font-mono text-rose-400">${h.livingCost > 0 ? '-' + Math.round(h.livingCost).toLocaleString() + ' 萬' : '-'}</td>
-        <td class="py-2.5 px-4 text-right font-mono text-amber-400">${h.kidCost > 0 ? '-' + (h.kidCost).toFixed(1) + ' 萬' : '-'}</td>
-        <td class="py-2.5 px-4 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() + ' 萬' : '-'}</td>
-        <td class="py-2.5 px-4 text-right font-mono text-emerald-400">${h.pensionIncome > 0 ? '+' + (h.pensionIncome).toFixed(1) + ' 萬' : '-'}</td>
-        <td class="py-2.5 px-4 text-right font-mono font-bold text-sky-400">${Math.round(h.endAsset).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-3 font-bold text-white">${h.age} 歲</td>
+        <td class="py-2.5 px-3">${statusBadge}</td>
+        <td class="py-2.5 px-3 text-center font-mono">${rateBadge}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-slate-300">${Math.round(h.startEquity).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-3 text-right font-mono ${h.equityYield >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${h.equityYield >= 0 ? '+' : ''}${Math.round(h.equityYield).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-3 text-right font-mono text-sky-300">${h.workInvest > 0 ? '+' + Math.round(h.workInvest).toLocaleString() + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-rose-400">${h.livingCost > 0 ? '-' + Math.round(h.livingCost).toLocaleString() + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-amber-400">${h.kidCost > 0 ? '-' + (h.kidCost).toFixed(1) + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-emerald-400">${h.pensionIncome > 0 ? '+' + (h.pensionIncome).toFixed(1) + ' 萬' : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-teal-300">${Math.round(h.cashBufferEnd).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-3 text-right font-mono font-bold text-sky-400">${Math.round(h.endTotal).toLocaleString()} 萬</td>
       `;
       tbody.appendChild(tr);
     });
@@ -603,15 +707,26 @@
     renderAll();
   });
 
+  document.getElementById('inputMonthlyInvest').addEventListener('input', (e) => {
+    monthlyInvest = parseFloat(e.target.value);
+    document.getElementById('valMonthlyInvest').textContent = `${monthlyInvest.toFixed(1)} 萬元/月`;
+    renderAll();
+  });
+
   document.getElementById('inputUSDRate').addEventListener('input', (e) => {
     usdRate = parseFloat(e.target.value);
     document.getElementById('valUSDRate').textContent = `${usdRate.toFixed(1)} NTD`;
     renderAll();
   });
 
-  document.getElementById('inputMonthlyInvest').addEventListener('input', (e) => {
-    monthlyInvest = parseFloat(e.target.value);
-    document.getElementById('valMonthlyInvest').textContent = `${monthlyInvest.toFixed(1)} 萬元/月`;
+  document.getElementById('inputCashBuffer').addEventListener('input', (e) => {
+    initialCashBuffer = parseFloat(e.target.value);
+    document.getElementById('valCashBuffer').textContent = `${initialCashBuffer} 萬元`;
+    renderAll();
+  });
+
+  document.getElementById('selectMarketScenario').addEventListener('change', (e) => {
+    selectedScenario = e.target.value;
     renderAll();
   });
 
