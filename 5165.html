@@ -66,7 +66,7 @@
       <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
       核心試算參數調整
     </h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       
       <!-- Parameter 1: Real Return Rate -->
       <div>
@@ -76,9 +76,9 @@
         </div>
         <input type="range" id="inputRealReturn" min="2.0" max="6.0" step="0.1" value="3.5" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
         <div class="flex justify-between text-xs text-slate-500 mt-1">
-          <span>2.0% (保守)</span>
-          <span>3.5% (基準)</span>
-          <span>6.0% (積極)</span>
+          <span>2.0%</span>
+          <span>3.5%</span>
+          <span>6.0%</span>
         </div>
       </div>
 
@@ -124,21 +124,35 @@
         </div>
       </div>
 
+      <!-- Parameter 5: Pre-retirement Monthly Investment -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-2">
+          <span class="text-slate-300">退休前月加碼投入</span>
+          <span class="text-sky-400 font-bold" id="valMonthlyInvest">7.0 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyInvest" min="0" max="15" step="0.5" value="7.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>0 萬</span>
+          <span>7 萬</span>
+          <span>15 萬</span>
+        </div>
+      </div>
+
     </div>
 
     <!-- Parameter Note -->
     <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap gap-4">
       <span class="flex items-center gap-1">
         <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        女兒定期定額 (250鎂/月)：扣至您 56 歲止 (滿 18 歲)
+        女兒定期定額 (250鎂/月)：扣至 56 歲止 (滿 18 歲，與退休年齡解耦)
       </span>
       <span class="flex items-center gap-1">
         <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        兒子定期定額 (250鎂/月)：扣至您 58 歲止 (滿 18 歲)
+        兒子定期定額 (250鎂/月)：扣至 58 歲止 (滿 18 歲，與退休年齡解耦)
       </span>
       <span class="flex items-center gap-1">
         <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-        勞保勞退年金：滿 65 歲開始領取 (按工作年資遞增)
+        退休前加碼買股：每月固定撥出 7 萬元持續購買台美股 ETF
       </span>
     </div>
   </div>
@@ -229,6 +243,7 @@
             <th class="py-3 px-4">狀態</th>
             <th class="py-3 px-4 text-right">年初資產</th>
             <th class="py-3 px-4 text-right">投資收益</th>
+            <th class="py-3 px-4 text-right text-sky-300">退休前月加碼</th>
             <th class="py-3 px-4 text-right text-rose-400">生活費支出</th>
             <th class="py-3 px-4 text-right text-amber-400">子女250鎂扣款</th>
             <th class="py-3 px-4 text-right text-purple-400">長照費用</th>
@@ -258,6 +273,7 @@
   let monthlyExpense = 10; // 10 萬/月
   let monthlyLTC = 8; // 8 萬/月
   let usdRate = 32.0;
+  let monthlyInvest = 7.0; // 7 萬/月 (退休前月加碼買股)
 
   // Colors for representative series
   const SERIES_COLORS = {
@@ -280,9 +296,9 @@
     const annualLTCCost = monthlyLTC * 12; // 萬元/年
     const monthlyKidUSD = 250; // 美元/月
     const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; // 萬元/年 (約 9.6 萬)
+    const annualWorkInvest = monthlyInvest * 12; // 萬元/年 (約 84 萬)
 
     // Calculate labor pension starting at age 65
-    // Age 51 retirement -> 30 萬/年; Age 65 retirement -> 46.2 萬/年
     const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
 
     let asset = INITIAL_ASSETS;
@@ -291,20 +307,21 @@
     for (let age = START_AGE; age <= END_AGE; age++) {
       const isRetired = age >= retireAge;
 
-      // 1. Kids deduction ($250 USD/mo = ~9.6萬/年 per child until age 18)
-      // Daughter (12yo at user age 50): reaches 18 when user is 56 -> pays during ages 50, 51, 52, 53, 54, 55 (6 yrs)
-      // Son (10yo at user age 50): reaches 18 when user is 58 -> pays during ages 50, 51, 52, 53, 54, 55, 56, 57 (8 yrs)
+      // 1. Kids deduction ($250 USD/mo = ~9.6萬/年 per child until age 18, independent of retirement)
       let kidCost = 0;
       if (age < 56) kidCost += annualKidNTD; // Daughter
       if (age < 58) kidCost += annualKidNTD; // Son
 
-      // 2. Living Expense
+      // 2. Pre-retirement extra monthly investment
+      const workInvest = !isRetired ? annualWorkInvest : 0;
+
+      // 3. Living Expense
       const livingCost = isRetired ? annualLivingCost : 0;
 
-      // 3. LTC Cost (Ages 75 ~ 84, 10 years total)
+      // 4. LTC Cost (Ages 75 ~ 84, 10 years total)
       const ltcCost = (age >= 75 && age < 85) ? annualLTCCost : 0;
 
-      // 4. Pension Income (Starts at age 65)
+      // 5. Pension Income (Starts at age 65)
       const pensionIncome = (age >= 65) ? pensionAt65 : 0;
 
       // Beginning of year asset
@@ -314,7 +331,7 @@
       const investmentYield = startAsset * realReturnRate;
 
       // End of year calculation
-      const netCashflow = investmentYield - livingCost - kidCost - ltcCost + pensionIncome;
+      const netCashflow = investmentYield + workInvest - livingCost - kidCost - ltcCost + pensionIncome;
       const endAsset = Math.max(0, startAsset + netCashflow);
 
       history.push({
@@ -322,6 +339,7 @@
         isRetired,
         startAsset,
         investmentYield,
+        workInvest,
         livingCost,
         kidCost,
         ltcCost,
@@ -537,6 +555,7 @@
         <td class="py-2.5 px-4">${statusBadge}</td>
         <td class="py-2.5 px-4 text-right font-mono text-slate-300">${Math.round(h.startAsset).toLocaleString()} 萬</td>
         <td class="py-2.5 px-4 text-right font-mono text-emerald-400">+${Math.round(h.investmentYield).toLocaleString()} 萬</td>
+        <td class="py-2.5 px-4 text-right font-mono text-sky-300">${h.workInvest > 0 ? '+' + Math.round(h.workInvest).toLocaleString() + ' 萬' : '-'}</td>
         <td class="py-2.5 px-4 text-right font-mono text-rose-400">${h.livingCost > 0 ? '-' + Math.round(h.livingCost).toLocaleString() + ' 萬' : '-'}</td>
         <td class="py-2.5 px-4 text-right font-mono text-amber-400">${h.kidCost > 0 ? '-' + (h.kidCost).toFixed(1) + ' 萬' : '-'}</td>
         <td class="py-2.5 px-4 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() + ' 萬' : '-'}</td>
@@ -587,6 +606,12 @@
   document.getElementById('inputUSDRate').addEventListener('input', (e) => {
     usdRate = parseFloat(e.target.value);
     document.getElementById('valUSDRate').textContent = `${usdRate.toFixed(1)} NTD`;
+    renderAll();
+  });
+
+  document.getElementById('inputMonthlyInvest').addEventListener('input', (e) => {
+    monthlyInvest = parseFloat(e.target.value);
+    document.getElementById('valMonthlyInvest').textContent = `${monthlyInvest.toFixed(1)} 萬元/月`;
     renderAll();
   });
 
