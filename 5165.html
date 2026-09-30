@@ -23,7 +23,6 @@
   input[type="range"] {
     accent-color: #38bdf8;
   }
-  /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -50,7 +49,7 @@
         <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型
       </div>
       <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與市場波動壓力測試</h1>
-      <p class="text-slate-400 text-sm mt-1">涵蓋子女扣款、退休生活費、雙人長照、勞保勞退與股市大漲大跌（順序報酬風險）防禦評估</p>
+      <p class="text-slate-400 text-sm mt-1">涵蓋子女扣款、退休生活費、自訂長照起始年齡與年數、勞保勞退與順序報酬風險防禦</p>
     </div>
     <div class="mt-4 md:mt-0 flex items-center gap-3">
       <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-right">
@@ -66,7 +65,7 @@
       <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
       核心試算與支出參數
     </h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       
       <!-- Parameter 1: Real Return Rate -->
       <div>
@@ -96,21 +95,7 @@
         </div>
       </div>
 
-      <!-- Parameter 3: LTC Monthly Expense -->
-      <div>
-        <div class="flex justify-between items-center text-sm font-medium mb-2">
-          <span class="text-slate-300">雙人月長照費 (75~85歲)</span>
-          <span class="text-sky-400 font-bold" id="valLTCExpense">8 萬元/月</span>
-        </div>
-        <input type="range" id="inputLTCExpense" min="0" max="12" step="1" value="8" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
-        <div class="flex justify-between text-xs text-slate-500 mt-1">
-          <span>0 萬</span>
-          <span>8 萬</span>
-          <span>12 萬</span>
-        </div>
-      </div>
-
-      <!-- Parameter 4: Pre-retirement Monthly Investment -->
+      <!-- Parameter 3: Pre-retirement Monthly Investment -->
       <div>
         <div class="flex justify-between items-center text-sm font-medium mb-2">
           <span class="text-slate-300">退休前月加碼買股</span>
@@ -124,7 +109,7 @@
         </div>
       </div>
 
-      <!-- Parameter 5: USD Exchange Rate -->
+      <!-- Parameter 4: USD Exchange Rate -->
       <div>
         <div class="flex justify-between items-center text-sm font-medium mb-2">
           <span class="text-slate-300">美金/台幣 匯率</span>
@@ -139,6 +124,58 @@
       </div>
 
     </div>
+
+    <!-- Long-Term Care Customization Sub-panel -->
+    <div class="pt-4 border-t border-slate-800">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+        <h3 class="text-sm font-semibold text-purple-300">長照風險彈性設定（可測試提早長照情境）</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Parameter: LTC Monthly Expense -->
+        <div>
+          <div class="flex justify-between items-center text-sm font-medium mb-2">
+            <span class="text-slate-300">雙人月長照費</span>
+            <span class="text-purple-400 font-bold" id="valLTCExpense">8 萬元/月</span>
+          </div>
+          <input type="range" id="inputLTCExpense" min="0" max="15" step="1" value="8" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+          <div class="flex justify-between text-xs text-slate-500 mt-1">
+            <span>0 萬</span>
+            <span>8 萬</span>
+            <span>15 萬</span>
+          </div>
+        </div>
+
+        <!-- Parameter: LTC Start Age -->
+        <div>
+          <div class="flex justify-between items-center text-sm font-medium mb-2">
+            <span class="text-slate-300">長照發生年齡</span>
+            <span class="text-purple-400 font-bold" id="valLTCStartAge">75 歲</span>
+          </div>
+          <input type="range" id="inputLTCStartAge" min="55" max="85" step="1" value="75" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+          <div class="flex justify-between text-xs text-slate-500 mt-1">
+            <span>55 歲</span>
+            <span>65 歲 (早發)</span>
+            <span>85 歲</span>
+          </div>
+        </div>
+
+        <!-- Parameter: LTC Duration -->
+        <div>
+          <div class="flex justify-between items-center text-sm font-medium mb-2">
+            <span class="text-slate-300">長照持續年數</span>
+            <span class="text-purple-400 font-bold" id="valLTCDuration">10 年</span>
+          </div>
+          <input type="range" id="inputLTCDuration" min="1" max="20" step="1" value="10" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+          <div class="flex justify-between text-xs text-slate-500 mt-1">
+            <span>1 年</span>
+            <span>10 年</span>
+            <span>20 年</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Market Shock & Cash Buffer Stress Testing Panel -->
@@ -213,8 +250,8 @@
             <th class="py-3 px-4 font-semibold">退休年齡</th>
             <th class="py-3 px-4 font-semibold text-right">退休當下資產</th>
             <th class="py-3 px-4 font-semibold text-right">65歲資產 (年金開始)</th>
-            <th class="py-3 px-4 font-semibold text-right">75歲資產 (長照前)</th>
-            <th class="py-3 px-4 font-semibold text-right">85歲資產 (長照後)</th>
+            <th class="py-3 px-4 font-semibold text-right">75歲資產</th>
+            <th class="py-3 px-4 font-semibold text-right">85歲資產</th>
             <th class="py-3 px-4 font-semibold text-right text-sky-400">90歲終末資產</th>
             <th class="py-3 px-4 font-semibold text-center">資金安全評估</th>
             <th class="py-3 px-4 font-semibold text-center">操作</th>
@@ -235,7 +272,7 @@
           <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
           退休資產動態演變曲線 (50歲 ~ 90歲)
         </h2>
-        <p class="text-xs text-slate-400 mt-1">代表性退休年齡資產軌跡（紫區為雙人長照期 75y~85y）</p>
+        <p class="text-xs text-slate-400 mt-1">代表性退休年齡資產軌跡（紫區為自訂之雙人長照期）</p>
       </div>
     </div>
 
@@ -258,7 +295,7 @@
           <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
           <span id="detailTitle">51 歲退休 - 年度現金流與資產變化明細</span>
         </h2>
-        <p class="text-xs text-slate-400 mt-1">即時檢視市場報酬率、投資獲利、水庫提拔與資產餘額變化</p>
+        <p class="text-xs text-slate-400 mt-1">即時檢視市場報酬率、投資獲利、水庫提撥與資產餘額變化</p>
       </div>
       <div class="flex items-center gap-2">
         <label for="selectRetireAge" class="text-xs text-slate-300 font-medium">切換退休年齡：</label>
@@ -308,6 +345,8 @@
   let realReturnRate = 0.035; // 3.5% default
   let monthlyExpense = 10; // 10 萬/月
   let monthlyLTC = 8; // 8 萬/月
+  let ltcStartAge = 75; // 長照開始年齡 (預設 75)
+  let ltcDuration = 10; // 長照持續年數 (預設 10)
   let usdRate = 32.0;
   let monthlyInvest = 7.0; // 7 萬/月 (退休前月加碼)
   let initialCashBuffer = 240; // 240 萬元現金緩衝池
@@ -360,6 +399,8 @@
 
     const history = [];
 
+    const ltcEndAge = ltcStartAge + ltcDuration;
+
     for (let age = START_AGE; age <= END_AGE; age++) {
       const isRetired = age >= retireAge;
       const r = getMarketRateForAge(age, retireAge);
@@ -375,8 +416,8 @@
       // 3. Living Cost
       const livingCost = isRetired ? annualLivingCost : 0;
 
-      // 4. LTC Cost (75 ~ 84)
-      const ltcCost = (age >= 75 && age < 85) ? annualLTCCost : 0;
+      // 4. LTC Cost (ltcStartAge ~ ltcEndAge)
+      const ltcCost = (age >= ltcStartAge && age < ltcEndAge) ? annualLTCCost : 0;
 
       // 5. Pension Income (65+)
       const pensionIncome = (age >= 65) ? pensionAt65 : 0;
@@ -400,7 +441,6 @@
       if (!isRetired) {
         // Working years: add savings or invest
         if (netCashOutflowNeeded < 0) {
-          // Surplus from salary adds to equity
           equityAsset = startEquity + equityYield - netCashOutflowNeeded;
         } else {
           equityAsset = startEquity + equityYield - netCashOutflowNeeded;
@@ -408,11 +448,9 @@
       } else {
         // Retired years: Check if market is crashing (r < 0) and buffer is available
         if (r < 0 && cashBuffer > 0 && netCashOutflowNeeded > 0) {
-          // Draw from cash buffer first to protect equity
           drawnFromBuffer = Math.min(cashBuffer, netCashOutflowNeeded);
           drawnFromEquity = netCashOutflowNeeded - drawnFromBuffer;
         } else {
-          // Normal/boom years: draw directly from equity
           drawnFromEquity = netCashOutflowNeeded;
         }
 
@@ -557,26 +595,32 @@
       svg.appendChild(text);
     }
 
-    // Long-Term Care Region
-    const x75 = getX(75);
-    const x85 = getX(85);
-    const ltcBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    ltcBg.setAttribute('x', x75);
-    ltcBg.setAttribute('y', padding.top);
-    ltcBg.setAttribute('width', x85 - x75);
-    ltcBg.setAttribute('height', plotHeight);
-    ltcBg.setAttribute('fill', 'rgba(168, 85, 247, 0.08)');
-    svg.appendChild(ltcBg);
+    // Dynamic Long-Term Care Region based on user settings
+    const ltcEndAge = ltcStartAge + ltcDuration;
+    const xStart = getX(Math.max(START_AGE, Math.min(END_AGE, ltcStartAge)));
+    const xEnd = getX(Math.max(START_AGE, Math.min(END_AGE, ltcEndAge)));
 
-    const ltcText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    ltcText.setAttribute('x', (x75 + x85) / 2);
-    ltcText.setAttribute('y', padding.top + 18);
-    ltcText.setAttribute('fill', '#c084fc');
-    ltcText.setAttribute('font-size', '11');
-    ltcText.setAttribute('font-weight', 'bold');
-    ltcText.setAttribute('text-anchor', 'middle');
-    ltcText.textContent = '雙人長照期 (75y~85y)';
-    svg.appendChild(ltcText);
+    if (xEnd > xStart) {
+      const ltcBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      ltcBg.setAttribute('x', xStart);
+      ltcBg.setAttribute('y', padding.top);
+      ltcBg.setAttribute('width', xEnd - xStart);
+      ltcBg.setAttribute('height', plotHeight);
+      ltcBg.setAttribute('fill', 'rgba(168, 85, 247, 0.12)');
+      ltcBg.setAttribute('stroke', 'rgba(168, 85, 247, 0.3)');
+      ltcBg.setAttribute('stroke-dasharray', '4 4');
+      svg.appendChild(ltcBg);
+
+      const ltcText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      ltcText.setAttribute('x', (xStart + xEnd) / 2);
+      ltcText.setAttribute('y', padding.top + 18);
+      ltcText.setAttribute('fill', '#c084fc');
+      ltcText.setAttribute('font-size', '11');
+      ltcText.setAttribute('font-weight', 'bold');
+      ltcText.setAttribute('text-anchor', 'middle');
+      ltcText.textContent = `長照期 (${ltcStartAge}y~${ltcEndAge}y)`;
+      svg.appendChild(ltcText);
+    }
 
     // Trajectory lines
     allScenarios.forEach(sc => {
@@ -704,6 +748,18 @@
   document.getElementById('inputLTCExpense').addEventListener('input', (e) => {
     monthlyLTC = parseFloat(e.target.value);
     document.getElementById('valLTCExpense').textContent = `${monthlyLTC} 萬元/月`;
+    renderAll();
+  });
+
+  document.getElementById('inputLTCStartAge').addEventListener('input', (e) => {
+    ltcStartAge = parseInt(e.target.value);
+    document.getElementById('valLTCStartAge').textContent = `${ltcStartAge} 歲`;
+    renderAll();
+  });
+
+  document.getElementById('inputLTCDuration').addEventListener('input', (e) => {
+    ltcDuration = parseInt(e.target.value);
+    document.getElementById('valLTCDuration').textContent = `${ltcDuration} 年`;
     renderAll();
   });
 
