@@ -589,7 +589,7 @@
 
       // 2. Outflows & Inflows
       const livingCost = isRetired ? annualLivingCost : workingLivingCost;
-      const ltcCost = (age >= ltcStartAge && age < ltcEndAge) ? annualLTCCost : 0;
+<comment-tag id="4">      const ltcCost = (age >= ltcStartAge && age < ltcEndAge) ? annualLTCCost : 0;</comment-tag id="4" text="【長照費用實質成長性】模型目前採用已扣除通膨的實質報酬率，預設費用維持常數。但照護人力與醫療機構費用的實質漲幅通常高於一般 CPI，可考慮允許長照費用設定微幅年遞增率（如每年 1%），能讓極端壓力測試防禦力更強。" type="suggestion">
       const pensionIncome = (age >= 65) ? pensionAt65 : 0;
       const workInvest = !isRetired ? annualWorkInvest : 0;
 
@@ -598,14 +598,14 @@
       const startCashBuffer = cashBuffer;
       const startTotal = startEquity + startCashBuffer;
 
-      // Market yield on equity
-      const equityYield = startEquity > 0 ? startEquity * r : 0;
+<comment-tag id="2">      // Market yield on equity
+      const equityYield = startEquity > 0 ? startEquity * r : 0;</comment-tag id="2" text="【現金流折算時點】目前邏輯為全額 startEquity 在年初直接套用全年報酬率 r 後才扣除支出。這隱含「生活開銷於年底一次提領」的假定。若改為「年中提領」或「每月勻提」，可修訂為 (startEquity - netOutflow / 2) * r，會更符合真實資金動態。" type="suggestion">
 
       if (!isRetired) {
         // Working years:
-        // Net salary savings = 92.4 - 79.86 = ~12.54 萬
+<comment-tag id="3">        // Net salary savings = 92.4 - 79.86 = ~12.54 萬
         const salaryNet = 92.4 - workingLivingCost;
-        const netAddedToAsset = salaryNet + workInvest - ongoingKidETFContrib - kidTopupDeduction;
+        const netAddedToAsset = salaryNet + workInvest - ongoingKidETFContrib - kidTopupDeduction;</comment-tag id="3" text="【工作期儲蓄雙重計入檢視】此處同時加入 salaryNet (約 12.5 萬/年) 與 workInvest (月加碼 7 萬，即 84 萬/年)。請確認這 84 萬買股資金是否源自同一份薪資收入；若 84 萬已是薪資結餘，則無需再疊加 salaryNet，避免工作期的資產累積速度被微幅高估。" type="suggestion">
 
         equityAsset = startEquity + equityYield + netAddedToAsset;
         cashBuffer = startCashBuffer;
@@ -617,13 +617,13 @@
         let drawnFromBuffer = 0;
         let drawnFromEquity = 0;
 
-        // Buffer strategy check
+<comment-tag id="1">        // Buffer strategy check
         if (r < 0 && startCashBuffer > 0 && netOutflowNeeded > 0) {
           drawnFromBuffer = Math.min(startCashBuffer, netOutflowNeeded);
           drawnFromEquity = netOutflowNeeded - drawnFromBuffer;
         } else {
           drawnFromEquity = netOutflowNeeded;
-        }
+        }</comment-tag id="1" text="【水庫策略回補機制】目前邏輯僅在市場下跌 (r < 0) 時由現金水庫支付，但在股市強勁回升 (r > 0) 且水庫低於目標 (如 240 萬) 時，未加入自動「賣股回補水庫」的再平衡機制。建議在牛市年自動將收益劃撥填滿水庫，使策略防禦性更加完備。" type="suggestion">
 
         // Apply draw to cash buffer
         cashBuffer = startCashBuffer - drawnFromBuffer;
@@ -635,14 +635,14 @@
         // Apply draw to equity asset
         equityAsset = startEquity + equityYield - drawnFromEquity;
 
-        // ACCURATE DEPLETION FIX:
+<comment-tag id="5">        // ACCURATE DEPLETION FIX:
         // If equityAsset becomes negative (equity depleted), consume remaining Cash Buffer first!
         if (equityAsset < 0 && cashBuffer > 0) {
           const equityDeficit = Math.abs(equityAsset);
           const extraFromBuffer = Math.min(cashBuffer, equityDeficit);
           cashBuffer -= extraFromBuffer;
           equityAsset += extraFromBuffer;
-        }
+        }</comment-tag id="5" text="【資產耗盡順序】當股票資產降至 0 以下時，自動調用剩餘現金水庫抵補缺口的邏輯非常精準。若兩者皆用罄，累積負值會直觀呈現在明細中，完美反映財務赤字水準。" type="suggestion">
 
         // If Cash Buffer is also depleted, total asset reflects cumulative deficit (negative number)
         if (equityAsset < 0 && cashBuffer === 0) {
