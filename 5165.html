@@ -46,7 +46,7 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 mb-8">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-semibold mb-2">
-        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型 v2.2 (已修復)
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 精算與壓力測試模型 v2.3 (水庫自動補水修復版)
       </div>
       <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">51 歲 ～ 65 歲 退休資產動態模擬與市場波動壓力測試</h1>
       <p class="text-slate-400 text-sm mt-1">涵蓋子女每月250鎂扣款至18歲、退休前月加碼、自訂長照起始年齡、勞保勞退與順序報酬風險防禦</p>
@@ -537,7 +537,7 @@
   }
 
   /**
-   * Run single simulation scenario with fully accurate depletion logic
+   * Run single simulation scenario with fully accurate depletion logic and cash buffer replenishment
    */
   function runScenario(retireAge) {
     const annualLivingCost = monthlyExpense * 12; // 萬元/年
@@ -547,11 +547,12 @@
     const annualWorkInvest = monthlyInvest * 12; // 萬元/年
     const workingLivingCost = 79.8584; // 萬元/年 (現行基本生活+稅費)
 
-    // Pension starting at 65
+    // 勞保與勞退年金 (65歲起領取)：51歲退休約 30 萬/年 (2.5萬/月)，65歲退休約 46.2 萬/年 (3.85萬/月)，中間依退保年資線性插值
     const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
 
-    // Cash buffer setup
-    let cashBuffer = Math.min(initialCashBuffer, INITIAL_ASSETS);
+    // Cash buffer setup (水庫策略目標值)
+    const bufferTarget = Math.min(initialCashBuffer, INITIAL_ASSETS);
+    let cashBuffer = bufferTarget;
     let equityAsset = INITIAL_ASSETS - cashBuffer;
 
     const history = [];
@@ -617,15 +618,17 @@
         let drawnFromBuffer = 0;
         let drawnFromEquity = 0;
 
-        // Buffer strategy check
+        // Buffer Strategy Check (水庫策略抽水與補水):
         if (r < 0 && startCashBuffer > 0 && netOutflowNeeded > 0) {
+          // 股市大跌年：優先從小水庫提取生活費，避免低谷賤賣股票
           drawnFromBuffer = Math.min(startCashBuffer, netOutflowNeeded);
           drawnFromEquity = netOutflowNeeded - drawnFromBuffer;
         } else {
+          // 正常或大漲年：直接由股票部位提撥生活費
           drawnFromEquity = netOutflowNeeded;
         }
 
-        // Apply draw to cash buffer
+        // Apply draw
         cashBuffer = startCashBuffer - drawnFromBuffer;
         if (cashBuffer < 0) {
           drawnFromEquity += Math.abs(cashBuffer);
@@ -634,6 +637,14 @@
 
         // Apply draw to equity asset
         equityAsset = startEquity + equityYield - drawnFromEquity;
+
+        // 【水庫自動補水機制 FIX】: 若為市場回升年 (r >= 0)，水庫未達目標水位且股票部位有餘額，自動補滿水庫！
+        if (r >= 0 && cashBuffer < bufferTarget && equityAsset > 0) {
+          const bufferDeficit = bufferTarget - cashBuffer;
+          const availableToReplenish = Math.min(bufferDeficit, Math.max(0, equityAsset));
+          cashBuffer += availableToReplenish;
+          equityAsset -= availableToReplenish;
+        }
 
         // ACCURATE DEPLETION FIX:
         // If equityAsset becomes negative (equity depleted), consume remaining Cash Buffer first!
