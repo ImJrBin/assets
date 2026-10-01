@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全人生命邊際效用與動態退休導航儀表板</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            zen: {
+              bg: '#0f1419',         // 深邃極致暗灰
+              card: '#161e27',       // 質感卡片底色
+              cardBorder: '#263342', // 細緻邊框
+              subtle: '#1f2b38',     // 輔助區域底色
+              text: '#e7eef5',       // 主文字
+              muted: '#8b9bb0',      // 次要文字
+              accent: '#6366f1',     // 靛藍主色
+              emerald: '#10b981',    // 翡翠綠 (健康/安全)
+              amber: '#f59e0b',      // 琥珀金 (記憶股利/時間)
+              rose: '#f43f5e',       // 玫瑰紅 (消耗/負債)
+              cyan: '#06b6d4',       // 電光藍 (金融資本)
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'sans-serif'],
+            mono: ['"DM Mono"', 'monospace'],
+            outfit: ['"Outfit"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0f1419;
+      color: #e7eef5;
+      font-family: 'Noto Sans TC', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .num-mono {
+      font-family: 'DM Mono', monospace;
+    }
+
+    .font-outfit {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* 自訂滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f1419;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #263342;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #37475a;
+    }
+
+    .glass-card {
+      background: rgba(22, 30, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(38, 51, 66, 0.8);
+      border-radius: 18px;
+    }
+
+    .tab-btn {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-btn.active {
+      background-color: #6366f1;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-20">
+
+  <!-- ══ 頁首 ══ -->
+  <header class="border-b border-zen-cardBorder bg-zen-card/80 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-zen-accent to-zen-cyan flex items-center justify-center text-white font-outfit font-bold text-lg shadow-lg shadow-zen-accent/20">
+          Ω
+        </div>
+        <div>
+          <h1 class="font-outfit text-base sm:text-lg font-semibold tracking-wide text-white flex items-center gap-2">
+            全人生命效用與動態退休導航
+            <span class="text-[10px] bg-zen-accent/20 text-zen-accent px-2 py-0.5 rounded-full border border-zen-accent/30 font-mono">Die With Zero Model</span>
+          </h1>
+          <p class="text-xs text-zen-muted hidden sm:block">超越 traditional 4% 法則 ‧ 追求生命總效用極大化 ‧ 負債驅動 LDI 配對</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="openInputModal()" class="px-3.5 py-1.5 text-xs font-medium text-zen-text bg-zen-subtle hover:bg-zen-cardBorder rounded-xl transition flex items-center gap-1.5 border border-zen-cardBorder">
+          <svg class="w-4 h-4 text-zen-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>調整核心參數</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+    <!-- ══ 核心哲學 Banner ══ -->
+    <section class="glass-card p-5 relative overflow-hidden border-l-4 border-l-zen-accent">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+        <div class="space-y-1">
+          <div class="text-xs text-zen-accent font-semibold tracking-wider uppercase font-outfit flex items-center gap-2">
+            <span>✨ 全人效用核心提示 (Life Utility Insight)</span>
+          </div>
+          <h2 class="text-base sm:text-lg font-medium text-white">
+            金錢只是工具，<span class="text-zen-amber font-semibold">「體驗與回憶」</span>才是您生命的實體資產。
+          </h2>
+          <p class="text-xs text-zen-muted leading-relaxed max-w-3xl">
+            50 歲至 65 歲是您健康餘命最高、子女尚未完全離家的黃金 15 年。本系統不追求死亡時留下高額遺產，而是協助您在剛性安全鎖定的前提下，極大化這 15 年的「記憶股利 (Memory Dividends)」。
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 bg-zen-subtle/80 p-3 rounded-2xl border border-zen-cardBorder/60 shrink-0">
+          <div class="text-center px-2">
+            <div class="text-[10px] text-zen-muted">黃金體驗剩餘</div>
+            <div id="statGoldenYears" class="num-mono text-xl font-bold text-zen-amber">15 年</div>
+          </div>
+          <div class="w-px h-8 bg-zen-cardBorder"></div>
+          <div class="text-center px-2">
+            <div class="text-[10px] text-zen-muted">剛性生存安全覆蓋率</div>
+            <div id="statFloorCoverage" class="num-mono text-xl font-bold text-zen-emerald">142%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 導覽分頁按鈕 ══ -->
+    <div class="flex space-x-2 border-b border-zen-cardBorder/60 overflow-x-auto pb-1">
+      <button class="tab-btn active px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap" onclick="switchTab('multi-capital', this)">
+        1. 五大全人資本盤點
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-zen-muted hover:text-white whitespace-nowrap" onclick="switchTab('memory-dividend', this)">
+        2. 記憶股利與效用曲線 (Die With Zero)
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-zen-muted hover:text-white whitespace-nowrap" onclick="switchTab('ldi-matching', this)">
+        3. LDI 剛性負債與生存配對
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-zen-muted hover:text-white whitespace-nowrap" onclick="switchTab('tradeoff-sim', this)">
+        4. 健康餘命與離職時機博弈
+      </button>
+    </div>
+
+    <!-- ══ Pane 1: 五大全人資本盤點 ══ -->
+    <div id="pane-multi-capital" class="tab-pane space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 左側：雷達圖 -->
+        <div class="glass-card p-5 lg:col-span-1 space-y-4">
+          <div class="border-b border-zen-cardBorder pb-3 flex justify-between items-center">
+            <h3 class="text-base font-semibold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-zen-accent"></span>
+              全人資本雷達 (5 Dimensions)
+            </h3>
+          </div>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="chartRadarCapital"></canvas>
+          </div>
+          <div class="p-3 bg-zen-subtle/60 rounded-xl text-xs text-zen-muted leading-relaxed">
+            💡 離職不只是「金融資本」的消耗，更是用金融資本去拯救正在衰退的「時間資本」與「健康餘命資本」。
+          </div>
+        </div>
+
+        <!-- 右側：五大資本卡片細節 -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 金融資本 -->
+            <div class="glass-card p-4 space-y-2 border-t-2 border-t-zen-cyan">
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-semibold text-zen-cyan">💵 金融資本 (Financial)</span>
+                <span id="capFinVal" class="num-mono text-sm font-bold text-white">NT$ 3,381 萬</span>
+              </div>
+              <p class="text-xs text-zen-muted">當前家庭總資產（股票 + 現金 + 基金）。為其他資本提供強大防禦保護。</p>
+              <div class="w-full bg-zen-subtle h-1.5 rounded-full overflow-hidden">
+                <div class="bg-zen-cyan h-full" style="width: 88%;"></div>
+              </div>
+            </div>
+
+            <!-- 健康餘命資本 -->
+            <div class="glass-card p-4 space-y-2 border-t-2 border-t-zen-emerald">
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-semibold text-zen-emerald">🏃‍♂️ 健康餘命資本 (Healthspan)</span>
+                <span id="capHealthVal" class="num-mono text-sm font-bold text-white">15 年活力期</span>
+              </div>
+              <p class="text-xs text-zen-muted">50 歲至 65 歲體力充沛的黃金期。過後體能與生活探險體驗將逐年遞減。</p>
+              <div class="w-full bg-zen-subtle h-1.5 rounded-full overflow-hidden">
+                <div class="bg-zen-emerald h-full" style="width: 75%;"></div>
+              </div>
+            </div>
+
+            <!-- 時間資本 -->
+            <div class="glass-card p-4 space-y-2 border-t-2 border-t-zen-amber">
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-semibold text-zen-amber">⏳ 自由時間資本 (Time)</span>
+                <span id="capTimeVal" class="num-mono text-sm font-bold text-white">每年 +2,000 小時</span>
+              </div>
+              <p class="text-xs text-zen-muted">離職後立即贖回原本屬於工程師高壓工作的 2,000 小時/年，完全自主支配。</p>
+              <div class="w-full bg-zen-subtle h-1.5 rounded-full overflow-hidden">
+                <div class="bg-zen-amber h-full" style="width: 95%;"></div>
+              </div>
+            </div>
+
+            <!-- 社交與親情資本 -->
+            <div class="glass-card p-4 space-y-2 border-t-2 border-t-zen-rose">
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-semibold text-zen-rose">👨‍👩‍👧‍👦 親情黃金窗口 (Family Window)</span>
+                <span id="capFamilyVal" class="num-mono text-sm font-bold text-white">剩餘 6~8 年</span>
+              </div>
+              <p class="text-xs text-zen-muted">子女 (12歲/10歲) 上大學前完全與家庭同住的最後黃金時光，錯過無法重來。</p>
+              <div class="w-full bg-zen-subtle h-1.5 rounded-full overflow-hidden">
+                <div class="bg-zen-rose h-full" style="width: 60%;"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 綜合資本判定 -->
+          <div class="glass-card p-4 bg-gradient-to-r from-zen-accent/10 to-transparent border border-zen-accent/30">
+            <h4 class="text-xs font-semibold text-zen-accent mb-1">💡 全人資本結論</h4>
+            <p class="text-xs text-zen-text leading-relaxed">
+              您的金融資本已達到極高防禦區（88分），但親情窗口與健康餘命正在隨時間快速倒數。<strong>此時繼續用健康與時間去換取邊際效益極低的金融資本，在全人資本總合上是「虧損」的行為。</strong>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Pane 2: 記憶股利與效用曲線 (Die With Zero) ══ -->
+    <div id="pane-memory-dividend" class="tab-pane hidden space-y-6">
+      <div class="glass-card p-5 space-y-6">
+        <div class="border-b border-zen-cardBorder pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="text-base font-semibold text-white">邊際體驗效用與「記憶股利 (Memory Dividends)」累積</h3>
+            <p class="text-xs text-zen-muted mt-0.5">比較「傳統死存錢到 90 歲」與「50-65歲體驗優先 (Die with Zero)」的生命總快樂價值</p>
+          </div>
+          <span class="px-3 py-1 bg-zen-amber/20 text-zen-amber rounded-full text-xs font-medium border border-zen-amber/30">
+            體驗極大化模型
+          </span>
+        </div>
+
+        <div class="h-72 relative">
+          <canvas id="chartMemoryDividend"></canvas>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-cardBorder space-y-1.5">
+            <div class="font-semibold text-zen-amber">1. 體驗投資 (Age 50-64)</div>
+            <p class="text-zen-muted leading-relaxed">每年規劃較高體驗預算 (例如每月 12-15 萬)。帶孩子探索世界、培養第二人生興趣。</p>
+          </div>
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-cardBorder space-y-1.5">
+            <div class="font-semibold text-zen-emerald">2. 記憶股利發酵 (Age 65-79)</div>
+            <p class="text-zen-muted leading-relaxed">體能開始慢活，但過去 15 年累積的豐富體驗與照片回憶，會持續產生強大的心理滋養（記憶股利）。</p>
+          </div>
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-cardBorder space-y-1.5">
+            <div class="font-semibold text-zen-cyan">3. 資產優雅歸零/留承 (Age 80+)</div>
+            <p class="text-zen-muted leading-relaxed">避免帶著上千萬無用的數字離開。資產精確覆蓋長照後，其餘已在年輕時完全轉換為生命體驗。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Pane 3: LDI 剛性負債與生存配對 ══ -->
+    <div id="pane-ldi-matching" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 左側：設定與劃分 -->
+        <div class="glass-card p-5 space-y-4 lg:col-span-1">
+          <h3 class="text-base font-semibold text-white border-b border-zen-cardBorder pb-2">
+            負債分層設定 (LDI Matching)
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="text-zen-muted block mb-1">1. 剛性生存開銷 (吃/住/保險)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-zen-muted">NT$</span>
+                <input type="number" id="paramFloorMonthly" value="45000" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg pl-10 pr-3 py-1.5 text-right num-mono text-white" oninput="updateAll()">
+              </div>
+              <span class="text-[10px] text-zen-muted">維持極簡活著的最低必要支出</span>
+            </div>
+
+            <div>
+              <label class="text-zen-muted block mb-1">2. 彈性享受開銷 (旅遊/娛樂)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-zen-muted">NT$</span>
+                <input type="number" id="paramFlexMonthly" value="55000" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg pl-10 pr-3 py-1.5 text-right num-mono text-white" oninput="updateAll()">
+              </div>
+              <span class="text-[10px] text-zen-muted">熊市時可完全砍掉而不影響生存</span>
+            </div>
+
+            <div class="pt-2 border-t border-zen-cardBorder">
+              <label class="text-zen-muted block mb-1">未來確定剛性收入 (房租+年金)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-zen-muted">NT$</span>
+                <input type="number" id="paramFixedIncome" value="45000" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg pl-10 pr-3 py-1.5 text-right num-mono text-white" oninput="updateAll()">
+              </div>
+              <span class="text-[10px] text-zen-emerald">繼承公寓租金 2.5 萬 + 勞保 2 萬</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：配對結果圖表與卡片 -->
+        <div class="glass-card p-5 lg:col-span-2 space-y-5">
+          <div class="border-b border-zen-cardBorder pb-2 flex justify-between items-center">
+            <h3 class="text-base font-semibold text-white">LDI 負債鎖定與心靈解脫度</h3>
+            <span class="text-xs text-zen-emerald font-semibold">🟢 剛性負債 100% 免疫市場風暴</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-emerald/30 space-y-2">
+              <div class="text-xs text-zen-emerald font-semibold">🔒 剛性生存池 (Floor Risk)</div>
+              <div class="text-2xl font-bold num-mono text-white" id="ldiFloorStatus">0 元缺口</div>
+              <p class="text-xs text-zen-muted leading-relaxed" id="ldiFloorDesc">
+                您的未來確定收入（房租 + 年金）已 100% 覆蓋剛性生存開銷！即使股票暴跌 90%，您與家人依然能永久安心生存。
+              </p>
+            </div>
+
+            <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-accent/30 space-y-2">
+              <div class="text-xs text-zen-accent font-semibold">🚀 彈性享受池 (Upside Growth)</div>
+              <div class="text-2xl font-bold num-mono text-white" id="ldiFlexStatus">NT$ 3,381 萬 100% 衝刺</div>
+              <p class="text-xs text-zen-muted leading-relaxed">
+                因為生存已被 100% 鎖定，剩餘所有股票與正 2 資產可以 100% 專注於追求高年化報酬，無需保留過多低收益現金。
+              </p>
+            </div>
+
+          </div>
+
+          <!-- LDI 配對視覺化長條圖 -->
+          <div class="space-y-2 pt-2">
+            <div class="text-xs text-zen-muted flex justify-between">
+              <span>每月總需求: NT$ 100,000</span>
+              <span>100% 覆蓋完成</span>
+            </div>
+            <div class="h-6 bg-zen-subtle rounded-full overflow-hidden flex border border-zen-cardBorder">
+              <div class="bg-zen-emerald h-full flex items-center justify-center text-[10px] text-black font-bold" style="width: 45%;" title="剛性生存（房租年金鎖定）">
+                剛性 4.5 萬 (100% 鎖定)
+              </div>
+              <div class="bg-zen-accent h-full flex items-center justify-center text-[10px] text-white font-bold" style="width: 55%;" title="彈性享受（股票投資提領）">
+                彈性 5.5 萬 (股票提領)
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Pane 4: 健康餘命與離職時機博弈 ══ -->
+    <div id="pane-tradeoff-sim" class="tab-pane hidden space-y-6">
+      <div class="glass-card p-5 space-y-6">
+        <div class="border-b border-zen-cardBorder pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="text-base font-semibold text-white">「多工作一年 vs 早期離職」健康餘命博弈模擬</h3>
+            <p class="text-xs text-zen-muted mt-0.5">拖動選擇延後離職年數，直觀比較多賺的金融資本與永久損失的黃金健康時間</p>
+          </div>
+        </div>
+
+        <div class="space-y-4 max-w-xl">
+          <div class="flex justify-between items-center">
+            <label class="text-xs text-zen-muted">拖動選擇「延後離職 (繼續工作)」年數：</label>
+            <span id="delayYearsVal" class="num-mono text-base font-bold text-zen-amber">0 年 (今年即刻離職)</span>
+          </div>
+          <input type="range" min="0" max="5" value="0" step="1" class="w-full accent-zen-amber" oninput="updateTradeoff(this.value)">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-cardBorder space-y-2">
+            <div class="text-xs text-zen-cyan font-semibold">💵 金融資本增加</div>
+            <div id="simFinGain" class="text-xl font-bold num-mono text-white">+ NT$ 0 萬</div>
+            <p class="text-xs text-zen-muted leading-relaxed">多工作獲得的薪資儲蓄與資產延後提領的自然複利。</p>
+          </div>
+
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-rose/30 space-y-2">
+            <div class="text-xs text-zen-rose font-semibold">🥀 永久損失之黃金健康時間</div>
+            <div id="simHealthLoss" class="text-xl font-bold num-mono text-zen-rose">0 小時自由時間</div>
+            <p class="text-xs text-zen-muted leading-relaxed">50 歲體力最佳狀態下，原本可以用來陪孩子或探險的高質量時間。</p>
+          </div>
+
+          <div class="p-4 bg-zen-subtle/80 rounded-2xl border border-zen-amber/30 space-y-2">
+            <div class="text-xs text-zen-amber font-semibold">⚖️ 全人邊際效用判定</div>
+            <div id="simVerdict" class="text-xs font-medium text-zen-emerald leading-relaxed">
+              即刻離職最佳！您的金融資本已完全防禦，多工作帶來的金額邊際效益極低，但損失的時間無法逆轉。
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══ 參數自訂 Modal ══ -->
+  <div id="inputModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="glass-card max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-zen-cardBorder">
+      <div class="p-4 border-b border-zen-cardBorder flex justify-between items-center bg-zen-subtle/60">
+        <h3 class="font-semibold text-white text-sm">調整全人導航核心參數</h3>
+        <button onclick="closeInputModal()" class="text-zen-muted hover:text-white text-base">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs">
+        <div>
+          <label class="text-zen-muted block mb-1">目前家庭總資產 (元)</label>
+          <input type="number" id="mNetWorth" value="33819069" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-zen-muted block mb-1">先生目前年齡</label>
+            <input type="number" id="mHusbandAge" value="50" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+          </div>
+          <div>
+            <label class="text-zen-muted block mb-1">活力期結束年齡</label>
+            <input type="number" id="mGoGoEndAge" value="65" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-zen-muted block mb-1">女兒目前年齡 (距大學)</label>
+            <input type="number" id="mDaughterAge" value="12" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+          </div>
+          <div>
+            <label class="text-zen-muted block mb-1">兒子目前年齡 (距大學)</label>
+            <input type="number" id="mSonAge" value="10" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-zen-muted block mb-1">活力期目標月支出 (今日幣值/元)</label>
+          <input type="number" id="mMonthlyGoal" value="100000" class="w-full bg-zen-subtle border border-zen-cardBorder rounded-lg px-3 py-1.5 num-mono text-right text-white">
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-zen-cardBorder bg-zen-subtle/60 flex justify-end space-x-3">
+        <button onclick="closeInputModal()" class="px-4 py-2 text-zen-muted hover:text-white">取消</button>
+        <button onclick="saveModalData()" class="px-5 py-2 bg-zen-accent text-white rounded-xl font-medium shadow-md hover:opacity-90">儲存並重繪</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══ 全域狀態 ══
+    let appState = {
+      netWorth: 33819069,
+      husbandAge: 50,
+      goGoEndAge: 65,
+      daughterAge: 12,
+      sonAge: 10,
+      monthlyGoal: 100000,
+      floorMonthly: 45000,
+      flexMonthly: 55000,
+      fixedIncome: 45000
+    };
+
+    let chartRadar = null, chartDividend = null;
+
+    // 格式化萬
+    const fmtWan = (num) => Math.round(num / 10000).toLocaleString() + ' 萬';
+
+    function init() {
+      updateAll();
+    }
+
+    function updateAll() {
+      // 讀取 LDI 輸入
+      appState.floorMonthly = parseFloat(document.getElementById('paramFloorMonthly').value) || 45000;
+      appState.flexMonthly = parseFloat(document.getElementById('paramFlexMonthly').value) || 55000;
+      appState.fixedIncome = parseFloat(document.getElementById('paramFixedIncome').value) || 45000;
+
+      // 更新頂部 KPI
+      const goldenYears = Math.max(appState.goGoEndAge - appState.husbandAge, 0);
+      document.getElementById('statGoldenYears').textContent = goldenYears + ' 年';
+
+      const coverage = (appState.fixedIncome / appState.floorMonthly * 100).toFixed(0);
+      document.getElementById('statFloorCoverage').textContent = coverage + '%';
+
+      // 更新 LDI 狀態卡片
+      const floorGap = Math.max(appState.floorMonthly - appState.fixedIncome, 0);
+      if (floorGap === 0) {
+        document.getElementById('ldiFloorStatus').textContent = '0 元缺口 (100% 免疫)';
+        document.getElementById('ldiFloorStatus').className = 'text-2xl font-bold num-mono text-zen-emerald';
+      } else {
+        document.getElementById('ldiFloorStatus').textContent = '缺口 NT$ ' + floorGap.toLocaleString() + '/月';
+        document.getElementById('ldiFloorStatus').className = 'text-2xl font-bold num-mono text-zen-rose';
+      }
+
+      // 重繪圖表
+      renderRadarChart();
+      renderMemoryDividendChart();
+      updateTradeoff(0);
+    }
+
+    function renderRadarChart() {
+      const ctx = document.getElementById('chartRadarCapital').getContext('2d');
+      if (chartRadar) chartRadar.destroy();
+
+      chartRadar = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['金融資本', '健康餘命', '自由時間', '親情黃金窗口', '變現選擇權'],
+          datasets: [{
+            label: '當前全人資本飽和度 (%)',
+            data: [88, 75, 95, 60, 70],
+            backgroundColor: 'rgba(99, 102, 241, 0.25)',
+            borderColor: '#6366f1',
+            borderWidth: 2,
+            pointBackgroundColor: '#06b6d4',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(38, 51, 66, 0.8)' },
+              grid: { color: 'rgba(38, 51, 66, 0.8)' },
+              pointLabels: { color: '#8b9bb0', font: { size: 11 } },
+              ticks: { display: false },
+              min: 0,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+
+    function renderMemoryDividendChart() {
+      const ctx = document.getElementById('chartMemoryDividend').getContext('2d');
+      if (chartDividend) chartDividend.destroy();
+
+      const ages = [], traditionalNet = [], memoryDividends = [];
+      for (let a = 50; a <= 90; a += 2) {
+        ages.push(a + '歲');
+        
+        // 傳統死存錢模型 (持續累積到老)
+        traditionalNet.push(Math.round(3381 * Math.pow(1.05, (a - 50) / 2)));
+
+        // 記憶股利模型 (年輕體驗高，後面轉換為心靈資產)
+        let divScore = 0;
+        if (a <= 65) {
+          divScore = (a - 50) * 15; // 活力期體驗快速累積
+        } else {
+          divScore = 225 + (a - 65) * 5; // 慢活期持續產生記憶股利
+        }
+        memoryDividends.push(divScore);
+      }
+
+      chartDividend = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ages,
+          datasets: [
+            {
+              label: '累積體驗與記憶股利總值 (Memory Dividends)',
+              data: memoryDividends,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y1'
+            },
+            {
+              label: '傳統死存錢資產數字 (無用積壓)',
+              data: traditionalNet,
+              borderColor: '#8b9bb0',
+              borderDash: [4, 4],
+              tension: 0.2,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#8b9bb0', font: { size: 11 } } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#8b9bb0' } },
+            y: { position: 'left', grid: { color: 'rgba(38, 51, 66, 0.5)' }, ticks: { color: '#8b9bb0', callback: v => v + '萬' } },
+            y1: { position: 'right', grid: { display: false }, ticks: { color: '#f59e0b', callback: v => v + '分' } }
+          }
+        }
+      });
+    }
+
+    function updateTradeoff(delayYears) {
+      const years = parseInt(delayYears);
+      document.getElementById('delayYearsVal').textContent = years === 0 ? '0 年 (今年即刻離職)' : `延後 ${years} 年離職`;
+
+      // 估算多獲得金融資本 (假設年儲蓄 + 複利)
+      const finGain = years * 150; // 萬
+      document.getElementById('simFinGain').textContent = '+ NT$ ' + finGain + ' 萬';
+
+      // 損失自由時間
+      const hoursLoss = years * 2000;
+      document.getElementById('simHealthLoss').textContent = hoursLoss.toLocaleString() + ' 小時黃金自由時間';
+
+      const verdict = document.getElementById('simVerdict');
+      if (years === 0) {
+        verdict.className = 'text-xs font-medium text-zen-emerald leading-relaxed';
+        verdict.innerHTML = '🟢 <strong>最佳決策：</strong>即刻離職！您的金融資本已完全防禦剛性生存，多工作獲得的資金邊際效益極低，但損失的時間無法重來。';
+      } else {
+        verdict.className = 'text-xs font-medium text-zen-rose leading-relaxed';
+        verdict.innerHTML = `⚠️ <strong>資本過度傾斜：</strong>延後 ${years} 年離職雖然多賺了 ${finGain} 萬，但永久損失了 ${hoursLoss.toLocaleString()} 小時最健康的黃金陪伴時間。`;
+      }
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      document.getElementById('pane-' + tabId).classList.remove('hidden');
+
+      if (tabId === 'memory-dividend') renderMemoryDividendChart();
+      if (tabId === 'multi-capital') renderRadarChart();
+    }
+
+    function openInputModal() {
+      document.getElementById('mNetWorth').value = appState.netWorth;
+      document.getElementById('mHusbandAge').value = appState.husbandAge;
+      document.getElementById('mGoGoEndAge').value = appState.goGoEndAge;
+      document.getElementById('mMonthlyGoal').value = appState.monthlyGoal;
+      document.getElementById('inputModal').classList.remove('hidden');
+    }
+
+    function closeInputModal() {
+      document.getElementById('inputModal').classList.add('hidden');
+    }
+
+    function saveModalData() {
+      appState.netWorth = parseFloat(document.getElementById('mNetWorth').value) || 33819069;
+      appState.husbandAge = parseFloat(document.getElementById('mHusbandAge').value) || 50;
+      appState.goGoEndAge = parseFloat(document.getElementById('mGoGoEndAge').value) || 65;
+      appState.monthlyGoal = parseFloat(document.getElementById('mMonthlyGoal').value) || 100000;
+
+      document.getElementById('capFinVal').textContent = fmtWan(appState.netWorth);
+      
+      updateAll();
+      closeInputModal();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+    });
+  </script>
+</body>
+</html>
