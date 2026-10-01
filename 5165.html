@@ -538,7 +538,14 @@
     const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; 
     const annualWorkInvest = monthlyInvest * 12; 
     const workingLivingCost = 79.8584; 
-    const pensionAt65 = 30 + (46.2 - 30) * ((retireAge - 51) / (65 - 51));
+    
+    // 勞保老年年金 (此模型中設定為您的年齡 65 歲起領取雙人家庭年金)：
+    // 1. 本人：根據勞保局試算結果，51歲退保約 12.53 萬/年，65歲退保約 33.08 萬/年，中間依退保年資做線性插值計算
+    const userPensionAt65 = 12.53 + (33.08 - 12.53) * ((retireAge - 51) / (65 - 51));
+    // 2. 太太：以平均投保薪資 45,800 元、預估 25 年資計算 (45,800 * 25 * 1.55% * 12個月) = 21.297 萬/年
+    const wifePensionAt65 = 21.297;
+    // 雙人年金總和
+    const pensionAt65 = userPensionAt65 + wifePensionAt65;
 
     const bufferTarget = Math.min(initialCashBuffer, INITIAL_ASSETS);
     let cashBuffer = bufferTarget;
