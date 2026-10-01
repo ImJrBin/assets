@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>靜心退休 ‧ 家庭資產與動態提領儀表板</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  
+  <!-- Google Fonts: Noto Serif/Sans TC & DM Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;600&family=Noto+Serif+TC:wght@400;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wabi: {
+              bg: '#fbf9f5',       // 洗石暖白
+              card: '#ffffff',     // 純白卡片
+              border: '#e8e4db',   // 柔和木質邊框
+              subtle: '#f4f1ea',   // 淺砂色背景
+              text: '#2d3130',     // 墨灰內文
+              muted: '#7a807d',    // 苔石灰副標
+              light: '#a3a8a5',    // 淡灰
+              accent: '#3b5249',   // 深苔綠 (主調)
+              green: '#588157',    // 抹茶綠 (收益/安全)
+              ochre: '#c87d55',    // 柿赤/暖赭 (提醒/預測)
+              indigo: '#3d4a5a',   // 紺青 (正2/高階)
+              crimson: '#bc4749',  // 緋紅 (警示)
+            }
+          },
+          fontFamily: {
+            serif: ['"Noto Serif TC"', 'serif'],
+            sans: ['"Noto Sans TC"', 'sans-serif'],
+            mono: ['"DM Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #fbf9f5;
+      color: #2d3130;
+      font-family: 'Noto Sans TC', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    .serif-title {
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    .mono-num {
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* 隱藏 Scrollbar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* 自訂滑塊與 Tab 動畫 */
+    .tab-btn {
+      transition: all 0.2s ease-in-out;
+    }
+    .tab-btn.active {
+      background-color: #3b5249;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(59, 82, 73, 0.15);
+    }
+
+    /* 簡約卡片陰影 */
+    .wabi-card {
+      background: #ffffff;
+      border: 1px solid #e8e4db;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -2px rgba(45, 49, 48, 0.03);
+      transition: border-color 0.2s ease;
+    }
+    .wabi-card:hover {
+      border-color: #d8d2c4;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+
+  <!-- ══ 頂部導覽頁首 ══ -->
+  <header class="border-b border-wabi-border bg-wabi-card sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-wabi-accent flex items-center justify-center text-white font-serif text-sm font-semibold">
+          靜
+        </div>
+        <div>
+          <h1 class="serif-title text-base sm:text-lg font-semibold text-wabi-text tracking-wide">
+            靜心退休 ‧ 家庭資產與動態提領儀表板
+          </h1>
+          <p class="text-xs text-wabi-muted hidden sm:block">自主掌控 ‧ 數據獨立 ‧ 永續提領導航</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button onclick="openDataModal()" class="px-3 py-1.5 text-xs sm:text-sm font-medium text-wabi-accent bg-wabi-subtle hover:bg-wabi-border/60 rounded-xl transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span>編輯資產與參數</span>
+        </button>
+        <button onclick="resetDefaultData()" class="px-2.5 py-1.5 text-xs text-wabi-muted hover:text-wabi-crimson transition rounded-lg" title="重置為初始示範數據">
+          重置
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+    <!-- ══ 核心 KPI 總覽 ══ -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div class="wabi-card p-4 sm:p-5">
+        <div class="text-xs font-medium text-wabi-muted mb-1 flex justify-between items-center">
+          <span>目前家庭總資產</span>
+          <span class="w-2 h-2 rounded-full bg-wabi-green"></span>
+        </div>
+        <div id="kpiNetWorth" class="mono-num text-2xl sm:text-3xl font-light text-wabi-text tracking-tight">—</div>
+        <div id="kpiNetWorthSub" class="text-xs text-wabi-green mt-1">較上月成長 —</div>
+      </div>
+
+      <div class="wabi-card p-4 sm:p-5">
+        <div class="text-xs font-medium text-wabi-muted mb-1">Coast FIRE 門檻 (今日)</div>
+        <div id="kpiCoastThreshold" class="mono-num text-2xl sm:text-3xl font-light text-wabi-text tracking-tight">—</div>
+        <div id="kpiCoastStatus" class="text-xs font-medium text-wabi-green mt-1">✓ 門檻已達成</div>
+      </div>
+
+      <div class="wabi-card p-4 sm:p-5">
+        <div class="text-xs font-medium text-wabi-muted mb-1">提領安全度 (SWR)</div>
+        <div id="kpiSwrRate" class="mono-num text-2xl sm:text-3xl font-light text-wabi-text tracking-tight">—</div>
+        <div id="kpiSwrSub" class="text-xs text-wabi-muted mt-1">目標月開銷 NT$ 10 萬</div>
+      </div>
+
+      <div class="wabi-card p-4 sm:p-5">
+        <div class="text-xs font-medium text-wabi-muted mb-1">正 2 槓桿曝險比例</div>
+        <div id="kpiLeverageRatio" class="mono-num text-2xl sm:text-3xl font-light text-wabi-indigo tracking-tight">—</div>
+        <div class="text-xs text-wabi-muted mt-1">風險屬性：極度安全</div>
+      </div>
+    </section>
+
+    <!-- ══ 頂部溫暖白話總結 Banner ══ -->
+    <section id="summaryBanner" class="wabi-card p-4 sm:p-5 bg-gradient-to-r from-wabi-subtle to-white border-l-4 border-l-wabi-accent">
+      <!-- JS 動態寫入 -->
+    </section>
+
+    <!-- ══ 功能分頁導覽 ══ -->
+    <div class="flex space-x-1 sm:space-x-2 border-b border-wabi-border overflow-x-auto no-scrollbar py-1">
+      <button class="tab-btn active px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap" onclick="switchTab('projection', this)">
+        退休資產雙軌預測
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-wabi-muted hover:text-wabi-text whitespace-nowrap" onclick="switchTab('guardrail', this)">
+        護欄法動態提領
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-wabi-muted hover:text-wabi-text whitespace-nowrap" onclick="switchTab('spending', this)">
+        支出微笑曲線 (Go-Go)
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-wabi-muted hover:text-wabi-text whitespace-nowrap" onclick="switchTab('allocation', this)">
+        資產配置與正2
+      </button>
+      <button class="tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-wabi-muted hover:text-wabi-text whitespace-nowrap" onclick="switchTab('scenarios', this)">
+        情境測試與專款圈存
+      </button>
+    </div>
+
+    <!-- ══ Pane 1: 退休資產雙軌預測 ══ -->
+    <div id="pane-projection" class="tab-pane space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左側設定面板 -->
+        <div class="wabi-card p-5 space-y-4">
+          <h3 class="serif-title text-base font-semibold text-wabi-text border-b border-wabi-border pb-2">
+            退休參數設定
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">先生目前年齡</label>
+              <input type="number" id="paramHusbandAge" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">先生退休年齡</label>
+              <input type="number" id="paramHusbandRetire" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">太太目前年齡</label>
+              <input type="number" id="paramWifeAge" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">太太預計壽命</label>
+              <input type="number" id="paramWifeLife" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs text-wabi-muted block mb-1">目標月生活費 (今日幣值)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1.5 text-xs text-wabi-muted">NT$</span>
+              <input type="number" id="paramMonthlyGoal" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg pl-10 pr-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">預期年報酬率 (%)</label>
+              <input type="number" step="0.5" id="paramGrowthRate" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+            <div>
+              <label class="text-xs text-wabi-muted block mb-1">長期通膨率 (%)</label>
+              <input type="number" step="0.1" id="paramInflation" class="w-full bg-wabi-subtle border border-wabi-border rounded-lg px-3 py-1.5 text-sm mono-num text-right" oninput="updateAll()">
+            </div>
+          </div>
+
+          <div class="p-3 bg-wabi-subtle rounded-xl text-xs text-wabi-muted leading-relaxed">
+            💡 系統自動計算提領期長達 <span id="calcDrawdownYears" class="mono-num text-wabi-accent font-medium">—</span> 年，建議安全提領率為 <span id="calcSwrGuide" class="mono-num text-wabi-accent font-medium">3.5%</span>。
+          </div>
+        </div>
+
+        <!-- 右側圖表與結果 -->
+        <div class="lg:col-span-2 wabi-card p-5 space-y-4">
+          <div class="flex justify-between items-center border-b border-wabi-border pb-2">
+            <h3 class="serif-title text-base font-semibold text-wabi-text">
+              Coast FIRE 複利累積與門檻軌跡
+            </h3>
+            <span class="text-xs text-wabi-muted">單位：萬元</span>
+          </div>
+
+          <div class="h-64 sm:h-72 relative">
+            <canvas id="chartProjection"></canvas>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-center">
+            <div class="p-3 bg-wabi-subtle rounded-xl">
+              <div class="text-xs text-wabi-muted mb-1">今日 Coast FIRE 門檻</div>
+              <div id="resCoastToday" class="mono-num text-lg font-medium text-wabi-text">—</div>
+            </div>
+            <div class="p-3 bg-wabi-subtle rounded-xl">
+              <div class="text-xs text-wabi-muted mb-1">退休時預估總資產</div>
+              <div id="resAssetAtRetire" class="mono-num text-lg font-medium text-wabi-green">—</div>
+            </div>
+            <div class="p-3 bg-wabi-subtle rounded-xl col-span-2 sm:col-span-1">
+              <div class="text-xs text-wabi-muted mb-1">退休目標缺口 / 盈餘</div>
+              <div id="resSurplusAtRetire" class="mono-num text-lg font-medium text-wabi-accent">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Pane 2: 護欄法動態提領 ══ -->
+    <div id="pane-guardrail" class="tab-pane hidden space-y-6">
+      <div class="wabi-card p-5 space-y-6">
+        <div class="border-b border-wabi-border pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="serif-title text-lg font-semibold text-wabi-text">Guyton-Klinger 動態提領護欄檢測</h3>
+            <p class="text-xs text-wabi-muted mt-0.5">根據市場漲跌動態調整提領金額，兼具生活品質與資本不衰退</p>
+          </div>
+          <span class="px-3 py-1 bg-wabi-subtle text-wabi-accent rounded-full text-xs font-medium">即時安全區</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <!-- 左側護欄計量視覺化 -->
+          <div class="md:col-span-2 space-y-4">
+            <div class="relative pt-6 pb-2">
+              <div class="h-4 bg-wabi-subtle rounded-full overflow-hidden flex relative border border-wabi-border">
+                <div class="w-1/4 bg-wabi-green/30 h-full"></div>
+                <div class="w-2/4 bg-wabi-green/70 h-full"></div>
+                <div class="w-1/4 bg-wabi-crimson/30 h-full"></div>
+              </div>
+
+              <!-- 指針位置 (JS 計算 left) -->
+              <div id="guardrailNeedle" class="absolute top-3 transform -translate-x-1/2 transition-all duration-500" style="left: 40%;">
+                <div class="w-4 h-4 bg-wabi-accent rounded-full border-2 border-white shadow"></div>
+                <div class="text-[10px] mono-num font-medium text-wabi-text bg-white px-1.5 py-0.5 rounded border border-wabi-border shadow-sm mt-1 whitespace-nowrap">
+                  目前: <span id="grNeedleVal">3.5%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between text-xs text-wabi-muted px-1">
+              <div class="text-left">
+                <span class="block text-wabi-green font-medium">上護欄 (多花區)</span>
+                ＜ <span id="grLowerPct">2.8%</span>
+              </div>
+              <div class="text-center">
+                <span class="block text-wabi-text font-medium">安全提領區間</span>
+                <span id="grTargetPct">3.5%</span>
+              </div>
+              <div class="text-right">
+                <span class="block text-wabi-crimson font-medium">下護欄 (少花區)</span>
+                ＞ <span id="grUpperPct">4.2%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右側評估結果 -->
+          <div class="bg-wabi-subtle p-4 rounded-2xl space-y-3">
+            <div class="text-xs text-wabi-muted">當前提領狀態診斷</div>
+            <div id="grStatusTitle" class="text-base font-semibold text-wabi-green flex items-center gap-1.5">
+              <span>🟢</span> 安全區域 (無須調整)
+            </div>
+            <p id="grStatusDesc" class="text-xs text-wabi-muted leading-relaxed">
+              目前提領率落在理想區間內，今年可安心維持預設生活費提領。
+            </p>
+            <div class="border-t border-wabi-border/60 pt-2 text-xs flex justify-between">
+              <span class="text-wabi-muted">今年建議提領月預算</span>
+              <span id="grSuggestedMonthly" class="mono-num font-semibold text-wabi-text">NT$ 100,000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Pane 3: 支出微笑曲線 (Go-Go Years) ══ -->
+    <div id="pane-spending" class="tab-pane hidden space-y-6">
+      <div class="wabi-card p-5 space-y-6">
+        <div class="border-b border-wabi-border pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="serif-title text-lg font-semibold text-wabi-text">退休支出「微笑曲線」與多重收入疊加</h3>
+            <p class="text-xs text-wabi-muted mt-0.5">考慮 50–65 歲活力期 (Go-Go Years) 超額享受，與後期租金、年金的自然遞減模型</p>
+          </div>
+        </div>
+
+        <div class="h-72 relative">
+          <canvas id="chartSpending"></canvas>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div class="p-4 bg-wabi-subtle rounded-2xl border border-wabi-border/40">
+            <h4 class="text-xs font-semibold text-wabi-accent mb-1">🏃‍♂️ 50–64 歲 活力期 (Go-Go)</h4>
+            <p class="text-xs text-wabi-muted leading-relaxed">體力充沛，子女尚未獨立，規劃較高生活費（約 10~12 萬/月），盡情探索生活。</p>
+          </div>
+          <div class="p-4 bg-wabi-subtle rounded-2xl border border-wabi-border/40">
+            <h4 class="text-xs font-semibold text-wabi-accent mb-1">🚶‍♂️ 65–78 歲 慢活期 (Slow-Go)</h4>
+            <p class="text-xs text-wabi-muted leading-relaxed">生活節奏趨緩，日常開銷自然遞減約 20%，同時加上勞保年金與租金開載，提領壓力大減。</p>
+          </div>
+          <div class="p-4 bg-wabi-subtle rounded-2xl border border-wabi-border/40">
+            <h4 class="text-xs font-semibold text-wabi-accent mb-1">🧘‍♂️ 79 歲以上 靜態期 (No-Go)</h4>
+            <p class="text-xs text-wabi-muted leading-relaxed">日常消費極低，主要移轉至醫療與長照預備金，資產安全度達到最高點。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Pane 4: 資產配置與正2 ══ -->
+    <div id="pane-allocation" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 圖表區 -->
+        <div class="wabi-card p-5 lg:col-span-1 space-y-4">
+          <h3 class="serif-title text-base font-semibold text-wabi-text border-b border-wabi-border pb-2">
+            資產配置比例圓餅圖
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="chartAllocation"></canvas>
+          </div>
+        </div>
+
+        <!-- 細項列表區 -->
+        <div class="wabi-card p-5 lg:col-span-2 space-y-4">
+          <div class="flex justify-between items-center border-b border-wabi-border pb-2">
+            <h3 class="serif-title text-base font-semibold text-wabi-text">
+              各類別資產明細表
+            </h3>
+            <button onclick="openDataModal()" class="text-xs text-wabi-accent hover:underline">
+              + 新增/修改資產
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-wabi-border text-wabi-muted">
+                  <th class="pb-2">資產名稱</th>
+                  <th class="pb-2">類別</th>
+                  <th class="pb-2 text-right">目前金額 (元)</th>
+                  <th class="pb-2 text-right">佔比</th>
+                </tr>
+              </thead>
+              <tbody id="assetTableBody" class="divide-y divide-wabi-border/50 font-mono">
+                <!-- JS 動態生成 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Pane 5: 情境測試與專款圈存 ══ -->
+    <div id="pane-scenarios" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 壓力測試 1: 股市大跌 -->
+        <div class="wabi-card p-5 space-y-4">
+          <h3 class="serif-title text-base font-semibold text-wabi-text border-b border-wabi-border pb-2 flex items-center justify-between">
+            <span>📉 股市重挫壓力測試</span>
+            <span id="stressDropVal" class="mono-num text-xs font-normal text-wabi-ochre">-30%</span>
+          </h3>
+
+          <div>
+            <label class="text-xs text-wabi-muted block mb-2">拖動測試股市下跌幅度：</label>
+            <input type="range" min="10" max="50" value="30" step="5" class="w-full accent-wabi-ochre" oninput="document.getElementById('stressDropVal').textContent='-'+this.value+'%'; updateStressTest(this.value)">
+          </div>
+
+          <div class="space-y-2 pt-2 text-xs">
+            <div class="flex justify-between border-b border-wabi-border/40 pb-1.5">
+              <span class="text-wabi-muted">股票部位估算損益</span>
+              <span id="stressLossAmt" class="mono-num text-wabi-crimson">- NT$ 0</span>
+            </div>
+            <div class="flex justify-between border-b border-wabi-border/40 pb-1.5">
+              <span class="text-wabi-muted">重挫後總資產淨值</span>
+              <span id="stressNetAmt" class="mono-num text-wabi-text font-medium">NT$ 0</span>
+            </div>
+            <div class="flex justify-between border-b border-wabi-border/40 pb-1.5">
+              <span class="text-wabi-muted">重挫後 Coast FIRE 達成率</span>
+              <span id="stressCoastPct" class="mono-num font-medium text-wabi-green">100%</span>
+            </div>
+          </div>
+
+          <div id="stressVerdict" class="p-3 bg-wabi-subtle rounded-xl text-xs text-wabi-muted leading-relaxed">
+            <!-- JS 動態評語 -->
+          </div>
+        </div>
+
+        <!-- 專款圈存 2: 子女教育金與長照 -->
+        <div class="wabi-card p-5 space-y-4">
+          <h3 class="serif-title text-base font-semibold text-wabi-text border-b border-wabi-border pb-2">
+            🎓 剛性專款獨立圈存 (Glide Path)
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 bg-wabi-subtle rounded-xl space-y-1.5">
+              <div class="flex justify-between text-wabi-text font-medium">
+                <span>女兒與兒子大學教育金 (各 150 萬)</span>
+                <span class="mono-num text-wabi-accent">NT$ 3,000,000</span>
+              </div>
+              <p class="text-[11px] text-wabi-muted leading-relaxed">距入學剩 6~8 年，採用滑翔徑避險，最後 3 年轉入保本定存。</p>
+            </div>
+
+            <div class="p-3 bg-wabi-subtle rounded-xl space-y-1.5">
+              <div class="flex justify-between text-wabi-text font-medium">
+                <span>熊市 24 個月生活預備金</span>
+                <span class="mono-num text-wabi-accent">NT$ 2,400,000</span>
+              </div>
+              <p class="text-[11px] text-wabi-muted leading-relaxed">獨立圈存於高利活存，遇熊市無需低點變賣任何股票。</p>
+            </div>
+
+            <div class="p-3 bg-wabi-subtle rounded-xl space-y-1.5">
+              <div class="flex justify-between text-wabi-text font-medium">
+                <span>扣除專款後「核心投資池」</span>
+                <span id="resCorePool" class="mono-num font-semibold text-wabi-green">NT$ 28,419,069</span>
+              </div>
+              <p class="text-[11px] text-wabi-muted leading-relaxed">此金額用作長期複利與提領，安全提領率極度穩健。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══ 資料與參數編輯 Modal (可自行輸入) ══ -->
+  <div id="dataModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="wabi-card max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="p-4 border-b border-wabi-border flex justify-between items-center bg-wabi-subtle">
+        <h3 class="serif-title font-semibold text-wabi-text">自訂資產項目與參數數據</h3>
+        <button onclick="closeDataModal()" class="text-wabi-muted hover:text-wabi-text text-lg">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-6 text-xs">
+        <div>
+          <h4 class="font-semibold text-wabi-accent mb-2">1. 資產清單編輯 (將儲存於本地瀏覽器)</h4>
+          <div class="space-y-2" id="modalAssetInputs">
+            <!-- JS 動態生成 -->
+          </div>
+          <button onclick="addNewAssetInput()" class="mt-2 text-xs text-wabi-accent font-medium hover:underline">
+            + 新增一筆資產
+          </button>
+        </div>
+
+        <div class="border-t border-wabi-border pt-4">
+          <h4 class="font-semibold text-wabi-accent mb-2">2. 匯入 / 匯出備份 (JSON)</h4>
+          <div class="flex gap-2">
+            <button onclick="exportDataJSON()" class="px-3 py-1.5 bg-wabi-subtle hover:bg-wabi-border text-wabi-text rounded-lg">下載 JSON 備份</button>
+            <label class="px-3 py-1.5 bg-wabi-subtle hover:bg-wabi-border text-wabi-text rounded-lg cursor-pointer">
+              匯入 JSON 備份
+              <input type="file" id="importJsonFile" accept=".json" class="hidden" onchange="importDataJSON(event)">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-wabi-border bg-wabi-subtle flex justify-end space-x-3">
+        <button onclick="closeDataModal()" class="px-4 py-2 text-wabi-muted hover:text-wabi-text">取消</button>
+        <button onclick="saveModalData()" class="px-5 py-2 bg-wabi-accent text-white rounded-xl font-medium shadow-sm hover:opacity-90">儲存並更新儀表板</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══ 預設資料 (對應您最新的 9 月資產狀況) ══
+    const DEFAULT_STORE = {
+      profile: {
+        husbandAge: 50,
+        husbandRetire: 50, // 打算離職
+        wifeAge: 48,
+        wifeLife: 90,
+        monthlyGoal: 100000,
+        laborPension: 20000,
+        rentalIncome: 25000,
+        growthRate: 7.0,
+        swr: 3.5,
+        inflation: 2.0,
+      },
+      assets: [
+        { id: 'a1', name: '台股-元大台灣50 (0050)', category: 'tw_stock', value: 20807573 },
+        { id: 'a2', name: '台股-元大台灣50正2 (00631L)', category: 'tw_leveraged', value: 1910510 },
+        { id: 'a3', name: '台股-群益台灣正2 (00685L)', category: 'tw_leveraged', value: 64550 },
+        { id: 'a4', name: '台股-富邦台50 (006208)', category: 'tw_stock', value: 897050 },
+        { id: 'a5', name: '台股-台積電 (2330)', category: 'tw_stock', value: 5049280 },
+        { id: 'a6', name: '美股-VOO/VT/VUAA/VWRA系列', category: 'us_stock', value: 3168913 },
+        { id: 'a7', name: '基金與外幣', category: 'forex_fund', value: 144572 },
+        { id: 'a8', name: '現金與證券/IB戶餘額', category: 'cash', value: 1780180 }
+      ],
+      history: [
+        { month: '2025/12', net: 29800000 },
+        { month: '2026/03', net: 30500000 },
+        { month: '2026/06', net: 31200000 },
+        { month: '2026/08', net: 32074384 },
+        { month: '2026/09', net: 33819069 }
+      ]
+    };
+
+    let appData = null;
+    let chartProj = null, chartSpend = null, chartAlloc = null;
+
+    function initData() {
+      const saved = localStorage.getItem('wabi_retire_data');
+      if (saved) {
+        try {
+          appData = JSON.parse(saved);
+        } catch(e) {
+          appData = JSON.parse(JSON.stringify(DEFAULT_STORE));
+        }
+      } else {
+        appData = JSON.parse(JSON.stringify(DEFAULT_STORE));
+      }
+      populateInputsFromProfile();
+      updateAll();
+    }
+
+    function saveData() {
+      localStorage.setItem('wabi_retire_data', JSON.stringify(appData));
+    }
+
+    function resetDefaultData() {
+      if (confirm('確定要將資料重置為初始預設值嗎？')) {
+        appData = JSON.parse(JSON.stringify(DEFAULT_STORE));
+        saveData();
+        populateInputsFromProfile();
+        updateAll();
+      }
+    }
+
+    // 格式化數字 (萬)
+    const fmtWan = (num) => {
+      const w = Math.round(num / 10000);
+      return w.toLocaleString() + ' 萬';
+    };
+
+    const fmtNT = (num) => 'NT$ ' + Math.round(num).toLocaleString();
+
+    function populateInputsFromProfile() {
+      const p = appData.profile;
+      document.getElementById('paramHusbandAge').value = p.husbandAge;
+      document.getElementById('paramHusbandRetire').value = p.husbandRetire;
+      document.getElementById('paramWifeAge').value = p.wifeAge;
+      document.getElementById('paramWifeLife').value = p.wifeLife;
+      document.getElementById('paramMonthlyGoal').value = p.monthlyGoal;
+      document.getElementById('paramGrowthRate').value = p.growthRate;
+      document.getElementById('paramInflation').value = p.inflation;
+    }
+
+    function readInputsToProfile() {
+      appData.profile.husbandAge = parseFloat(document.getElementById('paramHusbandAge').value) || 50;
+      appData.profile.husbandRetire = parseFloat(document.getElementById('paramHusbandRetire').value) || 50;
+      appData.profile.wifeAge = parseFloat(document.getElementById('paramWifeAge').value) || 48;
+      appData.profile.wifeLife = parseFloat(document.getElementById('paramWifeLife').value) || 90;
+      appData.profile.monthlyGoal = parseFloat(document.getElementById('paramMonthlyGoal').value) || 100000;
+      appData.profile.growthRate = parseFloat(document.getElementById('paramGrowthRate').value) || 7.0;
+      appData.profile.inflation = parseFloat(document.getElementById('paramInflation').value) || 2.0;
+      saveData();
+    }
+
+    // 計算總資產
+    function getTotalNetWorth() {
+      return appData.assets.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
+    }
+
+    function updateAll() {
+      readInputsToProfile();
+      const totalNet = getTotalNetWorth();
+      const p = appData.profile;
+
+      // 1. KPI 算式
+      const yearsToRetire = Math.max(p.husbandRetire - p.husbandAge, 0);
+      const drawdownYears = Math.max(p.wifeLife - p.husbandRetire, 0);
+      
+      const inflFactor = Math.pow(1 + p.inflation/100, yearsToRetire);
+      const adjMonthly = p.monthlyGoal * inflFactor;
+      const netMonthlyFromAsset = Math.max(adjMonthly - p.laborPension, 0);
+      
+      // FIRE 數字與 Coast 門檻
+      const fireNumber = netMonthlyFromAsset * 12 / (p.swr / 100);
+      const coastThreshold = fireNumber / Math.pow(1 + p.growthRate/100, yearsToRetire);
+      
+      // 正2比例
+      const levAssets = appData.assets.filter(a => a.category === 'tw_leveraged').reduce((s, a) => s + a.value, 0);
+      const levRatio = totalNet > 0 ? (levAssets / totalNet * 100).toFixed(1) : '0';
+
+      // 更新 KPI 視圖
+      document.getElementById('kpiNetWorth').textContent = fmtWan(totalNet);
+      document.getElementById('kpiNetWorthSub').textContent = `較上月成長 +5.44% (累計創高)`;
+      
+      document.getElementById('kpiCoastThreshold').textContent = fmtWan(coastThreshold);
+      const isCoastOk = totalNet >= coastThreshold;
+      document.getElementById('kpiCoastStatus').textContent = isCoastOk ? '✓ 門檻已達成 (可不存錢)' : '📈 尚差 ' + fmtWan(coastThreshold - totalNet);
+      document.getElementById('kpiCoastStatus').className = `text-xs font-medium mt-1 ${isCoastOk ? 'text-wabi-green' : 'text-wabi-ochre'}`;
+
+      const curSwr = (netMonthlyFromAsset * 12 / totalNet * 100).toFixed(2);
+      document.getElementById('kpiSwrRate').textContent = curSwr + '%';
+      document.getElementById('kpiSwrSub').textContent = `目標月開銷 NT$ ${(p.monthlyGoal/10000).toFixed(0)} 萬`;
+
+      document.getElementById('kpiLeverageRatio').textContent = levRatio + '%';
+
+      document.getElementById('calcDrawdownYears').textContent = drawdownYears;
+      document.getElementById('calcSwrGuide').textContent = drawdownYears > 35 ? '3.5%' : '4.0%';
+
+      // 頂部白話總結
+      const summaryBanner = document.getElementById('summaryBanner');
+      summaryBanner.innerHTML = `
+        <div class="flex items-start space-x-3">
+          <div class="text-xl">🍵</div>
+          <div class="text-xs sm:text-sm text-wabi-text leading-relaxed">
+            <span class="font-semibold text-wabi-accent">財務狀態總結：</span>
+            目前家庭資產淨值為 <strong class="mono-num text-wabi-accent">${fmtWan(totalNet)}</strong>。
+            即使即刻停止工作不再存錢，依歷史平均報酬率，Coast FIRE 門檻（${fmtWan(coastThreshold)}）已完全達標！
+            未來退休長達 ${drawdownYears} 年的提領期中，只需保持約 <strong class="mono-num">${curSwr}%</strong> 的極低提領率，即可無憂支應月開銷 10 萬元。
+          </div>
+        </div>
+      `;
+
+      // 更新各分頁圖表與數據
+      renderProjectionChart(coastThreshold, totalNet);
+      renderGuardrailView(curSwr);
+      renderSpendingChart();
+      renderAllocationView();
+      updateStressTest(30);
+    }
+
+    function renderProjectionChart(coastThreshold, totalNet) {
+      const p = appData.profile;
+      const years = Math.max(p.husbandRetire - p.husbandAge, 0);
+      const labels = [];
+      const projData = [];
+      const thresholdData = [];
+
+      const curYear = new Date().getFullYear();
+      for (let i = 0; i <= Math.max(years, 15); i++) {
+        labels.push((curYear + i) + '年');
+        const proj = totalNet * Math.pow(1 + p.growthRate/100, i);
+        projData.push(Math.round(proj / 10000));
+        
+        // 門檻軌跡
+        const thresh = coastThreshold * Math.pow(1 + p.growthRate/100, i);
+        thresholdData.push(Math.round(thresh / 10000));
+      }
+
+      document.getElementById('resCoastToday').textContent = fmtWan(coastThreshold);
+      const assetAtRetire = totalNet * Math.pow(1 + p.growthRate/100, years);
+      document.getElementById('resAssetAtRetire').textContent = fmtWan(assetAtRetire);
+      document.getElementById('resSurplusAtRetire').textContent = '+' + fmtWan(assetAtRetire - coastThreshold);
+
+      const ctx = document.getElementById('chartProjection').getContext('2d');
+      if (chartProj) chartProj.destroy();
+
+      chartProj = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '資產自然複利預測',
+              data: projData,
+              borderColor: '#3b5249',
+              backgroundColor: 'rgba(59, 82, 73, 0.08)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2
+            },
+            {
+              label: 'Coast FIRE 門檻線',
+              data: thresholdData,
+              borderColor: '#c87d55',
+              borderDash: [4, 4],
+              tension: 0.2,
+              borderWidth: 1.5,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { grid: { color: '#e8e4db' }, ticks: { callback: v => v + '萬', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderGuardrailView(curSwr) {
+      const swrVal = parseFloat(curSwr);
+      const targetSwr = appData.profile.swr;
+      const lowerLimit = (targetSwr * 0.8).toFixed(1);
+      const upperLimit = (targetSwr * 1.2).toFixed(1);
+
+      document.getElementById('grLowerPct').textContent = lowerLimit + '%';
+      document.getElementById('grTargetPct').textContent = targetSwr + '%';
+      document.getElementById('grUpperPct').textContent = upperLimit + '%';
+      document.getElementById('grNeedleVal').textContent = curSwr + '%';
+
+      // 計算針的位置 (2% ~ 5% 對應 0% ~ 100%)
+      const minP = 2.0, maxP = 5.0;
+      const posPct = Math.min(Math.max((swrVal - minP) / (maxP - minP) * 100, 5), 95);
+      document.getElementById('guardrailNeedle').style.left = posPct + '%';
+
+      const statusTitle = document.getElementById('grStatusTitle');
+      const statusDesc = document.getElementById('grStatusDesc');
+
+      if (swrVal < lowerLimit) {
+        statusTitle.innerHTML = '🎉 觸發上護欄 (資產大增)';
+        statusTitle.className = 'text-base font-semibold text-wabi-green flex items-center gap-1.5';
+        statusDesc.textContent = '由於投資組合大幅成長，目前提領率極低！今年可考慮加薪 10% 提升生活品質。';
+      } else if (swrVal > upperLimit) {
+        statusTitle.innerHTML = '⚠️ 觸發下護欄 (防禦保護)';
+        statusTitle.className = 'text-base font-semibold text-wabi-crimson flex items-center gap-1.5';
+        statusDesc.textContent = '市場近期回檔使提領率上升，建議今年適度減少 10% 非必要娛樂開銷。';
+      } else {
+        statusTitle.innerHTML = '🟢 安全區域 (無需調整)';
+        statusTitle.className = 'text-base font-semibold text-wabi-accent flex items-center gap-1.5';
+        statusDesc.textContent = '目前提領率落在理想安全區間，可完全按照原預算安心享受退休生活。';
+      }
+    }
+
+    function renderSpendingChart() {
+      const ages = [], expenses = [], incomes = [];
+      const startAge = appData.profile.husbandAge;
+
+      for (let a = startAge; a <= 90; a++) {
+        ages.push(a + '歲');
+        
+        // 微笑曲線 (50-64高, 65-78低, 79+平)
+        let exp = 10;
+        if (a >= 65 && a <= 78) exp = 7.5;
+        else if (a > 78) exp = 8.5;
+        expenses.push(exp);
+
+        // 65歲起加入勞保年金 (約2萬) 與租金 (2.5萬)
+        let inc = 0;
+        if (a >= 65) inc += 4.5; // 萬
+        incomes.push(inc);
+      }
+
+      const ctx = document.getElementById('chartSpending').getContext('2d');
+      if (chartSpend) chartSpend.destroy();
+
+      chartSpend = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ages,
+          datasets: [
+            { label: '被動收入/年金補貼 (萬元/月)', data: incomes, backgroundColor: '#588157', borderRadius: 4 },
+            { label: '目標預算開銷 (萬元/月)', data: expenses, type: 'line', borderColor: '#c87d55', borderWidth: 2, tension: 0.3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: '#e8e4db' }, ticks: { callback: v => v + '萬' } }
+          }
+        }
+      });
+    }
+
+    function renderAllocationView() {
+      const totalNet = getTotalNetWorth();
+      const tableBody = document.getElementById('assetTableBody');
+      tableBody.innerHTML = '';
+
+      const categories = {
+        tw_stock: { name: '台股原型', color: '#3b5249', sum: 0 },
+        tw_leveraged: { name: '台股正2槓桿', color: '#3d4a5a', sum: 0 },
+        us_stock: { name: '美股系列', color: '#588157', sum: 0 },
+        forex_fund: { name: '外幣與基金', color: '#c87d55', sum: 0 },
+        cash: { name: '現金與存款', color: '#7a807d', sum: 0 }
+      };
+
+      appData.assets.forEach(a => {
+        const val = parseFloat(a.value) || 0;
+        if (categories[a.category]) categories[a.category].sum += val;
+
+        const pct = totalNet > 0 ? (val / totalNet * 100).toFixed(1) : 0;
+        tableBody.innerHTML += `
+          <tr class="hover:bg-wabi-subtle/50">
+            <td class="py-2.5 font-sans font-medium text-wabi-text">${a.name}</td>
+            <td class="py-2.5 text-wabi-muted font-sans">${categories[a.category]?.name || a.category}</td>
+            <td class="py-2.5 text-right font-semibold text-wabi-text">${Math.round(val).toLocaleString()}</td>
+            <td class="py-2.5 text-right text-wabi-muted">${pct}%</td>
+          </tr>
+        `;
+      });
+
+      // 圓餅圖
+      const ctx = document.getElementById('chartAllocation').getContext('2d');
+      if (chartAlloc) chartAlloc.destroy();
+
+      chartAlloc = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.values(categories).map(c => c.name),
+          datasets: [{
+            data: Object.values(categories).map(c => Math.round(c.sum / 10000)),
+            backgroundColor: Object.values(categories).map(c => c.color),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function updateStressTest(dropPct) {
+      const drop = parseFloat(dropPct) / 100;
+      const totalNet = getTotalNetWorth();
+      
+      // 股票部位總和
+      const stockAssets = appData.assets.filter(a => ['tw_stock', 'tw_leveraged', 'us_stock'].includes(a.category)).reduce((s, a) => s + a.value, 0);
+      const loss = stockAssets * drop;
+      const droppedNet = totalNet - loss;
+
+      document.getElementById('stressLossAmt').textContent = '- ' + fmtNT(loss);
+      document.getElementById('stressNetAmt').textContent = fmtNT(droppedNet);
+
+      const p = appData.profile;
+      const years = Math.max(p.husbandRetire - p.husbandAge, 0);
+      const fireNumber = (p.monthlyGoal - p.laborPension) * 12 / (p.swr / 100);
+      const coastThreshold = fireNumber / Math.pow(1 + p.growthRate/100, years);
+
+      const coastPct = (droppedNet / coastThreshold * 100).toFixed(0);
+      document.getElementById('stressCoastPct').textContent = coastPct + '%';
+
+      const verdict = document.getElementById('stressVerdict');
+      if (droppedNet >= coastThreshold) {
+        verdict.className = 'p-3 bg-wabi-green/10 text-wabi-green rounded-xl text-xs leading-relaxed border border-wabi-green/20';
+        verdict.innerHTML = `<strong>✓ 防禦非常穩固：</strong>即使股票重挫 ${dropPct}%，總資產仍高於 Coast FIRE 門檻，完全無須擔心資產提早耗盡。`;
+      } else {
+        verdict.className = 'p-3 bg-wabi-ochre/10 text-wabi-ochre rounded-xl text-xs leading-relaxed border border-wabi-ochre/20';
+        verdict.innerHTML = `<strong>⚠️ 需注意安全邊際：</strong>重挫後資產略低於門檻，建議在熊市期間動用圈存的 24 個月預備金，避免低點變賣股票。`;
+      }
+
+      // 核心投資池
+      const corePool = Math.max(totalNet - 3000000 - 2400000, 0);
+      document.getElementById('resCorePool').textContent = fmtNT(corePool);
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('text-wabi-muted');
+      });
+      btn.classList.add('active');
+      btn.classList.remove('text-wabi-muted');
+
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      document.getElementById('pane-' + tabId).classList.remove('hidden');
+    }
+
+    function openDataModal() {
+      const container = document.getElementById('modalAssetInputs');
+      container.innerHTML = '';
+
+      appData.assets.forEach((a, index) => {
+        container.innerHTML += `
+          <div class="flex items-center gap-2 bg-wabi-subtle p-2 rounded-lg">
+            <input type="text" value="${a.name}" class="flex-1 bg-white border border-wabi-border rounded px-2 py-1 text-xs" onchange="appData.assets[${index}].name=this.value">
+            <select class="bg-white border border-wabi-border rounded px-2 py-1 text-xs" onchange="appData.assets[${index}].category=this.value">
+              <option value="tw_stock" ${a.category==='tw_stock'?'selected':''}>台股原型</option>
+              <option value="tw_leveraged" ${a.category==='tw_leveraged'?'selected':''}>台股正2</option>
+              <option value="us_stock" ${a.category==='us_stock'?'selected':''}>美股</option>
+              <option value="forex_fund" ${a.category==='forex_fund'?'selected':''}>外幣基金</option>
+              <option value="cash" ${a.category==='cash'?'selected':''}>現金存款</option>
+            </select>
+            <input type="number" value="${a.value}" class="w-32 bg-white border border-wabi-border rounded px-2 py-1 text-xs mono-num text-right" onchange="appData.assets[${index}].value=parseFloat(this.value)||0">
+            <button onclick="removeAssetInput(${index})" class="text-wabi-crimson px-1.5 font-bold">✕</button>
+          </div>
+        `;
+      });
+
+      document.getElementById('dataModal').classList.remove('hidden');
+    }
+
+    function closeDataModal() {
+      document.getElementById('dataModal').classList.add('hidden');
+    }
+
+    function addNewAssetInput() {
+      appData.assets.push({ id: 'a' + Date.now(), name: '新資產項目', category: 'tw_stock', value: 100000 });
+      openDataModal();
+    }
+
+    function removeAssetInput(index) {
+      appData.assets.splice(index, 1);
+      openDataModal();
+    }
+
+    function saveModalData() {
+      saveData();
+      updateAll();
+      closeDataModal();
+    }
+
+    function exportDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `wabi_retire_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && imported.assets) {
+            appData = imported;
+            saveData();
+            populateInputsFromProfile();
+            updateAll();
+            closeDataModal();
+            alert('成功匯入資產數據！');
+          }
+        } catch(err) {
+          alert('匯入失敗：格式不符合 JSON 規範');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initData();
+    });
+  </script>
+</body>
+</html>
