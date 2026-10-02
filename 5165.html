@@ -1,58 +1,1038 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>51y-65y 退休資產動態模擬與市場波動壓力測試</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #0f172a;
+    color: #f8fafc;
+    /* Prevent text selection during chart interaction on mobile */
+    -webkit-tap-highlight-color: transparent; 
+  }
+  .glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .table-row-hover:hover {
+    background-color: rgba(51, 65, 85, 0.5);
+  }
+  input[type="range"] {
+    accent-color: #38bdf8;
+  }
+  /* Custom Scrollbar for better UI */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+  /* Sticky column utility for tables */
+  .sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background-color: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  }
+  .sticky-col-header {
+    background-color: #1e293b;
+    z-index: 30 !important;
+  }
+  /* Chart tooltip animations */
+  .tooltip-transition {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  /* Accordion transitions */
+  .accordion-content {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+  .accordion-content.expanded {
+    max-height: 1000px; /* Arbitrary large number to allow full expansion */
+    opacity: 1;
+    overflow: visible;
+  }
+  .accordion-icon {
+    transition: transform 0.3s ease;
+  }
+  .accordion-icon.rotated {
+    transform: rotate(180deg);
+  }
+</style>
+</head>
+<body class="min-h-screen pb-12 antialiased">
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8">
+  <!-- Header Section -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between border-b border-slate-800 pb-5 mb-6 gap-4">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 text-xs font-semibold mb-3">
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> 行動版優化 v3.0
+      </div>
+      <h1 class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight">退休資產動態模擬與壓力測試</h1>
+      <p class="text-slate-400 text-xs sm:text-sm mt-1.5 leading-relaxed">涵蓋子女每月250鎂扣款至18歲、退休前月加碼、自訂長照、勞保勞退與順序報酬風險防禦</p>
+    </div>
+    
+    <!-- Sync Module -->
+    <div class="w-full md:w-auto bg-slate-800/80 border border-slate-700 p-3 sm:px-4 sm:py-2 rounded-xl flex items-center justify-between md:flex-col md:items-end">
+      <div class="flex items-center gap-1.5 text-xs text-slate-400">
+        <span>當前起始總資產</span>
+        <button id="btnSyncSheet" title="從 Google Sheet 重新讀取 F28" class="p-1.5 hover:bg-slate-700 rounded-lg text-sky-400 transition-colors bg-slate-700/50">
+          <svg id="syncIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </button>
+      </div>
+      <div class="text-xl sm:text-2xl font-bold text-emerald-400 flex items-baseline gap-1 mt-0.5">
+        <input type="number" id="inputInitialAssets" value="3382" step="1" class="w-24 sm:w-28 bg-slate-900 border border-slate-700 rounded text-right px-2 py-0.5 text-emerald-400 font-bold outline-none focus:border-emerald-500" />
+        <span class="text-sm text-slate-300 font-normal">萬元</span>
+      </div>
+      <div class="text-[10px] text-slate-400 md:mt-1 hidden sm:flex items-center justify-end gap-1" id="sheetSyncStatus">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" id="syncDot"></span>
+        <span id="syncText">連接 Google Sheet F28 中...</span>
+      </div>
+    </div>
+    <!-- Mobile sync status indicator -->
+    <div class="text-[10px] text-slate-400 sm:hidden flex items-center gap-1 -mt-2 mb-2" id="sheetSyncStatusMobile">
+      <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" id="syncDotMobile"></span>
+      <span id="syncTextMobile">連接中...</span>
+    </div>
+  </div>
+
+  <!-- Core Parameter Control Panel -->
+  <div class="glass-card rounded-2xl p-5 sm:p-6 mb-4 shadow-xl">
+    <h2 class="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+      核心試算與支出參數
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      <!-- Parameter 1: Real Return Rate -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-1.5">
+          <span class="text-slate-300">基準實質報酬率</span>
+          <span class="text-sky-400 font-bold bg-sky-950/50 px-2 py-0.5 rounded text-xs" id="valRealReturn">3.5%</span>
+        </div>
+        <input type="range" id="inputRealReturn" min="2.0" max="6.0" step="0.1" value="3.5" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>2.0%</span><span>6.0%</span></div>
+      </div>
+      <!-- Parameter 2: Annual Living Expense -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-1.5">
+          <span class="text-slate-300">退休月生活費</span>
+          <span class="text-sky-400 font-bold bg-sky-950/50 px-2 py-0.5 rounded text-xs" id="valMonthlyExpense">10 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyExpense" min="6" max="18" step="0.5" value="10" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>6 萬</span><span>18 萬</span></div>
+      </div>
+      <!-- Parameter 3: Pre-retirement Monthly Income -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-1.5">
+          <span class="text-slate-300">工作期月薪（稅後）</span>
+          <span class="text-sky-400 font-bold bg-sky-950/50 px-2 py-0.5 rounded text-xs" id="valMonthlyIncome">7.9 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyIncome" min="5" max="20" step="0.1" value="7.9" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>5 萬</span><span>20 萬</span></div>
+      </div>
+      <!-- Parameter 3b: Pre-retirement Monthly Investment -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-1.5">
+          <span class="text-slate-300">退休前月加碼買股</span>
+          <span class="text-sky-400 font-bold bg-sky-950/50 px-2 py-0.5 rounded text-xs" id="valMonthlyInvest">7.0 萬元/月</span>
+        </div>
+        <input type="range" id="inputMonthlyInvest" min="0" max="15" step="0.5" value="7.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>0 萬</span><span>15 萬</span></div>
+      </div>
+      <!-- Parameter 4: USD Exchange Rate -->
+      <div>
+        <div class="flex justify-between items-center text-sm font-medium mb-1.5">
+          <span class="text-slate-300">美金/台幣 匯率</span>
+          <span class="text-sky-400 font-bold bg-sky-950/50 px-2 py-0.5 rounded text-xs" id="valUSDRate">32.0 NTD</span>
+        </div>
+        <input type="range" id="inputUSDRate" min="28.0" max="35.0" step="0.5" value="32.0" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>28.0</span><span>35.0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Settings Accordions (Mobile Optimized) -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    
+    <!-- Accordion: LTC Risk -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-slate-700/60 shadow-lg">
+      <button onclick="toggleAccordion('accLTC', 'iconLTC')" class="w-full flex justify-between items-center p-4 bg-slate-800/40 hover:bg-slate-700/40 transition-colors">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.6)]"></span>
+          <h3 class="text-sm font-semibold text-purple-300">長照風險彈性設定</h3>
+        </div>
+        <svg id="iconLTC" class="w-5 h-5 text-slate-400 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      <div id="accLTC" class="accordion-content bg-slate-800/20 px-4">
+        <div class="py-4 space-y-4">
+          <div>
+            <div class="flex justify-between items-center text-sm font-medium mb-1">
+              <span class="text-slate-300 text-xs">雙人月長照費</span>
+              <span class="text-purple-400 font-bold text-xs" id="valLTCExpense">8 萬元/月</span>
+            </div>
+            <input type="range" id="inputLTCExpense" min="0" max="15" step="1" value="8" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer accent-purple-400">
+          </div>
+          <div>
+            <div class="flex justify-between items-center text-sm font-medium mb-1">
+              <span class="text-slate-300 text-xs">長照發生年齡</span>
+              <span class="text-purple-400 font-bold text-xs" id="valLTCStartAge">75 歲</span>
+            </div>
+            <input type="range" id="inputLTCStartAge" min="55" max="85" step="1" value="75" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer accent-purple-400">
+          </div>
+          <div>
+            <div class="flex justify-between items-center text-sm font-medium mb-1">
+              <span class="text-slate-300 text-xs">長照持續年數</span>
+              <span class="text-purple-400 font-bold text-xs" id="valLTCDuration">10 年</span>
+            </div>
+            <input type="range" id="inputLTCDuration" min="1" max="20" step="1" value="10" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer accent-purple-400">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accordion: Market Shock & Cash Buffer -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-amber-500/30 shadow-lg relative">
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-400/80"></div>
+      <button onclick="toggleAccordion('accMarket', 'iconMarket')" class="w-full flex justify-between items-center p-4 bg-slate-800/40 hover:bg-slate-700/40 transition-colors pl-5">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <h3 class="text-sm font-semibold text-amber-400">股市震盪與水庫壓力測試</h3>
+        </div>
+        <svg id="iconMarket" class="w-5 h-5 text-slate-400 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      <div id="accMarket" class="accordion-content bg-slate-800/20 px-5">
+        <div class="py-4 space-y-4">
+          <div class="flex flex-col gap-2">
+            <span class="text-xs text-slate-300 font-medium">選擇市場情境：</span>
+            <select id="selectMarketScenario" class="w-full bg-slate-900 border border-slate-700 text-amber-400 font-bold rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:border-amber-500">
+              <option value="normal">平穩市場 (常態基準)</option>
+              <option value="crash_early">退休初期暴跌 (第1年-25%, 第2年-15%)</option>
+              <option value="crash_2008">重現 2008 金融海嘯 (-30%, +18%, +12%)</option>
+              <option value="boom_early">退休初期大牛市 (第1年+25%, 第2年+15%)</option>
+            </select>
+          </div>
+          <div class="pt-2 border-t border-slate-700/50">
+            <div class="flex justify-between items-center text-sm font-medium mb-1">
+              <span class="text-slate-300 text-xs flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                現金水庫 (防禦緩衝)
+              </span>
+              <span class="text-emerald-400 font-bold text-xs" id="valCashBuffer">240 萬元</span>
+            </div>
+            <input type="range" id="inputCashBuffer" min="0" max="400" step="20" value="240" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer accent-emerald-400">
+          </div>
+          <div class="text-[11px] text-slate-400 leading-tight bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+            *水庫策略：大跌時優先從水庫提撥生活費，避免賤賣股票；市場回升時自動將水庫補滿。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Comparative Section: Retirement Ages -->
+  <div class="glass-card rounded-2xl p-4 sm:p-6 mb-8 shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          51y ～ 65y 退休資產對比
+        </h2>
+        <p class="text-xs text-slate-400 mt-1 hidden sm:block">點擊任意資料列，可檢視該年齡的詳細現金流</p>
+      </div>
+      <div class="text-[10px] sm:text-xs text-slate-400 bg-slate-800/80 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-slate-700 inline-block self-start sm:self-auto">
+        單位：新台幣萬元 (實質價值)
+      </div>
+    </div>
+
+    <!-- Mobile Card View (Hidden on sm and larger) -->
+    <div id="mobileSummaryCards" class="grid grid-cols-1 gap-3 sm:hidden">
+      <!-- Cards injected by JS -->
+    </div>
+
+    <!-- Desktop Table View (Hidden on very small screens, visible on sm and larger) -->
+    <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-slate-700 text-slate-400 bg-slate-800/70 text-xs">
+            <th class="py-3 px-4 font-semibold">退休年齡</th>
+            <th class="py-3 px-4 font-semibold text-right">退休當下</th>
+            <th class="py-3 px-4 font-semibold text-right">65歲(年金起)</th>
+            <th class="py-3 px-4 font-semibold text-right">75歲(長照預設)</th>
+            <th class="py-3 px-4 font-semibold text-right">85歲</th>
+            <th class="py-3 px-4 font-semibold text-right text-sky-400">90歲終末</th>
+            <th class="py-3 px-4 font-semibold text-center">安全評估</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody" class="divide-y divide-slate-800/60 bg-slate-900/30">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Chart Section with Interactive Overlay -->
+  <div class="glass-card rounded-2xl p-4 sm:p-6 mb-8 shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+          資產動態演變曲線 (觸控/滑鼠可檢視數值)
+        </h2>
+      </div>
+    </div>
+
+    <!-- SVG Canvas Chart with Relative Container for HTML Tooltip -->
+    <div class="relative w-full overflow-hidden select-none" id="chartContainer" style="touch-action: pan-y;">
+      <svg id="trajectoryChart" class="w-full h-[320px] sm:h-[450px]" xmlns="http://www.w3.org/2000/svg"></svg>
+      
+      <!-- Interactive Crosshair & Tooltip (Controlled by JS) -->
+      <div id="chartCrosshair" class="absolute top-0 bottom-[50px] w-px bg-slate-400/50 pointer-events-none hidden tooltip-transition z-10"></div>
+      <div id="chartTooltip" class="absolute bg-slate-800/95 backdrop-blur-sm border border-slate-600 p-2.5 rounded-lg shadow-xl pointer-events-none hidden tooltip-transition z-20 transform -translate-x-1/2 -translate-y-full mt-[-10px] min-w-[110px]">
+        <div class="text-[10px] text-slate-400 mb-1" id="ttAge">55歲</div>
+        <div class="flex items-center gap-1.5 mb-1">
+          <span class="w-2 h-2 rounded-full" id="ttDot"></span>
+          <span class="text-xs font-bold text-white" id="ttRetireAge">55y退休</span>
+        </div>
+        <div class="text-sm font-bold text-emerald-400 font-mono" id="ttAsset">1,234 萬</div>
+      </div>
+    </div>
+
+    <!-- Chart Legend -->
+    <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-2 sm:mt-6 pt-4 border-t border-slate-800 text-[10px] sm:text-xs" id="chartLegend">
+      <!-- Dynamic legend items -->
+    </div>
+  </div>
+
+  <!-- Detailed Cashflow Log Section -->
+  <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-xl scroll-mt-6" id="detailSection">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span id="detailTitle">51 歲退休 - 年度明細</span>
+        </h2>
+        <p class="text-[10px] sm:text-xs text-slate-400 mt-1">左右滑動檢視各欄位。首欄(年齡)已凍結固定。</p>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700 w-full sm:w-auto">
+        <label for="selectRetireAge" class="text-xs text-slate-300 font-medium whitespace-nowrap ml-1">切換檢視：</label>
+        <select id="selectRetireAge" class="w-full sm:w-auto bg-slate-900 border border-slate-700 text-sky-400 font-bold rounded-md px-2 py-1 text-sm outline-none focus:border-sky-500">
+          <!-- Options 51 to 65 -->
+        </select>
+      </div>
+    </div>
+
+    <!-- Year by Year Table (With Sticky Column) -->
+    <div class="overflow-x-auto max-h-[400px] sm:max-h-[500px] overflow-y-auto rounded-xl border border-slate-700/80 shadow-inner bg-slate-900/50">
+      <table class="w-full text-left text-[11px] sm:text-sm whitespace-nowrap">
+        <thead class="sticky top-0 bg-slate-800 text-slate-300 uppercase z-30 shadow-sm">
+          <tr>
+            <th class="py-2.5 px-3 sticky-col sticky-col-header border-b border-slate-700">年齡</th>
+            <th class="py-2.5 px-3 border-b border-slate-700">狀態</th>
+            <th class="py-2.5 px-3 text-center border-b border-slate-700">當年報酬率</th>
+            <th class="py-2.5 px-3 text-right border-b border-slate-700">年初股票</th>
+            <th class="py-2.5 px-3 text-right border-b border-slate-700">投資收益</th>
+            <th class="py-2.5 px-3 text-right text-sky-300 border-b border-slate-700">月加碼買股</th>
+            <th class="py-2.5 px-3 text-right text-rose-400 border-b border-slate-700">生活開銷</th>
+            <th class="py-2.5 px-3 text-right text-amber-400 border-b border-slate-700">子女/補足</th>
+            <th class="py-2.5 px-3 text-right text-purple-400 border-b border-slate-700">長照費用</th>
+            <th class="py-2.5 px-3 text-right text-emerald-400 border-b border-slate-700">年金收入</th>
+            <th class="py-2.5 px-3 text-right text-teal-300 border-b border-slate-700">水庫餘額</th>
+            <th class="py-2.5 px-3 text-right font-bold text-sky-400 border-b border-slate-700">年底總資產</th>
+          </tr>
+        </thead>
+        <tbody id="detailTableBody" class="divide-y divide-slate-800/60">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // UI Helper: Accordion Toggle
+  function toggleAccordion(contentId, iconId) {
+    const content = document.getElementById(contentId);
+    const icon = document.getElementById(iconId);
+    content.classList.toggle('expanded');
+    icon.classList.toggle('rotated');
+  }
+
+  // Expand "Market" on desktop by default
+  if (window.innerWidth >= 768) {
+    setTimeout(() => {
+      document.getElementById('accMarket').classList.add('expanded');
+      document.getElementById('iconMarket').classList.add('rotated');
+    }, 100);
+  }
+
+  // Initial Conditions & State
+  let INITIAL_ASSETS = 3382;
+  const START_AGE = 50;
+  const END_AGE = 90;
+  const SPREADSHEET_ID = '1H681Er4cqZSKo8HDYWgWz5wyYA2JLCHTnTEM8XuukoE';
+
+  let currentRetireAge = 51;
+  let realReturnRate = 0.035;
+  let monthlyExpense = 10;
+  let monthlyLTC = 8;
+  let ltcStartAge = 75;
+  let ltcDuration = 10;
+  let usdRate = 32.0;
+  let monthlyInvest = 7.0;
+  let initialCashBuffer = 240;
+  let selectedScenario = 'normal';
+  let monthlyIncome = 7.9;  // 工作期稅後月薪（萬元），預設 79K
+
+  // Series Colors for Chart
+  const SERIES_COLORS = {
+    51: '#38bdf8', 53: '#34d399', 55: '#facc15', 58: '#f97316', 
+    60: '#a855f7', 62: '#ec4899', 65: '#6366f1'
+  };
+  const representativeAges = [51, 53, 55, 58, 60, 62, 65];
+
+  // Chart state for tooltips
+  let currentChartData = [];
+  let chartLayout = { width: 0, height: 0, pad: {top:20, right:20, bottom:40, left:60}, minAsset:0, maxAsset:0 };
+
+  // Helper functions for Sheet parsing remain unchanged
+  function extractValueFromSheetData(data) {
+    if (!data || !data.table) return null;
+    const table = data.table;
+    const candidates = [];
+    if (table.rows && table.rows.length > 0) {
+      const row0 = table.rows[0];
+      if (row0 && row0.c) {
+        for (let cell of row0.c) {
+          if (cell) {
+            if (cell.v !== null && cell.v !== undefined) candidates.push(cell.v);
+            if (cell.f !== null && cell.f !== undefined) candidates.push(cell.f);
+          }
+        }
+      }
+    }
+    if (table.rows && table.rows.length >= 28) {
+      const row27 = table.rows[27];
+      if (row27 && row27.c && row27.c[5]) {
+        const cell = row27.c[5];
+        if (cell.v !== null && cell.v !== undefined) candidates.push(cell.v);
+        if (cell.f !== null && cell.f !== undefined) candidates.push(cell.f);
+      }
+    }
+    for (let raw of candidates) {
+      if (typeof raw === 'number' && !isNaN(raw) && raw > 0) return raw;
+      const str = String(raw).trim();
+      if (!str) continue;
+      const isTenThousandUnit = /萬|万/.test(str);
+      const cleaned = str.replace(/[^0-9.]/g, '');
+      const num = parseFloat(cleaned);
+      if (!isNaN(num) && num > 0) return isTenThousandUnit ? num * 10000 : num;
+    }
+    return null;
+  }
+
+  function fetchGoogleSheetAsset() {
+    const dots = [document.getElementById('syncDot'), document.getElementById('syncDotMobile')];
+    const texts = [document.getElementById('syncText'), document.getElementById('syncTextMobile')];
+    const syncIcon = document.getElementById('syncIcon');
+
+    if (syncIcon) syncIcon.classList.add('animate-spin');
+    dots.forEach(d => d && (d.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping'));
+    texts.forEach(t => t && (t.textContent = '讀取中...'));
+
+    const scriptId = 'gviz-jsonp-script';
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        showSyncError('讀取逾時');
+      }
+    }, 5000);
+
+    window.handleSheetResponse = function(data) {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      try {
+        const rawVal = extractValueFromSheetData(data);
+        if (rawVal !== null && rawVal !== undefined) {
+          let numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace(/,/g, ''));
+          if (!isNaN(numVal) && numVal > 0) {
+            INITIAL_ASSETS = numVal > 100000 ? Math.round(numVal / 10000) : Math.round(numVal);
+            const inputEl = document.getElementById('inputInitialAssets');
+            if (inputEl) inputEl.value = INITIAL_ASSETS;
+            dots.forEach(d => d && (d.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block'));
+            texts.forEach(t => t && (t.textContent = '已同步 F28'));
+            renderAll();
+            cleanup();
+            return;
+          }
+        }
+        throw new Error('未找到數值');
+      } catch (err) {
+        showSyncError('解析失敗');
+      } finally {
+        cleanup();
+      }
+    };
+
+    function cleanup() {
+      if (syncIcon) syncIcon.classList.remove('animate-spin');
+      delete window.handleSheetResponse;
+      const s = document.getElementById(scriptId);
+      if (s) s.remove();
+    }
+
+    function showSyncError(msg) {
+      dots.forEach(d => d && (d.className = 'w-1.5 h-1.5 rounded-full bg-rose-400 inline-block'));
+      texts.forEach(t => t && (t.textContent = msg || '讀取失敗'));
+      if (syncIcon) syncIcon.classList.remove('animate-spin');
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetResponse&range=F28&headers=0&_=${Date.now()}`;
+    script.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        showSyncError('權限不足');
+        cleanup();
+      }
+    };
+    document.head.appendChild(script);
+  }
+
+  function getMarketRateForAge(age, retireAge) {
+    if (selectedScenario === 'crash_early') {
+      if (age === retireAge) return -0.25; 
+      if (age === retireAge + 1) return -0.15; 
+    } else if (selectedScenario === 'crash_2008') {
+      if (age === retireAge) return -0.30; 
+      if (age === retireAge + 1) return 0.18; 
+      if (age === retireAge + 2) return 0.12; 
+    } else if (selectedScenario === 'boom_early') {
+      if (age === retireAge) return 0.25; 
+      if (age === retireAge + 1) return 0.15; 
+    }
+    return realReturnRate;
+  }
+
+  function runScenario(retireAge) {
+    const annualLivingCost = monthlyExpense * 12; 
+    const annualLTCCost = monthlyLTC * 12; 
+    const monthlyKidUSD = 250;
+    const annualKidNTD = (monthlyKidUSD * usdRate * 12) / 10000; 
+    const annualWorkInvest = monthlyInvest * 12;
+    // 工作期年薪（含勞退自提等全薪，由 UI 滑桿控制）
+    const annualIncome = monthlyIncome * 12;
+    // 工作期生活費：與退休後相同（退休前後生活型態接近），由 monthlyExpense 滑桿控制
+    const workingLivingCost = monthlyExpense * 12;
+    
+    // 勞保老年年金 (此模型中設定為您的年齡 65 歲起領取雙人家庭年金)：
+    // 1. 本人：根據勞保局試算結果，51歲退保約 12.53 萬/年，65歲退保約 33.08 萬/年，中間依退保年資做線性插值計算
+    const userPensionAt65 = 12.53 + (33.08 - 12.53) * ((retireAge - 51) / (65 - 51));
+    // 2. 太太：以平均投保薪資 45,800 元、預估 25 年資計算 (45,800 * 25 * 1.55% * 12個月) = 21.297 萬/年
+    const wifePensionAt65 = 21.297;
+    // 雙人年金總和
+    const pensionAt65 = userPensionAt65 + wifePensionAt65;
+
+    const bufferTarget = Math.min(initialCashBuffer, INITIAL_ASSETS);
+    let cashBuffer = bufferTarget;
+    let equityAsset = INITIAL_ASSETS - cashBuffer;
+
+    const history = [];
+    const ltcEndAge = ltcStartAge + ltcDuration;
+    let daughterVTI = 23.6204, sonVOO = 23.7545;
+
+    for (let age = START_AGE; age <= END_AGE; age++) {
+      const isRetired = age >= retireAge;
+      const r = getMarketRateForAge(age, retireAge);
+
+      let ongoingKidETFContrib = 0;
+      let kidTopupDeduction = 0;
+      if (age < 56) {
+        daughterVTI = daughterVTI * (1 + r) + annualKidNTD;
+        ongoingKidETFContrib += annualKidNTD;
+      } else if (age === 56) {
+        kidTopupDeduction += Math.max(0, 100 - daughterVTI);
+      }
+      if (age < 58) {
+        sonVOO = sonVOO * (1 + r) + annualKidNTD;
+        ongoingKidETFContrib += annualKidNTD;
+      } else if (age === 58) {
+        kidTopupDeduction += Math.max(0, 100 - sonVOO);
+      }
+
+      const livingCost = isRetired ? annualLivingCost : workingLivingCost;
+      const ltcCost = (age >= ltcStartAge && age < ltcEndAge) ? annualLTCCost : 0;
+      const pensionIncome = (age >= 65) ? pensionAt65 : 0;
+      const workInvest = !isRetired ? annualWorkInvest : 0;
+
+      const startEquity = equityAsset, startCashBuffer = cashBuffer, startTotal = startEquity + startCashBuffer;
+      const equityYield = startEquity > 0 ? startEquity * r : 0;
+
+      if (!isRetired) {
+        // 工作期：薪資扣掉生活費，剩餘資金 + 月加碼投資，再扣子女ETF費用
+        const salaryNet = annualIncome - workingLivingCost;
+        const netAdded = salaryNet + workInvest - ongoingKidETFContrib - kidTopupDeduction;
+        equityAsset = startEquity + equityYield + netAdded;
+      } else {
+        const totalExpenseNeeded = livingCost + ltcCost + ongoingKidETFContrib + kidTopupDeduction;
+        const netOutflow = totalExpenseNeeded - pensionIncome;
+        let drawnFromBuffer = 0, drawnFromEquity = 0;
+
+        if (r < 0 && startCashBuffer > 0 && netOutflow > 0) {
+          drawnFromBuffer = Math.min(startCashBuffer, netOutflow);
+          drawnFromEquity = netOutflow - drawnFromBuffer;
+        } else {
+          drawnFromEquity = netOutflow;
+        }
+
+        // 先從水庫扣款
+        cashBuffer = startCashBuffer - drawnFromBuffer;
+        if (cashBuffer < 0) { drawnFromEquity += Math.abs(cashBuffer); cashBuffer = 0; }
+
+        // 計算股票資產（含投資收益後，扣除從股票提領的金額）
+        equityAsset = startEquity + equityYield - drawnFromEquity;
+
+        // 若股票資產不足支付，再從水庫補足（極端情況：股票已清空）
+        if (equityAsset < 0 && cashBuffer > 0) {
+          const extraFromBuffer = Math.min(cashBuffer, Math.abs(equityAsset));
+          cashBuffer -= extraFromBuffer; equityAsset += extraFromBuffer;
+        }
+
+        // 市場正報酬年份：若水庫低於目標，從股票補充（先確認股票夠用）
+        if (r >= 0 && cashBuffer < bufferTarget && equityAsset > 0) {
+          const deficit = bufferTarget - cashBuffer;
+          const available = Math.min(deficit, equityAsset);
+          cashBuffer += available; equityAsset -= available;
+        }
+      }
+
+      history.push({
+        age, isRetired, marketRate: r, startEquity, startCashBuffer, startTotal,
+        equityYield, workInvest, livingCost, kidCost: ongoingKidETFContrib + kidTopupDeduction,
+        ltcCost, pensionIncome, cashBufferEnd: cashBuffer, equityAssetEnd: equityAsset, endTotal: equityAsset + cashBuffer
+      });
+    }
+    return history;
+  }
+
+  function handleRetireAgeSelect(rAge) {
+    currentRetireAge = rAge;
+    document.getElementById('selectRetireAge').value = rAge;
+    renderAll();
+    const detailEl = document.getElementById('detailSection');
+    if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function updateSummaryViews() {
+    const tbody = document.getElementById('summaryTableBody');
+    const mobileContainer = document.getElementById('mobileSummaryCards');
+    tbody.replaceChildren();
+    mobileContainer.replaceChildren();
+
+    for (let rAge = 51; rAge <= 65; rAge++) {
+      const data = runScenario(rAge);
+      const atRetire = data.find(d => d.age === rAge)?.startTotal || 0;
+      const at65 = data.find(d => d.age === 65)?.endTotal || 0;
+      const at75 = data.find(d => d.age === 75)?.startTotal || 0;
+      const at85 = data.find(d => d.age === 85)?.startTotal || 0;
+      const at90 = data.find(d => d.age === 90)?.endTotal || 0;
+      
+      const isSelected = rAge === currentRetireAge;
+      let safetyBadge = '';
+      if (at90 > 2000) safetyBadge = '<span class="px-2 py-0.5 rounded text-[10px] sm:text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">極度充裕</span>';
+      else if (at90 > 0) safetyBadge = '<span class="px-2 py-0.5 rounded text-[10px] sm:text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold">足夠</span>';
+      else {
+        const runOutAge = data.find(d => d.endTotal <= 0)?.age || '未定';
+        safetyBadge = `<span class="px-2 py-0.5 rounded text-[10px] sm:text-xs bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">${runOutAge}歲耗盡</span>`;
+      }
+
+      // Desktop Table Row
+      const tr = document.createElement('tr');
+      tr.className = `table-row-hover cursor-pointer transition-colors ${isSelected ? 'bg-sky-900/30 border-l-4 border-sky-400 font-medium' : ''}`;
+      tr.onclick = () => handleRetireAgeSelect(rAge);
+      tr.innerHTML = `
+        <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
+          ${rAge} 歲
+          ${isSelected ? '<span class="text-[10px] text-sky-400 bg-sky-400/10 px-1 rounded">檢視中</span>' : ''}
+        </td>
+        <td class="py-3 px-4 text-right font-mono">${Math.round(atRetire).toLocaleString()}</td>
+        <td class="py-3 px-4 text-right font-mono ${at65 < 0 ? 'text-rose-400' : ''}">${Math.round(at65).toLocaleString()}</td>
+        <td class="py-3 px-4 text-right font-mono ${at75 < 0 ? 'text-rose-400' : ''}">${Math.round(at75).toLocaleString()}</td>
+        <td class="py-3 px-4 text-right font-mono ${at85 < 0 ? 'text-rose-400' : ''}">${Math.round(at85).toLocaleString()}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold ${at90 < 0 ? 'text-rose-400' : 'text-sky-400'}">${Math.round(at90).toLocaleString()}</td>
+        <td class="py-3 px-4 text-center">${safetyBadge}</td>
+      `;
+      tbody.appendChild(tr);
+
+      // Mobile Card
+      const card = document.createElement('div');
+      card.className = `bg-slate-800/60 rounded-xl p-3 border cursor-pointer transition-all ${isSelected ? 'border-sky-400 ring-1 ring-sky-400/50' : 'border-slate-700/60 active:bg-slate-700/60'}`;
+      card.onclick = () => handleRetireAgeSelect(rAge);
+      card.innerHTML = `
+        <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+          <div class="font-bold text-white text-base flex items-center gap-2">
+            ${rAge} 歲退休
+            ${isSelected ? '<span class="text-[10px] text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded">目前檢視</span>' : ''}
+          </div>
+          ${safetyBadge}
+        </div>
+        <div class="grid grid-cols-2 gap-y-1.5 text-xs">
+          <div class="text-slate-400">退休當下資產: <span class="text-slate-200 font-mono ml-1">${Math.round(atRetire).toLocaleString()} 萬</span></div>
+          <div class="text-slate-400">65歲 (年金): <span class="text-slate-200 font-mono ml-1 ${at65 < 0 ? 'text-rose-400' : ''}">${Math.round(at65).toLocaleString()} 萬</span></div>
+          <div class="text-slate-400">75歲 (長照): <span class="text-slate-200 font-mono ml-1 ${at75 < 0 ? 'text-rose-400' : ''}">${Math.round(at75).toLocaleString()} 萬</span></div>
+          <div class="font-medium text-slate-300">90歲終末: <span class="font-mono font-bold ml-1 ${at90 < 0 ? 'text-rose-400' : 'text-sky-400'}">${Math.round(at90).toLocaleString()} 萬</span></div>
+        </div>
+      `;
+      mobileContainer.appendChild(card);
+    }
+  }
+
+  function setupChartInteraction(svgEl) {
+    const container = document.getElementById('chartContainer');
+    const crosshair = document.getElementById('chartCrosshair');
+    const tooltip = document.getElementById('chartTooltip');
+    const ttAge = document.getElementById('ttAge');
+    const ttDot = document.getElementById('ttDot');
+    const ttRetireAge = document.getElementById('ttRetireAge');
+    const ttAsset = document.getElementById('ttAsset');
+
+    const handlePointerMove = (e) => {
+      e.preventDefault(); // Prevent scroll on touch move over chart
+      if(!currentChartData.length) return;
+      
+      const rect = svgEl.getBoundingClientRect();
+      // handle touch or mouse
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const xPos = clientX - rect.left;
+      
+      const { width, pad } = chartLayout;
+      const plotWidth = width - pad.left - pad.right;
+      
+      // Bounds check
+      if(xPos < pad.left || xPos > width - pad.right) {
+        hideTooltip();
+        return;
+      }
+
+      // Calculate age based on x position
+      const ageRatio = (xPos - pad.left) / plotWidth;
+      const exactAge = START_AGE + ageRatio * (END_AGE - START_AGE);
+      const roundedAge = Math.round(exactAge);
+      const boundedAge = Math.max(START_AGE, Math.min(END_AGE, roundedAge));
+
+      // Find data for currently selected scenario
+      const scenarioData = currentChartData.find(sc => sc.age === currentRetireAge);
+      if(!scenarioData) return;
+      const yearData = scenarioData.history.find(h => h.age === boundedAge);
+      if(!yearData) return;
+
+      // Snap X position to the exact age point
+      const snappedX = pad.left + ((boundedAge - START_AGE) / (END_AGE - START_AGE)) * plotWidth;
+      const yVal = yearData.endTotal;
+      const yPos = chartLayout.pad.top + chartLayout.plotHeight - ((yVal - chartLayout.minAsset) / (chartLayout.maxAsset - chartLayout.minAsset)) * chartLayout.plotHeight;
+
+      // Update UI
+      crosshair.style.left = `${snappedX}px`;
+      crosshair.classList.remove('hidden');
+      
+      tooltip.style.left = `${snappedX}px`;
+      tooltip.style.top = `${yPos}px`;
+      tooltip.classList.remove('hidden');
+
+      ttAge.textContent = `${boundedAge} 歲 (年底)`;
+      ttRetireAge.textContent = `${currentRetireAge}y 退休`;
+      ttDot.style.backgroundColor = SERIES_COLORS[currentRetireAge];
+      ttAsset.textContent = `${Math.round(yVal).toLocaleString()} 萬`;
+      ttAsset.className = `text-sm font-bold font-mono ${yVal < 0 ? 'text-rose-400' : 'text-sky-400'}`;
+    };
+
+    const hideTooltip = () => {
+      crosshair.classList.add('hidden');
+      tooltip.classList.add('hidden');
+    };
+
+    container.addEventListener('mousemove', handlePointerMove);
+    container.addEventListener('touchmove', handlePointerMove, {passive: false});
+    container.addEventListener('mouseleave', hideTooltip);
+    container.addEventListener('touchend', hideTooltip);
+  }
+
+  function renderChart() {
+    const svg = document.getElementById('trajectoryChart');
+    svg.replaceChildren();
+
+    const width = svg.clientWidth || 900;
+    const height = svg.clientHeight || 420;
+    // Adjust padding for mobile
+    const isMobile = window.innerWidth < 640;
+    const padding = { top: 20, right: 15, bottom: 30, left: isMobile ? 45 : 60 };
+
+    currentChartData = representativeAges.map(age => ({ age, history: runScenario(age) }));
+
+    let maxAsset = 0, minAsset = 0;
+    currentChartData.forEach(sc => {
+      sc.history.forEach(h => {
+        if (h.endTotal > maxAsset) maxAsset = h.endTotal;
+        if (h.endTotal < minAsset) minAsset = h.endTotal;
+      });
+    });
+
+    maxAsset = Math.ceil(maxAsset / 1000) * 1000 || 5000;
+    minAsset = Math.floor(minAsset / 1000) * 1000;
+    if (minAsset > 0) minAsset = 0;
+
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    
+    // Save layout for tooltip math
+    chartLayout = { width, height, pad: padding, minAsset, maxAsset, plotHeight, plotWidth };
+
+    const getX = (age) => padding.left + ((age - START_AGE) / (END_AGE - START_AGE)) * plotWidth;
+    const getY = (val) => padding.top + plotHeight - ((val - minAsset) / (maxAsset - minAsset)) * plotHeight;
+
+    // Zero line
+    if (minAsset < 0) {
+      const yZero = getY(0);
+      const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      zeroLine.setAttribute('x1', padding.left); zeroLine.setAttribute('y1', yZero);
+      zeroLine.setAttribute('x2', width - padding.right); zeroLine.setAttribute('y2', yZero);
+      zeroLine.setAttribute('stroke', '#f43f5e'); zeroLine.setAttribute('stroke-dasharray', '4 4');
+      svg.appendChild(zeroLine);
+    }
+
+    // Y-axis Ticks
+    const ySteps = isMobile ? 4 : 5;
+    for (let i = 0; i <= ySteps; i++) {
+      const val = minAsset + ((maxAsset - minAsset) / ySteps) * i;
+      const y = getY(val);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', padding.left); line.setAttribute('y1', y);
+      line.setAttribute('x2', width - padding.right); line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'rgba(51, 65, 85, 0.5)'); line.setAttribute('stroke-dasharray', '3 3');
+      svg.appendChild(line);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', padding.left - 8); text.setAttribute('y', y + 4);
+      text.setAttribute('fill', '#64748b'); text.setAttribute('font-size', isMobile ? '10' : '11');
+      text.setAttribute('text-anchor', 'end');
+      text.textContent = `${Math.round(val).toLocaleString()}W`;
+      svg.appendChild(text);
+    }
+
+    // X-axis Ticks
+    for (let age = 50; age <= 90; age += 5) {
+      const x = getX(age);
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x); text.setAttribute('y', height - padding.bottom + 20);
+      text.setAttribute('fill', '#64748b'); text.setAttribute('font-size', isMobile ? '10' : '11');
+      text.setAttribute('text-anchor', 'middle');
+      text.textContent = `${age}`;
+      svg.appendChild(text);
+    }
+
+    // Dynamic Long-Term Care Region
+    const ltcEndAge = ltcStartAge + ltcDuration;
+    const xStart = getX(Math.max(START_AGE, Math.min(END_AGE, ltcStartAge)));
+    const xEnd = getX(Math.max(START_AGE, Math.min(END_AGE, ltcEndAge)));
+
+    if (xEnd > xStart) {
+      const ltcBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      ltcBg.setAttribute('x', xStart); ltcBg.setAttribute('y', padding.top);
+      ltcBg.setAttribute('width', xEnd - xStart); ltcBg.setAttribute('height', plotHeight);
+      ltcBg.setAttribute('fill', 'rgba(168, 85, 247, 0.08)');
+      svg.appendChild(ltcBg);
+      
+      const ltcText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      ltcText.setAttribute('x', (xStart + xEnd) / 2); ltcText.setAttribute('y', padding.top + 14);
+      ltcText.setAttribute('fill', 'rgba(192, 132, 252, 0.7)'); ltcText.setAttribute('font-size', '10');
+      ltcText.setAttribute('text-anchor', 'middle');
+      ltcText.textContent = `長照`;
+      svg.appendChild(ltcText);
+    }
+
+    // Trajectory lines
+    currentChartData.forEach(sc => {
+      const color = SERIES_COLORS[sc.age] || '#38bdf8';
+      const isSelected = sc.age === currentRetireAge;
+      let d = '';
+      sc.history.forEach((h, idx) => {
+        const x = getX(h.age), y = getY(h.endTotal);
+        d += (idx === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+      });
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d); path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', isSelected ? '3.5' : '1.5');
+      path.setAttribute('opacity', isSelected ? '1' : '0.4');
+      if (isSelected) {
+        // Bring selected line to front by appending it last
+        setTimeout(() => svg.appendChild(path), 0);
+      } else {
+        svg.appendChild(path);
+      }
+    });
+
+    // Setup interactive overlay once chart is drawn
+    setupChartInteraction(svg);
+
+    // Chart Legend Update
+    const legendContainer = document.getElementById('chartLegend');
+    legendContainer.replaceChildren();
+    representativeAges.forEach(age => {
+      const color = SERIES_COLORS[age];
+      const isSelected = age === currentRetireAge;
+      const item = document.createElement('div');
+      item.className = `flex items-center gap-1 cursor-pointer px-2 py-1 rounded transition-all ${isSelected ? 'bg-slate-700 shadow-sm text-white' : 'opacity-70 text-slate-400 hover:bg-slate-800'}`;
+      item.onclick = () => handleRetireAgeSelect(age);
+      item.innerHTML = `
+        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${color}"></span>
+        <span class="font-medium">${age} 歲</span>
+      `;
+      legendContainer.appendChild(item);
+    });
+  }
+
+  function updateDetailTable() {
+    const scenarioNames = { normal: '平穩市場', crash_early: '退休初期暴跌測試', crash_2008: '2008 金融海嘯', boom_early: '退休初期大牛市' };
+    document.getElementById('detailTitle').textContent = `${currentRetireAge} 歲 - ${scenarioNames[selectedScenario]}`;
+
+    const tbody = document.getElementById('detailTableBody');
+    tbody.replaceChildren();
+    const data = runScenario(currentRetireAge);
+
+    data.forEach(h => {
+      const tr = document.createElement('tr');
+      const isDeficit = h.endTotal < 0;
+      tr.className = `table-row-hover ${h.age === currentRetireAge ? 'bg-sky-950/30' : ''} ${isDeficit ? 'bg-rose-950/20' : ''}`;
+
+      const statusBadge = h.isRetired 
+        ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400">退休</span>'
+        : '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-300">工作</span>';
+
+      const ratePct = (h.marketRate * 100).toFixed(1);
+      let rateBadge = `<span class="text-slate-300">${ratePct}%</span>`;
+      if (h.marketRate < 0) rateBadge = `<span class="px-1 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400">${ratePct}%</span>`;
+      else if (h.marketRate > 0.1) rateBadge = `<span class="px-1 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400">${ratePct}%</span>`;
+
+      // Notice the sticky-col class on the first TD
+      tr.innerHTML = `
+        <td class="py-2.5 px-3 font-bold text-white sticky-col ${h.age === currentRetireAge ? 'bg-sky-900/60' : ''}">${h.age} 歲</td>
+        <td class="py-2.5 px-3">${statusBadge}</td>
+        <td class="py-2.5 px-3 text-center font-mono">${rateBadge}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-slate-300">${Math.round(h.startEquity).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-right font-mono ${h.equityYield >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${h.equityYield >= 0 ? '+' : ''}${Math.round(h.equityYield).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-sky-300">${h.workInvest > 0 ? '+' + Math.round(h.workInvest).toLocaleString() : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-rose-400">${h.livingCost > 0 ? '-' + Math.round(h.livingCost).toLocaleString() : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-amber-400">${h.kidCost > 0 ? '-' + (h.kidCost).toFixed(1) : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-purple-400">${h.ltcCost > 0 ? '-' + Math.round(h.ltcCost).toLocaleString() : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-emerald-400">${h.pensionIncome > 0 ? '+' + (h.pensionIncome).toFixed(1) : '-'}</td>
+        <td class="py-2.5 px-3 text-right font-mono text-teal-300">${Math.round(h.cashBufferEnd).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-right font-mono font-bold ${isDeficit ? 'text-rose-400' : 'text-sky-400'}">${Math.round(h.endTotal).toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function populateDropdown() {
+    const select = document.getElementById('selectRetireAge');
+    select.replaceChildren();
+    for (let age = 51; age <= 65; age++) {
+      const opt = document.createElement('option');
+      opt.value = age; opt.textContent = `${age} 歲退休`;
+      if (age === currentRetireAge) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
   function renderAll() {
     updateSummaryViews();
     renderChart();
     updateDetailTable();
   }
 
-  // 修正：明確地綁定每一個拉桿，確保計算變數被正確更新
-  document.getElementById('inputRealReturn').addEventListener('input', (e) => {
-    realReturnRate = parseFloat(e.target.value) / 100;
-    document.getElementById('valRealReturn').textContent = e.target.value + '%';
-    renderAll();
-  });
+  // Input listeners
+  const inputs = [
+    {id: 'inputRealReturn', var: 'realReturnRate', textId: 'valRealReturn', isPercent: true, suffix: '%'},
+    {id: 'inputMonthlyExpense', var: 'monthlyExpense', textId: 'valMonthlyExpense', isPercent: false, suffix: ' 萬元/月'},
+    {id: 'inputMonthlyIncome', var: 'monthlyIncome', textId: 'valMonthlyIncome', isPercent: false, suffix: ' 萬元/月'},
+    {id: 'inputLTCExpense', var: 'monthlyLTC', textId: 'valLTCExpense', isPercent: false, suffix: ' 萬元/月'},
+    {id: 'inputLTCStartAge', var: 'ltcStartAge', textId: 'valLTCStartAge', isPercent: false, suffix: ' 歲'},
+    {id: 'inputLTCDuration', var: 'ltcDuration', textId: 'valLTCDuration', isPercent: false, suffix: ' 年'},
+    {id: 'inputMonthlyInvest', var: 'monthlyInvest', textId: 'valMonthlyInvest', isPercent: false, suffix: ' 萬元/月'},
+    {id: 'inputUSDRate', var: 'usdRate', textId: 'valUSDRate', isPercent: false, suffix: ' NTD'},
+    {id: 'inputCashBuffer', var: 'initialCashBuffer', textId: 'valCashBuffer', isPercent: false, suffix: ' 萬元'}
+  ];
 
-  document.getElementById('inputMonthlyExpense').addEventListener('input', (e) => {
-    monthlyExpense = parseFloat(e.target.value);
-    document.getElementById('valMonthlyExpense').textContent = e.target.value + ' 萬元/月';
-    renderAll();
-  });
+  // 狀態查找表，解決 let 變數無法透過 window[key] 賦值的問題
+  const stateSetters = {
+    realReturnRate: v => { realReturnRate = v; },
+    monthlyExpense: v => { monthlyExpense = v; },
+    monthlyIncome: v => { monthlyIncome = v; },
+    monthlyLTC: v => { monthlyLTC = v; },
+    ltcStartAge: v => { ltcStartAge = v; },
+    ltcDuration: v => { ltcDuration = v; },
+    monthlyInvest: v => { monthlyInvest = v; },
+    usdRate: v => { usdRate = v; },
+    initialCashBuffer: v => { initialCashBuffer = v; },
+  };
 
-  document.getElementById('inputMonthlyInvest').addEventListener('input', (e) => {
-    monthlyInvest = parseFloat(e.target.value);
-    document.getElementById('valMonthlyInvest').textContent = e.target.value + ' 萬元/月';
-    renderAll();
-  });
-
-  document.getElementById('inputUSDRate').addEventListener('input', (e) => {
-    usdRate = parseFloat(e.target.value);
-    document.getElementById('valUSDRate').textContent = e.target.value + ' NTD';
-    renderAll();
-  });
-
-  document.getElementById('inputLTCExpense').addEventListener('input', (e) => {
-    monthlyLTC = parseFloat(e.target.value);
-    document.getElementById('valLTCExpense').textContent = e.target.value + ' 萬元/月';
-    renderAll();
-  });
-
-  document.getElementById('inputLTCStartAge').addEventListener('input', (e) => {
-    ltcStartAge = parseInt(e.target.value);
-    document.getElementById('valLTCStartAge').textContent = e.target.value + ' 歲';
-    renderAll();
-  });
-
-  document.getElementById('inputLTCDuration').addEventListener('input', (e) => {
-    ltcDuration = parseInt(e.target.value);
-    document.getElementById('valLTCDuration').textContent = e.target.value + ' 年';
-    renderAll();
-  });
-
-  document.getElementById('inputCashBuffer').addEventListener('input', (e) => {
-    initialCashBuffer = parseFloat(e.target.value);
-    document.getElementById('valCashBuffer').textContent = e.target.value + ' 萬元';
-    renderAll();
+  inputs.forEach(config => {
+    document.getElementById(config.id).addEventListener('input', (e) => {
+      let val = parseFloat(e.target.value);
+      const setVal = config.isPercent ? val / 100 : val;
+      if (stateSetters[config.var]) stateSetters[config.var](setVal);
+      document.getElementById(config.textId).textContent = (val % 1 !== 0 ? val.toFixed(1) : val) + config.suffix;
+      renderAll();
+    });
   });
 
   document.getElementById('selectMarketScenario').addEventListener('change', (e) => { selectedScenario = e.target.value; renderAll(); });
-<!-- ... existing code ... -->
+  document.getElementById('selectRetireAge').addEventListener('change', (e) => { handleRetireAgeSelect(parseInt(e.target.value)); });
+  document.getElementById('inputInitialAssets').addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && val >= 0) { INITIAL_ASSETS = val; renderAll(); }
+  });
+  document.getElementById('btnSyncSheet').addEventListener('click', fetchGoogleSheetAsset);
+  
+  // Resize handler for chart redrawing
+  window.addEventListener('resize', () => {
+    // Only re-render if it's a significant width change to prevent mobile scroll-triggering resizes
+    if(window.innerWidth !== chartLayout.width) {
+       renderChart();
+    }
+  });
+
+  // Init
+  populateDropdown();
+  renderAll();
+  fetchGoogleSheetAsset();
+</script>
+</body>
+</html>
