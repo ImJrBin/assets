@@ -7,21 +7,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
 <style>
-/* Layout: 照原試算表版型——科目欄合併上色、內容欄、複習1～5 勾選格；手機改為科目色帶＋內容一列＋五格一列 */
 :root{
   color-scheme:light;
-  --bg:#ffffff; --ink:#000000; --muted:#6b6b6b; --grid:#000000; --head:#cfe2f3; --hover:#f3f6fa;
-  --c0:#d9ead3; --c1:#ffe599; --c2:#ead1dc; --c3:#c9daf8; --c4:#d9d9d9; --c5:#e6b8af; --c6:#d0e0e3;
+  --bg:#ffffff; --ink:#000000; --muted:#6b6b6b; --grid:#000000; --head:#cfe2f3; --hover:#f3f6fa; --err:#c0392b;
   --font:"Huninn","jf-openhuninn","PingFang TC","Microsoft JhengHei",sans-serif;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.5;padding-inline:16px;padding-block:24px 48px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.5;padding-inline:16px;padding-block:24px 48px}
 .wrap{max-width:1000px;margin:0 auto}
 h1{font-size:23px;font-weight:700;margin:0 0 18px}
 .rules{list-style:none;margin:0 0 22px;padding:0;font-weight:700;font-size:16px;display:flex;flex-direction:column;gap:4px}
 
 .sheet{border-top:1px solid var(--grid);border-left:1px solid var(--grid)}
-.grid{display:grid;grid-template-columns:120px minmax(0,1fr) repeat(5,78px)}
+.grid{display:grid;grid-template-columns:120px minmax(0,1fr) repeat(var(--n,5),78px)}
 .cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:6px 10px;min-width:0;display:flex;align-items:center}
 .hd .cell{background:var(--head);justify-content:center}
 .subj{justify-content:center;grid-column:1}
@@ -31,13 +29,15 @@ h1{font-size:23px;font-weight:700;margin:0 0 18px}
 .ck .v{font-size:18px}
 .ck:hover{background:var(--hover)}
 .ck:focus-visible{outline:2px solid #3c78d8;outline-offset:-3px}
+.ck.saving .v{opacity:.45}
 
-.status{margin:14px 0 0;font-size:13px;color:var(--muted);min-height:1.5em}
+.msg{margin:14px 0 0;font-size:14px;color:var(--err)}
+.loading{color:var(--muted);padding:24px 0}
 
 @media (max-width:640px){
   body{font-size:16px}
   .hd{display:none}
-  .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .grid{grid-template-columns:repeat(var(--n,5),minmax(0,1fr))}
   .subj{grid-column:1/-1;grid-row:auto !important;font-size:17px;padding-block:8px}
   .txt{grid-column:1/-1;border-bottom-style:dashed;border-bottom-color:#999}
   .ck{min-height:44px}
@@ -48,77 +48,117 @@ h1{font-size:23px;font-weight:700;margin:0 0 18px}
 </head>
 <body>
 <div class="wrap">
-  <h1>📅 八年級第一次段考複習安排</h1>
-  <ul class="rules">
-    <li>✅ 數學每日刷題</li>
-    <li>✅ 每天複習 3 至 5 科，看到十點半休息</li>
-  </ul>
-
-  <div class="sheet" id="sheet">
-    <div class="grid hd" aria-hidden="true">
-      <div class="cell">科目</div><div class="cell">內容</div>
-      <div class="cell">複習1</div><div class="cell">複習2</div><div class="cell">複習3</div><div class="cell">複習4</div><div class="cell">複習5</div>
-    </div>
-  </div>
-  <p class="status" id="status"></p>
+  <h1 id="title">📅 八年級第一次段考複習安排</h1>
+  <ul class="rules" id="rules"></ul>
+  <div class="sheet" id="sheet"><div class="loading">讀取中…</div></div>
+  <p class="msg" id="msg" hidden></p>
 </div>
-<script>
 
-const DATA = [
-  ["國文", ["第1課《田園之秋選》","第2課《古詩選》","語法(上)詞類","第3課《下雨天，真好》習作前二頁","文史典故 25~28 單元"]],
-  ["數學", ["1-1乘法公式","1-2多項式的加減","1-3多項式的乘除","2-1平方根的意義"]],
-  ["理化", ["1-1長度、質量與時間","1-2測量與估計","1-3體積與密度","2-1認識物質","2-2溶液與濃度","2-3混合物的分離"]],
-  ["英文", ["U1","U2","Review1"]],
-  ["地理", ["L1-1中國的地形-位置與地形特徵","L1-2中國的地形-地形的區域差異","L2-1中國的氣候-氣候特徵","L2-2中國的氣候-氣候類型","習作"]],
-  ["歷史", ["L1-1商周至隋唐時期的國家與社會-從封建到郡縣","L1-2商周至隋唐時期的國家與社會-政權維繫與選才制度","L2-1商周至隋唐時期的民族與文化-商周至隋唐的民族關係","L2-2商周至隋唐時期的民族與文化-各民族文化的交流與影響","習作"]],
-  ["公民", ["L1-1國家與民主政治-什麼是國家","L1-2國家與民主政治-民主政治的特色","L2-1憲法與權利保障-法律的位階","L2-2憲法與權利保障-憲法保障的基本權利","習作"]],
-];
-const KEY = "review-8a-exam1-1003-1013";
-const DEFAULTS = ["c-0-4-0","c-1-0-0","c-1-1-0","c-1-2-0","c-2-2-0","c-2-4-0","c-5-2-0","c-5-3-0"];
-const sheet = document.getElementById("sheet"), statusEl = document.getElementById("status");
-let checked;
-try { const raw = localStorage.getItem(KEY); checked = new Set(raw ? JSON.parse(raw) : DEFAULTS); }
-catch (e) { checked = new Set(DEFAULTS); }
-function save(){
-  try { localStorage.setItem(KEY, JSON.stringify([...checked])); statusEl.textContent = "勾選已存在這台電腦的瀏覽器"; }
-  catch (e) { statusEl.textContent = "這個瀏覽器無法儲存（可能是無痕模式），關掉後勾選會消失。"; }
+<script>
+/* ===== 設定 ===== */
+const API   = "https://script.google.com/macros/s/AKfycbzS0DgO6UYPkfCzeBqInKnhflzYEsBllUX1YpCIWHI0PaS0-mdLmMOw5K4fybiMjioA/exec";   // 例：https://script.google.com/macros/s/AKfy.../exec
+const SHEET = "1003-1013";                         // 試算表分頁名稱
+const POLL_MS = 30000;                             // 每 30 秒自動更新
+
+const FALLBACK = {"國文":"#d9ead3","數學":"#ffe599","理化":"#ead1dc","英文":"#c9daf8","地理":"#d9d9d9","歷史":"#e6b8af","公民":"#d0e0e3"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let data = null, layoutSig = "";
+const pending = new Map();   // key "row-col" -> desired bool（送出中的勾選，避免被輪詢蓋掉）
+
+function showMsg(t){ const m = $("msg"); m.textContent = t || ""; m.hidden = !t; }
+
+function render(){
+  const sig = JSON.stringify([data.title, data.notes, data.headers, data.rows.map(r => [r.row, r.subject, r.color, r.content])]);
+  if (sig !== layoutSig) {
+    layoutSig = sig;
+    document.title = data.title.replace(/^\p{Extended_Pictographic}\s*/u, "");
+    $("title").textContent = data.title;
+    $("rules").innerHTML = data.notes.map(n => `<li>${esc(n)}</li>`).join("");
+    const n = data.headers.length;
+    const sheet = $("sheet");
+    sheet.style.setProperty("--n", n);
+    let html = `<div class="grid hd" aria-hidden="true"><div class="cell">科目</div><div class="cell">內容</div>${data.headers.map(h => `<div class="cell">${esc(h)}</div>`).join("")}</div>`;
+    const groups = [];
+    data.rows.forEach(r => {
+      const g = groups[groups.length - 1];
+      if (g && g.subject === r.subject) g.rows.push(r); else groups.push({ subject: r.subject, color: r.color, rows: [r] });
+    });
+    groups.forEach(g => {
+      const bg = g.color && g.color.toLowerCase() !== "#ffffff" ? g.color : (FALLBACK[g.subject] || "#eeeeee");
+      html += `<div class="grid" style="--n:${n}"><div class="cell subj" style="background:${esc(bg)};grid-row:1 / span ${g.rows.length}">${esc(g.subject)}</div>`;
+      g.rows.forEach(r => {
+        html += `<div class="cell txt">${esc(r.content)}</div>`;
+        for (let c = 0; c < n; c++) {
+          html += `<button type="button" class="cell ck" data-row="${r.row}" data-col="${c}" aria-pressed="false" aria-label="${esc(g.subject)} ${esc(r.content)} ${esc(data.headers[c])}"><span class="n">${c + 1}</span><span class="v"></span></button>`;
+        }
+      });
+      html += `</div>`;
+    });
+    sheet.innerHTML = html;
+  }
+  paint();
 }
 
-DATA.forEach(([name, items], si) => {
-  const g = document.createElement("div");
-  g.className = "grid";
-  let h = `<div class="cell subj" style="background:var(--c${si});grid-row:1 / span ${items.length}">${name}</div>`;
-  items.forEach((t, ii) => {
-    h += `<div class="cell txt">${t}</div>`;
-    for (let r = 0; r < 5; r++) {
-      const k = `c-${si}-${ii}-${r}`;
-      h += `<button type="button" class="cell ck" id="${k}" data-k="${k}" aria-pressed="false" aria-label="${name} ${t} 複習${r+1}"><span class="n">${r+1}</span><span class="v"></span></button>`;
+function paint(){
+  const byRow = new Map(data.rows.map(r => [r.row, r]));
+  document.querySelectorAll(".ck").forEach(b => {
+    const k = b.dataset.row + "-" + b.dataset.col;
+    const r = byRow.get(+b.dataset.row);
+    const on = pending.has(k) ? pending.get(k) : !!(r && r.checks[+b.dataset.col]);
+    b.setAttribute("aria-pressed", on);
+    b.classList.toggle("saving", pending.has(k));
+    b.querySelector(".v").textContent = on ? "v" : "";
+  });
+}
+
+async function load(){
+  try {
+    const res = await fetch(`${API}?sheet=${encodeURIComponent(SHEET)}&t=${Date.now()}`);
+    const j = await res.json();
+    if (j.error) throw new Error(j.error);
+    data = j; render(); showMsg("");
+  } catch (e) {
+    if (!data) $("sheet").innerHTML = "";
+    showMsg("讀不到 Google 試算表，請檢查網路後重新整理頁面。（" + e.message + "）");
+  }
+}
+
+// 依序送出，避免同時寫入
+let queue = Promise.resolve();
+$("sheet").addEventListener("click", e => {
+  const b = e.target.closest(".ck"); if (!b || !data) return;
+  const row = +b.dataset.row, col = +b.dataset.col, k = row + "-" + col;
+  const r = data.rows.find(x => x.row === row); if (!r) return;
+  const cur = pending.has(k) ? pending.get(k) : r.checks[col];
+  const want = !cur;
+  pending.set(k, want); paint();
+  queue = queue.then(async () => {
+    if (pending.get(k) !== want) return;   // 已被再點一次改掉
+    try {
+      const res = await fetch(API, { method: "POST", body: JSON.stringify({ sheet: SHEET, row, col, on: want, content: r.content }) });
+      const j = await res.json();
+      if (j.error === "stale") { showMsg("試算表內容剛被修改過，已重新載入，請再勾一次。"); if (pending.get(k) === want) pending.delete(k); await load(); return; }
+      if (j.error) throw new Error(j.error);
+      if (pending.get(k) === want) pending.delete(k);
+      data = j; render(); showMsg("");
+    } catch (err) {
+      if (pending.get(k) === want) pending.delete(k);
+      paint();
+      showMsg("沒有存到試算表，請再點一次。（" + err.message + "）");
     }
   });
-  g.innerHTML = h;
-  sheet.appendChild(g);
 });
 
-function paint(b){
-  const on = checked.has(b.dataset.k);
-  b.setAttribute("aria-pressed", on);
-  b.querySelector(".v").textContent = on ? "v" : "";
+if (!/^https:\/\/script\.google\.com\//.test(API)) {
+  $("sheet").innerHTML = "";
+  showMsg("尚未設定 Apps Script 網址：請把部署後的網址貼到 HTML 裡的 API。");
+} else {
+  load();
+  setInterval(() => { if (!document.hidden && pending.size === 0) load(); }, POLL_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && pending.size === 0) load(); });
 }
-document.querySelectorAll(".ck").forEach(paint);
-
-sheet.addEventListener("click", e => {
-  const b = e.target.closest(".ck"); if (!b) return;
-  const k = b.dataset.k;
-  checked.has(k) ? checked.delete(k) : checked.add(k);
-  paint(b); save();
-});
-
-// 同一台電腦開多個分頁時，彼此同步
-window.addEventListener("storage", e => {
-  if (e.key !== KEY) return;
-  try { checked = new Set(e.newValue ? JSON.parse(e.newValue) : []); } catch (_) { return; }
-  document.querySelectorAll(".ck").forEach(paint);
-});
 </script>
 </body>
 </html>
