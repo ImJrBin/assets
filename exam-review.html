@@ -31,6 +31,10 @@ h1{font-size:23px;font-weight:700;margin:0 0 18px}
 .ck:focus-visible{outline:2px solid #3c78d8;outline-offset:-3px}
 .ck.saving .v{opacity:.45}
 
+.dday{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid var(--grid);background:var(--dd,#cfe2f3);padding:12px 16px;margin:0 0 18px}
+.dday .big{font-size:30px;font-weight:700;line-height:1.1;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dday .line{flex:1 1 220px;min-width:0;font-size:18px}
+.dday .when{font-size:13px;color:#333;width:100%;margin-top:-6px}
 .msg{margin:14px 0 0;font-size:14px;color:var(--err)}
 .loading{color:var(--muted);padding:24px 0}
 
@@ -49,6 +53,7 @@ h1{font-size:23px;font-weight:700;margin:0 0 18px}
 <body>
 <div class="wrap">
   <h1 id="title">📅 八年級第一次段考複習安排</h1>
+  <div class="dday" id="dday" hidden><span class="big" id="ddBig"></span><span class="line" id="ddLine"></span><span class="when" id="ddWhen"></span></div>
   <ul class="rules" id="rules"></ul>
   <div class="sheet" id="sheet"><div class="loading">讀取中…</div></div>
   <p class="msg" id="msg" hidden></p>
@@ -59,6 +64,19 @@ h1{font-size:23px;font-weight:700;margin:0 0 18px}
 const API   = "https://script.google.com/macros/s/AKfycbzS0DgO6UYPkfCzeBqInKnhflzYEsBllUX1YpCIWHI0PaS0-mdLmMOw5K4fybiMjioA/exec";   // 例：https://script.google.com/macros/s/AKfy.../exec
 const SHEET = "1003-1013";                         // 試算表分頁名稱
 const POLL_MS = 30000;                             // 每 30 秒自動更新
+const EXAM_DATES = ["2026-10-14", "2026-10-15"];   // 考試日期；試算表若有「考試日期：10/14、10/15」這一行，會以試算表為準
+
+/* ===== D-day 倒數文字（同一階段有多句時隨機出現） ===== */
+const DDAY_TEXT = {
+  far:   ["練習生時期 🎧 每天練一點，出道才會穩", "練習室的燈還亮著，今天也練一首吧 🎶", "出道前的每一天都算數 ✨"],
+  near:  ["Teaser 已公開！回歸倒數，進度要跟上", "預告照拍完了，現在是錄音期 🎙️"],
+  d3:    ["進入最後彩排 💪 重點舞步再對一次", "彩排倒數，還不熟的段落再練一遍"],
+  d2:    ["打歌服已準備好，今晚練完就收工", "後天就上台，錯題就是你的提詞卡 📒"],
+  d1:    ["明天正式出道舞台 ✨ 睡飽就是最好的應援", "明天就上台了！文具備好，早點睡 🌙"],
+  day1:  ["第一場舞台開演，화이팅！🔥"],
+  last:  ["最終場！把一位帶回家 🏆"],
+  done:  ["回歸活動圓滿結束 🎤 辛苦了，換你當觀眾追星吧！"],
+};
 
 const FALLBACK = {"國文":"#d9ead3","數學":"#ffe599","理化":"#ead1dc","英文":"#c9daf8","地理":"#d9d9d9","歷史":"#e6b8af","公民":"#d0e0e3"};
 const $ = id => document.getElementById(id);
@@ -66,6 +84,59 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 
 let data = null, layoutSig = "";
 const pending = new Map();   // key "row-col" -> desired bool（送出中的勾選，避免被輪詢蓋掉）
+
+/* ===== D-day ===== */
+const DATE_LINE = /考試日期/;
+const WEEK = "日一二三四五六";
+let examDates = null, ddKey = "", ddPick = {};
+function todayTW(){
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [y, m, d] = p.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+function parseDates(text){
+  const now = new Date(todayTW()), out = [];
+  const re = /(?:(\d{4})[-\/.])?(\d{1,2})[-\/.](\d{1,2})/g; let m;
+  while ((m = re.exec(text))) {
+    let y = m[1] ? +m[1] : now.getUTCFullYear();
+    let t = Date.UTC(y, +m[2] - 1, +m[3]);
+    if (!m[1] && t < todayTW() - 180 * 864e5) t = Date.UTC(y + 1, +m[2] - 1, +m[3]);
+    out.push(t);
+  }
+  return out.length ? out.sort((a, b) => a - b) : null;
+}
+function pick(group){
+  if (!(group in ddPick)) { const arr = DDAY_TEXT[group]; ddPick[group] = arr[Math.floor(Math.random() * arr.length)]; }
+  return ddPick[group];
+}
+function renderDday(){
+  if (!examDates) examDates = parseDates(EXAM_DATES.join("、"));
+  if (!examDates) return;
+  const today = todayTW(), first = examDates[0], last = examDates[examDates.length - 1];
+  const d = Math.round((first - today) / 864e5);
+  let big, group, bg = "#cfe2f3";
+  if (today > last) { big = "🎉"; group = "done"; bg = "#d9ead3"; }
+  else if (examDates.includes(today)) {
+    const i = examDates.indexOf(today);
+    big = i === 0 ? "D-DAY" : "D-DAY " + (i + 1);
+    group = today === last && i > 0 ? "last" : "day1"; bg = "#f4cccc";
+  }
+  else if (today > first) { big = "D-DAY"; group = "day1"; bg = "#f4cccc"; }
+  else {
+    big = "D-" + d;
+    group = d >= 6 ? "far" : d >= 4 ? "near" : d === 3 ? "d3" : d === 2 ? "d2" : "d1";
+    if (d <= 3) bg = "#fce5cd";
+  }
+  const key = big + group;
+  if (key === ddKey) return;
+  ddKey = key;
+  const fmt = t => { const x = new Date(t); return `${x.getUTCMonth() + 1}/${x.getUTCDate()}（${WEEK[x.getUTCDay()]}）`; };
+  $("ddBig").textContent = big;
+  $("ddLine").textContent = pick(group);
+  $("ddWhen").textContent = "段考 " + examDates.map(fmt).join("、");
+  const box = $("dday"); box.style.setProperty("--dd", bg); box.hidden = false;
+}
+renderDday();
 
 function showMsg(t){ const m = $("msg"); m.textContent = t || ""; m.hidden = !t; }
 
@@ -75,7 +146,10 @@ function render(){
     layoutSig = sig;
     document.title = data.title.replace(/^\p{Extended_Pictographic}\s*/u, "");
     $("title").textContent = data.title;
-    $("rules").innerHTML = data.notes.map(n => `<li>${esc(n)}</li>`).join("");
+    $("rules").innerHTML = data.notes.filter(n => !DATE_LINE.test(n)).map(n => `<li>${esc(n)}</li>`).join("");
+    const dl = data.notes.find(n => DATE_LINE.test(n));
+    examDates = (dl && parseDates(dl)) || parseDates(EXAM_DATES.join("、"));
+    renderDday();
     const n = data.headers.length;
     const sheet = $("sheet");
     sheet.style.setProperty("--n", n);
@@ -156,7 +230,7 @@ if (!/^https:\/\/script\.google\.com\//.test(API)) {
   showMsg("尚未設定 Apps Script 網址：請把部署後的網址貼到 HTML 裡的 API。");
 } else {
   load();
-  setInterval(() => { if (!document.hidden && pending.size === 0) load(); }, POLL_MS);
+  setInterval(() => { renderDday(); if (!document.hidden && pending.size === 0) load(); }, POLL_MS);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && pending.size === 0) load(); });
 }
 </script>
