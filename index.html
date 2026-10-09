@@ -819,6 +819,10 @@
               </div>
             </div>
 
+            <div id="gk_from_retire" style="display:none;margin-bottom:.8rem;padding:8px 12px;
+              background:rgba(124,106,247,.12);border:1px solid rgba(124,106,247,.3);
+              border-radius:var(--r-sm);font-size:12px;color:var(--accent2)">
+            </div>
             <div id="gk_result"></div>
           </div>
 
@@ -911,6 +915,19 @@
           <div class="fire-section-label" style="margin-top:1rem">參數沿用 Coast FIRE 設定</div>
           <div style="font-size:12px;color:var(--text3);line-height:1.8">
             報酬率 / SWR / 通膨 / 勞保年金<br>請至 Coast FIRE 分頁調整
+          </div>
+
+          <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+            <button onclick="sendToGK()" style="
+              width:100%;padding:10px 0;border:none;border-radius:var(--r-sm);
+              background:var(--accent);color:#fff;font-size:13px;font-weight:500;
+              cursor:pointer;letter-spacing:.3px;transition:opacity .15s"
+              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+              → 帶入動態提領模擬
+            </button>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">
+              將目前退休年齡的資產與參數<br>自動填入《情境分析》GK 動態提領
+            </div>
           </div>
         </div>
 
@@ -2253,6 +2270,57 @@ let fCI = null;
 
 
 // ════════════════════════════════════════════
+// 退休試算 → 帶入 GK 動態提領
+function sendToGK() {
+  const age = parseInt(document.getElementById('ret_age_slider').value);
+  const d   = calcRetireAt(age);
+  const p   = getFireParams();
+
+  // 可用資產（萬，四捨五入到整數）
+  const assetWan = Math.round(d.usableAsset / 10000);
+
+  // 初始提領率：年提領額 / 可用資產（%，保留一位小數）
+  const annualDraw = d.monthlyFromAsset * 12;
+  const initRate   = d.usableAsset > 0
+    ? parseFloat((annualDraw / d.usableAsset * 100).toFixed(1))
+    : 5;
+
+  // 年報酬率：沿用 Coast FIRE 設定（%）
+  const returnRate = parseFloat((p.growthRate * 100).toFixed(1));
+
+  // 通膨率（%）
+  const inflation  = parseFloat((p.inflation * 100).toFixed(1));
+
+  // 模擬年數：活到 90 歲
+  const years = Math.max(90 - age, 10);
+
+  // 填入 GK 欄位
+  document.getElementById('gk_asset').value     = assetWan;
+  document.getElementById('gk_init_rate').value = initRate;
+  document.getElementById('gk_return').value    = returnRate;
+  document.getElementById('gk_inflation').value = inflation;
+  document.getElementById('gk_years').value     = years;
+
+  // 切換到情境分析頁籤，展開 GK 子頁籤
+  const scenBtn = document.querySelector('.tab[onclick*="scenarios"]');
+  if (scenBtn) scenBtn.click();
+
+  setTimeout(() => {
+    const gkBtn = document.querySelector('.dw-tab[onclick*="gk"]');
+    if (gkBtn) gkBtn.click();
+
+    // 顯示來源說明
+    const banner = document.getElementById('gk_from_retire');
+    if (banner) {
+      banner.style.display = 'block';
+      banner.innerHTML = `📌 已從《退休試算》帶入 — ${age} 歲退休，
+        可用資產 <strong>${assetWan.toLocaleString()} 萬</strong>，
+        初始提領率 <strong>${initRate}%</strong>，
+        模擬 <strong>${years} 年</strong>（至 90 歲）`;
+    }
+  }, 50);
+}
+
 // 退休試算
 // ════════════════════════════════════════════
 let retCI = null;
