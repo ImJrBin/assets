@@ -939,7 +939,7 @@
                 </select>
               </div>
               <div class="sc-ctrl" style="gap:6px;margin:0">
-                <label style="font-size:12px;color:var(--text2)">每月提領</label>
+                <label style="font-size:12px;color:var(--text2)">每月提領（今日幣值）</label>
                 <div class="fi-input-wrap" style="width:110px">
                   <input type="number" id="sc_monthly_draw" value="12" step="1" oninput="renderScenarioCompare()">
                   <span class="fi-suffix">萬</span>
@@ -2500,6 +2500,11 @@ function renderScenarioCompare() {
   const rentAnnual  = rentIncome * 12;
 
   // 各情境資產成長到退休時
+  // annualDraw 是「退休當年名目值」（今日幣值已通膨調整到退休年）
+  const annualDrawAtRetire = annualDraw * inflFactor; // 退休當年名目提領
+  const laborAnnualNominal = p.laborPension * 12;     // 勞保為名目固定值
+  const rentAnnualNominal  = rentIncome * 12;
+
   const datasets = scenarios.map(sc => {
     const startAsset = currentNet * Math.pow(1 + sc.rate, ytr) - ltcReserve;
     const points = [];
@@ -2507,10 +2512,12 @@ function renderScenarioCompare() {
 
     for (let yr = 0; yr <= drawYears; yr++) {
       points.push(Math.round(asset / 10000));
-      // 計算本年提領（勞保65歲起加入）
-      const currentAge = retireAge + yr;
-      const labor      = currentAge >= 65 ? laborAnnual : 0;
-      const netDraw    = Math.max(annualDraw - labor - rentAnnual, 0);
+      // 每年提領隨通膨調整（退休後第 yr 年）
+      const currentAge    = retireAge + yr;
+      const inflAdj       = Math.pow(1 + p.inflation, yr);
+      const drawThisYear  = annualDrawAtRetire * inflAdj;
+      const labor         = currentAge >= 65 ? laborAnnualNominal : 0;
+      const netDraw       = Math.max(drawThisYear - labor - rentAnnualNominal, 0);
       // 資產成長後提領
       asset = asset * (1 + sc.rate) - netDraw;
       if (asset < 0) asset = 0;
@@ -2583,7 +2590,7 @@ function renderScenarioCompare() {
     ${drawNote}<br>
     基準（7%）：${wifeLife} 歲剩 <strong>${finalBase.toLocaleString()} 萬</strong>。
     樂觀（10%）：${wifeLife} 歲剩 <strong>${finalOpt.toLocaleString()} 萬</strong>。<br>
-    <span style="color:var(--text3)">計算條件：月提領 ${(monthlyDraw/10000).toFixed(0)} 萬、${retireAge} 歲退休、
+    <span style="color:var(--text3)">計算條件：今日幣值月提領 ${(monthlyDraw/10000).toFixed(0)} 萬（退休後每年依通膨 ${(p.inflation*100).toFixed(1)}% 調升）、${retireAge} 歲退休、
     65 歲起加入勞保 ${(p.laborPension/10000).toFixed(1)} 萬、房租 ${(rentIncome/10000).toFixed(1)} 萬，
     長照 ${tw(ltcReserve)} 已於退休時預留扣除。</span>
   `;
