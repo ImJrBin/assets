@@ -393,6 +393,22 @@
   .dw-tab.on { color:var(--accent2); border-bottom-color:var(--accent); font-weight:500; }
   .dw-pane { display:none; } .dw-pane.on { display:block; }
 
+  /* GK 動態提領 */
+  .gk-chart-wrap { position:relative; width:100%; margin-bottom:1rem; }
+  .gk-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); margin-bottom:8px; }
+  .gk-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:1rem; }
+  .gk-table th { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.05em;
+    padding:4px 8px; text-align:right; border-bottom:1px solid var(--border); font-weight:400; }
+  .gk-table th:first-child { text-align:left; }
+  .gk-table td { padding:5px 8px; text-align:right; border-bottom:1px solid rgba(255,255,255,0.04);
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); }
+  .gk-table td:first-child { text-align:left; color:var(--text3); }
+  .gk-table tr.cut td { color:var(--red); }
+  .gk-table tr.prosper td { color:var(--green); }
+  .gk-table tr.freeze td { color:var(--amber); }
+  .gk-legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--text2); margin-bottom:8px; }
+  .gk-legend span { display:flex; align-items:center; gap:5px; }
+
   /* 護欄法視覺化 */
   .guardrail-visual { position:relative; height:56px; margin:1rem 0; }
   .gr-track { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
@@ -730,6 +746,7 @@
           <div class="dw-tabs">
             <button class="dw-tab on" onclick="showDwTab('guardrail',this)">護欄法 Guardrail</button>
             <button class="dw-tab" onclick="showDwTab('declining',this)">隨年齡遞減支出</button>
+            <button class="dw-tab" onclick="showDwTab('gk',this)">GK 動態提領</button>
           </div>
 
           <!-- 護欄法 -->
@@ -753,6 +770,56 @@
               <span style="font-size:11px;color:var(--text3)">萬/月</span>
             </div>
             <div id="gr_result"></div>
+          </div>
+
+          <!-- GK 動態提領 -->
+          <div id="gk" class="dw-pane">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:.8rem;line-height:1.7">
+              <strong style="color:var(--text)">Guyton-Klinger 護欄法</strong>：以初始提領率 5% 為基準，
+              每年依通膨調整；若當年提領率 &gt; 6%（超出上護欄）→ <strong style="color:var(--red)">削減 10%</strong>，
+              若 &lt; 4%（跌破下護欄）→ <strong style="color:var(--green)">增加 10%</strong>。
+              <em style="color:var(--text3)">通膨凍結規則：若上年市場報酬為負且提領率 &gt; 5%，本年跳過通膨調整。</em>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem">
+              <div class="sc-ctrl" style="gap:6px;flex-direction:column;align-items:flex-start">
+                <label style="font-size:11px;color:var(--text2)">退休時初始資產（萬）</label>
+                <div class="fi-input-wrap" style="width:130px">
+                  <input type="number" id="gk_asset" value="7800" step="100" oninput="renderGK()">
+                  <span class="fi-suffix">萬</span>
+                </div>
+              </div>
+              <div class="sc-ctrl" style="gap:6px;flex-direction:column;align-items:flex-start">
+                <label style="font-size:11px;color:var(--text2)">初始提領率</label>
+                <div class="fi-input-wrap" style="width:100px">
+                  <input type="number" id="gk_init_rate" value="5" step="0.1" min="3" max="7" oninput="renderGK()">
+                  <span class="fi-suffix">%</span>
+                </div>
+              </div>
+              <div class="sc-ctrl" style="gap:6px;flex-direction:column;align-items:flex-start">
+                <label style="font-size:11px;color:var(--text2)">年化報酬率假設</label>
+                <div class="fi-input-wrap" style="width:100px">
+                  <input type="number" id="gk_return" value="6" step="0.5" oninput="renderGK()">
+                  <span class="fi-suffix">%</span>
+                </div>
+              </div>
+              <div class="sc-ctrl" style="gap:6px;flex-direction:column;align-items:flex-start">
+                <label style="font-size:11px;color:var(--text2)">通膨率</label>
+                <div class="fi-input-wrap" style="width:90px">
+                  <input type="number" id="gk_inflation" value="2" step="0.5" oninput="renderGK()">
+                  <span class="fi-suffix">%</span>
+                </div>
+              </div>
+              <div class="sc-ctrl" style="gap:6px;flex-direction:column;align-items:flex-start">
+                <label style="font-size:11px;color:var(--text2)">提領年數</label>
+                <div class="fi-input-wrap" style="width:90px">
+                  <input type="number" id="gk_years" value="30" step="1" min="10" max="50" oninput="renderGK()">
+                  <span class="fi-suffix">年</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="gk_result"></div>
           </div>
 
           <!-- 隨年齡遞減 -->
@@ -1555,6 +1622,316 @@ function showDwTab(id, btn) {
   document.getElementById(id).classList.add('on');
   if (id === 'guardrail') renderGuardrail();
   if (id === 'declining')  renderDeclining();
+  if (id === 'gk')         renderGK();
+}
+
+// ════════════════════════════════════════════
+// GK 動態提領（Guyton-Klinger）
+// ════════════════════════════════════════════
+let gkAssetCI = null, gkDrawCI = null;
+
+function runGK(initAsset, initRate, annualReturn, inflation, years) {
+  // 初始年提領金額
+  let withdrawal = initAsset * initRate;
+  const UPPER_RAIL = initRate * 1.2;   // 6% when initRate=5%
+  const LOWER_RAIL = initRate * 0.8;   // 4%
+  const ADJ        = 0.10;             // ±10%
+
+  const rows = [];
+  let asset   = initAsset;
+  let prevReturn = annualReturn; // 假設第0年市場正常
+
+  for (let yr = 1; yr <= years; yr++) {
+    // ── 通膨凍結規則：上年市場報酬為負且當前提領率 > initRate → 跳過通膨調整 ──
+    const curRate = withdrawal / asset;
+    const freeze  = (prevReturn < 0) && (curRate > initRate);
+
+    // 通膨調整（若不凍結）
+    if (!freeze) withdrawal *= (1 + inflation);
+
+    // 護欄檢查（用調整後的提領金額 vs 當前資產）
+    const rateAfterInfl = withdrawal / asset;
+    let action = 'hold';
+    if (rateAfterInfl > UPPER_RAIL) {
+      withdrawal *= (1 - ADJ);   // 削減 10%
+      action = 'cut';
+    } else if (rateAfterInfl < LOWER_RAIL) {
+      withdrawal *= (1 + ADJ);   // 增加 10%
+      action = 'prosper';
+    }
+    if (freeze) action = (action === 'hold') ? 'freeze' : action + '+freeze';
+
+    // 資產成長後提領
+    const startAsset = asset;
+    asset = asset * (1 + annualReturn) - withdrawal;
+    if (asset < 0) asset = 0;
+
+    rows.push({
+      yr,
+      startAsset: Math.round(startAsset / 10000),
+      endAsset:   Math.round(asset / 10000),
+      withdrawal: Math.round(withdrawal / 10000 * 10) / 10,
+      rate:       (withdrawal / startAsset * 100).toFixed(2),
+      action,
+    });
+
+    prevReturn = annualReturn; // 這個模擬用固定報酬率，可換隨機序列
+    if (asset <= 0) break;
+  }
+  return rows;
+}
+
+function runFixed(initAsset, initRate, annualReturn, inflation, years) {
+  // 固定提領：每年依通膨調整，不做護欄
+  let withdrawal = initAsset * initRate;
+  const rows = [];
+  let asset = initAsset;
+  for (let yr = 1; yr <= years; yr++) {
+    if (yr > 1) withdrawal *= (1 + inflation);
+    const startAsset = asset;
+    asset = asset * (1 + annualReturn) - withdrawal;
+    if (asset < 0) asset = 0;
+    rows.push({
+      yr,
+      endAsset:   Math.round(asset / 10000),
+      withdrawal: Math.round(withdrawal / 10000 * 10) / 10,
+    });
+    if (asset <= 0) break;
+  }
+  return rows;
+}
+
+function renderGK() {
+  const initAsset    = (parseFloat(document.getElementById('gk_asset').value)     || 7800) * 10000;
+  const initRatePct  =  parseFloat(document.getElementById('gk_init_rate').value) || 5;
+  const annualReturn = (parseFloat(document.getElementById('gk_return').value)    || 6) / 100;
+  const inflation    = (parseFloat(document.getElementById('gk_inflation').value) || 2) / 100;
+  const years        =  parseInt(document.getElementById('gk_years').value)       || 30;
+
+  const initRate = initRatePct / 100;
+
+  const gkRows    = runGK(initAsset, initRate, annualReturn, inflation, years);
+  const fixedRows = runFixed(initAsset, initRate, annualReturn, inflation, years);
+
+  // 年份標籤
+  const labels = gkRows.map(r => `第${r.yr}年`);
+
+  // ── 資產存活曲線對比圖 ──
+  const gkAssets    = gkRows.map(r => r.endAsset);
+  const fixedAssets = fixedRows.map(r => r.endAsset).slice(0, gkRows.length);
+
+  // GK 耗盡年
+  const gkDead    = gkRows.findIndex(r => r.endAsset <= 0);
+  const fixedDead = fixedRows.findIndex(r => r.endAsset <= 0);
+
+  const el = document.getElementById('gk_result');
+
+  // KPI 摘要
+  const gkFinal    = gkRows[gkRows.length - 1].endAsset;
+  const fixedFinal = fixedRows.length >= gkRows.length
+    ? fixedRows[gkRows.length - 1].endAsset
+    : 0;
+  const gkMinDraw  = Math.min(...gkRows.map(r => r.withdrawal));
+  const gkMaxDraw  = Math.max(...gkRows.map(r => r.withdrawal));
+  const gkCuts     = gkRows.filter(r => r.action.includes('cut')).length;
+  const gkProsprs  = gkRows.filter(r => r.action.includes('prosper')).length;
+
+  const surviveStr = gkDead < 0
+    ? `<span style="color:var(--green)">✓ 撐過全部 ${years} 年</span>`
+    : `<span style="color:var(--red)">✗ 第 ${gkDead + 1} 年耗盡</span>`;
+  const fixedStr = fixedDead < 0
+    ? `<span style="color:var(--green)">✓ 撐過全部 ${years} 年</span>`
+    : `<span style="color:var(--red)">✗ 第 ${fixedDead + 1} 年耗盡</span>`;
+
+  el.innerHTML = `
+    <!-- KPI -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
+      <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:var(--surface2);padding:.7rem;border-radius:var(--r-sm)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:3px">GK 最終資產（${years}年後）</div>
+        <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace;color:${gkFinal>0?'var(--green)':'var(--red)'}">
+          ${gkFinal > 0 ? gkFinal.toLocaleString() + '萬' : '耗盡'}
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${surviveStr}</div>
+      </div>
+      <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:var(--surface2);padding:.7rem;border-radius:var(--r-sm)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:3px">固定提領最終資產</div>
+        <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace;color:${fixedFinal>0?'var(--text)':'var(--red)'}">
+          ${fixedFinal > 0 ? fixedFinal.toLocaleString() + '萬' : '耗盡'}
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${fixedStr}</div>
+      </div>
+      <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:var(--surface2);padding:.7rem;border-radius:var(--r-sm)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:3px">GK 提領金額區間（萬/年）</div>
+        <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace">${gkMinDraw} ~ ${gkMaxDraw}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">削減 ${gkCuts} 次 / 增加 ${gkProsprs} 次</div>
+      </div>
+      <div class="sc-row" style="border:none;flex-direction:column;align-items:flex-start;background:var(--surface2);padding:.7rem;border-radius:var(--r-sm)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:3px">護欄區間</div>
+        <div style="font-size:16px;font-weight:500;font-family:'DM Mono',monospace">${(initRatePct*0.8).toFixed(1)}% ~ ${(initRatePct*1.2).toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">初始 ${initRatePct}%，調整幅度 ±10%</div>
+      </div>
+    </div>
+
+    <!-- 圖A：資產曲線對比 -->
+    <div class="gk-section-title">▌資產存活曲線對比</div>
+    <div class="gk-legend">
+      <span><span class="ld" style="background:#7c6af7"></span>GK 動態提領</span>
+      <span><span class="ld" style="border:1.5px dashed #f0a050;background:transparent;width:14px;height:0;border-radius:0"></span>固定提領（參照）</span>
+    </div>
+    <div class="gk-chart-wrap" style="height:220px">
+      <canvas id="gkAssetC" role="img" aria-label="GK vs 固定提領資產曲線對比"></canvas>
+    </div>
+
+    <!-- 圖B：年度提領金額變化 -->
+    <div class="gk-section-title" style="margin-top:1.2rem">▌年度提領金額變化（萬/年）</div>
+    <div class="gk-legend">
+      <span><span class="ld" style="background:#3ecf8e"></span>GK 動態提領</span>
+      <span><span class="ld" style="border:1.5px dashed #888;background:transparent;width:14px;height:0;border-radius:0"></span>固定提領</span>
+      <span><span class="ld" style="background:rgba(240,96,96,0.4)"></span>削減年</span>
+      <span><span class="ld" style="background:rgba(62,207,142,0.3)"></span>增加年</span>
+    </div>
+    <div class="gk-chart-wrap" style="height:200px">
+      <canvas id="gkDrawC" role="img" aria-label="GK每年實際提領金額變化"></canvas>
+    </div>
+
+    <!-- 明細表 -->
+    <details style="margin-top:1rem">
+      <summary style="font-size:12px;color:var(--text2);cursor:pointer;padding:6px 0;border-top:1px solid var(--border)">
+        展開逐年明細
+      </summary>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table class="gk-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">年份</th>
+              <th>期初資產(萬)</th>
+              <th>GK提領(萬/年)</th>
+              <th>提領率</th>
+              <th>動作</th>
+              <th>期末資產(萬)</th>
+              <th>固定提領期末(萬)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${gkRows.map((r, i) => {
+              const fAsset = fixedRows[i] ? fixedRows[i].endAsset : '—';
+              const actionLabel = {
+                hold: '—',
+                cut: '⬇ 削減10%',
+                prosper: '⬆ 增加10%',
+                freeze: '❄ 通膨凍結',
+                'cut+freeze': '⬇❄',
+                'prosper+freeze': '⬆❄',
+              }[r.action] || r.action;
+              const cls = r.action.includes('cut') ? 'cut'
+                        : r.action.includes('prosper') ? 'prosper'
+                        : r.action.includes('freeze') ? 'freeze' : '';
+              return `<tr class="${cls}">
+                <td>第${r.yr}年</td>
+                <td>${r.startAsset.toLocaleString()}</td>
+                <td>${r.withdrawal}</td>
+                <td>${r.rate}%</td>
+                <td style="text-align:left;color:${cls==='cut'?'var(--red)':cls==='prosper'?'var(--green)':cls==='freeze'?'var(--amber)':'var(--text3)'}">${actionLabel}</td>
+                <td style="color:${r.endAsset<=0?'var(--red)':'var(--text2)'}">${r.endAsset > 0 ? r.endAsset.toLocaleString() : '耗盡'}</td>
+                <td style="color:${typeof fAsset==='number'&&fAsset<=0?'var(--red)':'var(--text3)'}">${typeof fAsset==='number' ? (fAsset > 0 ? fAsset.toLocaleString() : '耗盡') : '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  `;
+
+  // ── 圖A：資產曲線 ──
+  if (gkAssetCI) gkAssetCI.destroy();
+  gkAssetCI = new Chart(document.getElementById('gkAssetC').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'GK 動態提領',
+          data: gkAssets,
+          borderColor: '#7c6af7',
+          backgroundColor: 'rgba(124,106,247,0.07)',
+          borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3,
+        },
+        {
+          label: '固定提領',
+          data: fixedAssets,
+          borderColor: '#f0a050',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          pointRadius: 0, fill: false, tension: 0.3,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw > 0 ? ctx.raw.toLocaleString() + '萬' : '資產耗盡'}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // ── 圖B：年度提領金額（長條 + 顏色區分動作） ──
+  const barColors = gkRows.map(r =>
+    r.action.includes('cut')     ? 'rgba(240,96,96,0.75)'
+    : r.action.includes('prosper') ? 'rgba(62,207,142,0.75)'
+    : r.action.includes('freeze')  ? 'rgba(240,160,80,0.55)'
+    : 'rgba(124,106,247,0.55)'
+  );
+  const fixedDraws = fixedRows.map(r => r.withdrawal).slice(0, gkRows.length);
+
+  if (gkDrawCI) gkDrawCI.destroy();
+  gkDrawCI = new Chart(document.getElementById('gkDrawC').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'GK 提領',
+          data: gkRows.map(r => r.withdrawal),
+          backgroundColor: barColors,
+          borderWidth: 0, borderRadius: 3,
+        },
+        {
+          label: '固定提領',
+          type: 'line',
+          data: fixedDraws,
+          borderColor: 'rgba(136,136,136,0.6)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5, borderDash: [4, 3],
+          pointRadius: 0, tension: 0.1,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}萬/年`,
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y: { ticks: { callback: v => v + '萬', font: { size: 11 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
 }
 
 // ════════════════════════════════════════════
