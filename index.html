@@ -936,7 +936,6 @@
               <div class="sc-ctrl" style="gap:6px;margin:0">
                 <label style="font-size:12px;color:var(--text2)">退休年齡</label>
                 <select id="sc_retire_age" onchange="renderScenarioCompare()" style="font-size:12px">
-                  ${Array.from({length:15},(_,i)=>51+i).map(a=>`<option value="${a}"${a===55?' selected':''}>${a}歲</option>`).join('')}
                 </select>
               </div>
               <div class="sc-ctrl" style="gap:6px;margin:0">
@@ -2323,8 +2322,21 @@ function calcRetireAt(retireAge) {
   };
 }
 
+function initScRetireAgeSelect() {
+  const sel = document.getElementById('sc_retire_age');
+  if (!sel || sel.options.length > 0) return;
+  for (let a = 51; a <= 65; a++) {
+    const opt = document.createElement('option');
+    opt.value = a;
+    opt.textContent = a + '歲';
+    if (a === 55) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
 function renderRetire() {
   if (!allData.length) return;
+  initScRetireAgeSelect();
   updateRetSlider();
   renderRetireDetail();
   renderRetireChart();
