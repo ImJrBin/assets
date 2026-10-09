@@ -2418,6 +2418,51 @@ function renderRetireChart() {
   if (!allData.length) return;
   const ages    = Array.from({length: 15}, (_, i) => 51 + i);
   const results = ages.map(a => calcRetireAt(a));
+
+  if (retCI) retCI.destroy();
+  retCI = new Chart(document.getElementById('retC').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ages.map(a => a + '歲'),
+      datasets: [
+        {
+          label: '可用資產（萬）',
+          data: results.map(r => Math.round(r.usableAsset / 10000)),
+          backgroundColor: results.map(r =>
+            r.status === 'ok'   ? 'rgba(124,106,247,0.6)' :
+            r.status === 'warn' ? 'rgba(240,160,80,0.6)'  :
+                                  'rgba(240,96,96,0.5)'),
+          borderWidth: 0, borderRadius: 3, yAxisID: 'y',
+        },
+        {
+          label: '月提領合計（萬）',
+          type: 'line',
+          data: results.map(r => parseFloat((r.totalMonthly / 10000).toFixed(1))),
+          borderColor: '#3ecf8e', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
+          yAxisID: 'y2',
+        },
+        {
+          label: '壓力測試月提領（萬）',
+          type: 'line',
+          data: results.map(r => parseFloat((r.stressMonthly / 10000).toFixed(1))),
+          borderColor: '#f06060', backgroundColor: 'transparent',
+          borderWidth: 1.5, borderDash: [4, 3],
+          pointRadius: 2, pointBackgroundColor: '#f06060',
+          yAxisID: 'y2',
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x:  { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
+        y:  { position: 'left',  ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y2: { position: 'right', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
+      }
+    }
+  });
 }
 
 // ════════════════════════════════════════════
@@ -2545,52 +2590,6 @@ function renderScenarioCompare() {
 }
 
 
-
-  if (retCI) retCI.destroy();
-  retCI = new Chart(document.getElementById('retC').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ages.map(a => a + '歲'),
-      datasets: [
-        {
-          label: '可用資產（萬）',
-          data: results.map(r => Math.round(r.usableAsset / 10000)),
-          backgroundColor: results.map(r =>
-            r.status === 'ok'   ? 'rgba(124,106,247,0.6)' :
-            r.status === 'warn' ? 'rgba(240,160,80,0.6)'  :
-                                  'rgba(240,96,96,0.5)'),
-          borderWidth: 0, borderRadius: 3, yAxisID: 'y',
-        },
-        {
-          label: '月提領合計（萬）',
-          type: 'line',
-          data: results.map(r => parseFloat((r.totalMonthly / 10000).toFixed(1))),
-          borderColor: '#3ecf8e', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
-          yAxisID: 'y2',
-        },
-        {
-          label: '壓力測試月提領（萬）',
-          type: 'line',
-          data: results.map(r => parseFloat((r.stressMonthly / 10000).toFixed(1))),
-          borderColor: '#f06060', backgroundColor: 'transparent',
-          borderWidth: 1.5, borderDash: [4, 3],
-          pointRadius: 2, pointBackgroundColor: '#f06060',
-          yAxisID: 'y2',
-        },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x:  { ticks: { font: { size: 11 }, color: '#55556a' }, grid: { display: false } },
-        y:  { position: 'left',  ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y2: { position: 'right', ticks: { callback: v => v+'萬', font: { size: 10 }, color: '#55556a' }, grid: { display: false } },
-      }
-    }
-  });
-}
 
 function renderFire() {
   const husbandAge    = parseFloat(document.getElementById('fi_husbandAge').value)    || 50;
