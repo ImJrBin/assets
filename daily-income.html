@@ -607,6 +607,12 @@ function fetchUSClose(btn){
     .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
     .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
 }
+function autoFetchToday(){
+  if(!state.settings.proxyUrl) return;
+  var tw=document.querySelector('[data-act="fetchtw"]'); if(tw) fetchTWClose(tw);
+  var fx=document.querySelector('[data-act="fetchfx"]'); if(fx) fetchFXRate(fx);
+  var us=document.querySelector('[data-act="fetchus"]'); if(us) fetchUSClose(us);
+}
 function armed(btn,label,action){
   if(btn.dataset.armed){action();return;}
   var old=btn.textContent; btn.dataset.armed='1'; btn.textContent=label; btn.classList.add('danger');
@@ -776,6 +782,7 @@ $('#wipe').addEventListener('click',function(){
 /* ---------- init ---------- */
 setSel(snapWeekday(ymd(new Date()),-1));
 renderAll();
+autoFetchToday();
 })();
 </script>
 </body>
