@@ -211,6 +211,15 @@ textarea{ min-height:96px; font-size:12px; font-family:ui-monospace,Menlo,Consol
     <div class="fld"><label for="setProxy">資料轉接站網址(選填)</label><input id="setProxy" autocomplete="off" placeholder="https://xxxx.yourname.workers.dev"></div>
     <p class="hint">證交所與匯率網站不開放瀏覽器直接抓資料,要先部署一個免費的 Cloudflare Worker 轉接站,把網址填在這裡,「抓台股收盤價」「抓美元匯率」這兩顆按鈕才會真的抓得到。留空就只能手動輸入。</p>
 
+    <h4>雲端同步</h4>
+    <div class="fld"><label for="setSyncKey">同步金鑰(兩台裝置要填一樣)</label><input id="setSyncKey" autocomplete="off" placeholder="按「產生金鑰」,或貼上已有的金鑰"></div>
+    <div class="row" style="margin:6px 0 10px">
+      <button class="btn" id="genSyncKey" type="button">產生金鑰</button>
+      <button class="btn" id="syncNow" type="button">立即同步</button>
+      <span id="syncMsg" class="msg" aria-live="polite"></span>
+    </div>
+    <p class="hint">需要上面「資料轉接站網址」已部署支援 /sync 的版本,並在 Cloudflare 設定好同一組密鑰(環境變數 SYNC_SECRET)與 KV 空間。第一次設定:在這台裝置按「產生金鑰」,把產生的金鑰設定到 Cloudflare 的加密環境變數,再把同一組金鑰貼到你另一台裝置的這個欄位。資料永遠先存在這台裝置,就算沒網路也能正常使用,有網路時才會自動跟雲端互相比對、同步較新的版本。留空就不會做任何雲端同步。</p>
+
     <h4>備份</h4>
     <p class="hint">資料只存在這個瀏覽器裡,換裝置或清除瀏覽資料就會消失。定期匯出一份,是唯一的保險。</p>
     <div class="row">
@@ -248,7 +257,7 @@ var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':
 var md=function(s){var d=parse(s);return (d.getMonth()+1)+'/'+d.getDate();};
 
 /* ---------- state & storage ---------- */
-function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32,proxyUrl:''}};}
+function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32,proxyUrl:'',syncKey:''},updatedAt:0};}
 function normalize(o){
   var s=defaults();
   if(!o||typeof o!=='object') return s;
@@ -280,7 +289,9 @@ function normalize(o){
     if(typeof o.settings.tw==='boolean') s.settings.tw=o.settings.tw;
     var f=Number(o.settings.defaultFx); if(isFinite(f)&&f>0) s.settings.defaultFx=f;
     if(typeof o.settings.proxyUrl==='string') s.settings.proxyUrl=o.settings.proxyUrl.trim().replace(/\/+$/,'');
+    if(typeof o.settings.syncKey==='string') s.settings.syncKey=o.settings.syncKey.trim();
   }
+  var ua=Number(o.updatedAt); s.updatedAt=isFinite(ua)&&ua>0?ua:0;
   return s;
 }
 var persistOK=true;
@@ -291,9 +302,14 @@ function load(){
   }catch(e){}
   return defaults();
 }
-function persist(){
+function persistLocalOnly(){
   try{ localStorage.setItem(KEY,JSON.stringify(state)); persistOK=true; }
   catch(e){ persistOK=false; showWarn(); }
+}
+function persist(){
+  state.updatedAt=Date.now();
+  persistLocalOnly();
+  schedulePushSync();
 }
 function probeStorage(){
   try{ localStorage.setItem('__probe','1'); localStorage.removeItem('__probe'); persistOK=true; }
@@ -607,6 +623,49 @@ function fetchUSClose(btn){
     .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
     .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
 }
+function timeLabel(ms){
+  if(!ms) return '';
+  var d=new Date(ms);
+  return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function setSyncMsg(t){ var m=$('#syncMsg'); if(m) m.textContent=t; }
+function syncHeaders(){ return {'Content-Type':'application/json; charset=utf-8','X-Sync-Key':state.settings.syncKey||''}; }
+function syncReady(){ return !!(state.settings.proxyUrl && state.settings.syncKey); }
+function pushSync(){
+  if(!syncReady()) return;
+  var body=JSON.stringify({data:state,updatedAt:state.updatedAt});
+  fetch(state.settings.proxyUrl+'/sync',{method:'POST',headers:syncHeaders(),body:body})
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(){ setSyncMsg('已同步 '+timeLabel(Date.now())); })
+    .catch(function(){ setSyncMsg('同步失敗,稍後會再試(資料已安全存在本機)'); });
+}
+function schedulePushSync(){
+  clearTimeout(schedulePushSync.t);
+  schedulePushSync.t=setTimeout(pushSync,1200);
+}
+function pullSync(isAuto){
+  if(!syncReady()){ if(!isAuto) setSyncMsg('請先填同步金鑰與轉接站網址'); return Promise.resolve(); }
+  if(!isAuto) setSyncMsg('同步中…');
+  return fetch(state.settings.proxyUrl+'/sync',{headers:syncHeaders()})
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(j){
+      if(!j||!j.data){ setSyncMsg(isAuto?'':'雲端尚無資料,已略過'); return; }
+      var cloudTs=Number(j.updatedAt||0);
+      if(cloudTs>Number(state.updatedAt||0)){
+        var merged=normalize(j.data); merged.updatedAt=cloudTs;
+        state=merged; dirty(); persistLocalOnly(); applyTheme();
+        $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx;
+        $('#setProxy').value=state.settings.proxyUrl||''; $('#setSyncKey').value=state.settings.syncKey||'';
+        renderAll();
+        setSyncMsg('已從雲端更新 '+timeLabel(Date.now()));
+      } else if(cloudTs<Number(state.updatedAt||0)){
+        pushSync();
+      } else {
+        setSyncMsg('已同步 '+timeLabel(Date.now()));
+      }
+    })
+    .catch(function(){ setSyncMsg(isAuto?'':'雲端讀取失敗,請確認網址與金鑰'); });
+}
 function autoFetchToday(){
   if(!state.settings.proxyUrl) return;
   var tw=document.querySelector('[data-act="fetchtw"]'); if(tw) fetchTWClose(tw);
@@ -733,13 +792,23 @@ $('#openSet').addEventListener('click',function(){
   $('#setUD').value=state.settings.tw?'tw':'us';
   $('#setFx').value=state.settings.defaultFx;
   $('#setProxy').value=state.settings.proxyUrl||'';
+  $('#setSyncKey').value=state.settings.syncKey||'';
   $('#expArea').value=backupText();
   $('#impArea').value='';
+  setSyncMsg('');
   openDlg(dlgS);
 });
 $('#setUD').addEventListener('change',function(e){ state.settings.tw=e.target.value==='tw'; persist(); applyTheme(); renderCal(); renderPanel(); });
 $('#setFx').addEventListener('change',function(e){ var v=num(e.target.value); if(v!=null){ state.settings.defaultFx=v; dirty(); persist(); renderCal(); renderPanel(); } else e.target.value=state.settings.defaultFx; });
 $('#setProxy').addEventListener('change',function(e){ state.settings.proxyUrl=e.target.value.trim().replace(/\/+$/,''); persist(); });
+$('#setSyncKey').addEventListener('change',function(e){ state.settings.syncKey=e.target.value.trim(); persist(); });
+$('#genSyncKey').addEventListener('click',function(){
+  var bytes=new Uint8Array(24); (window.crypto||window.msCrypto).getRandomValues(bytes);
+  var key=Array.prototype.map.call(bytes,function(b){return b.toString(16).padStart(2,'0');}).join('');
+  $('#setSyncKey').value=key; state.settings.syncKey=key; persist();
+  setSyncMsg('已產生新金鑰,記得到 Cloudflare 設定同一組 SYNC_SECRET,並貼到你另一台裝置');
+});
+$('#syncNow').addEventListener('click',function(){ pullSync(false); });
 $('#expCopy').addEventListener('click',function(){
   var ta=$('#expArea'), m=$('#expMsg'); ta.value=backupText();
   function fallback(){ ta.select(); try{ document.execCommand('copy'); flash(m,'已複製'); }catch(e){ flash(m,'請手動全選複製'); } }
@@ -768,7 +837,7 @@ $('#impGo').addEventListener('click',function(){
   if(!o||!Array.isArray(o.holdings)||typeof o.prices!=='object') return flash(m,'內容不是有效的備份格式');
   armed(b,'再按一次確認覆蓋',function(){
     state=normalize(o); ui.openLots=null; dirty(); persist(); applyTheme();
-    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#setProxy').value=state.settings.proxyUrl||''; $('#expArea').value=backupText();
+    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#setProxy').value=state.settings.proxyUrl||''; $('#setSyncKey').value=state.settings.syncKey||''; $('#expArea').value=backupText();
     flash(m,'已還原');
   });
 });
@@ -782,7 +851,7 @@ $('#wipe').addEventListener('click',function(){
 /* ---------- init ---------- */
 setSel(snapWeekday(ymd(new Date()),-1));
 renderAll();
-autoFetchToday();
+pullSync(true).then(autoFetchToday);
 })();
 </script>
 </body>
