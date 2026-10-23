@@ -190,6 +190,7 @@ textarea{ min-height:96px; font-size:12px; font-family:ui-monospace,Menlo,Consol
       <label>股數<input id="nhSh" inputmode="decimal" autocomplete="off"></label>
       <label>起算日<input id="nhDate" type="date"></label>
       <label>起算日收盤價<input id="nhPx" inputmode="decimal" autocomplete="off"></label>
+      <label>Yahoo代號(美股自動抓取用,選填)<input id="nhYSym" placeholder="例如 VUAA.L,美股本身通常不用加後綴" autocomplete="off"></label>
     </div>
     <p class="hint">起算日的收盤價是基準價,損益從下一個有輸入收盤價的日子開始計算。之後買賣請在該檔的「買賣紀錄」補上。</p>
     <div class="row"><button class="primary" id="nhAdd" type="button">加入持股</button><span id="nhMsg" class="msg" aria-live="polite"></span></div>
@@ -205,6 +206,10 @@ textarea{ min-height:96px; font-size:12px; font-family:ui-monospace,Menlo,Consol
       <label>預設美元兌台幣<input id="setFx" inputmode="decimal" autocomplete="off"></label>
     </div>
     <p class="hint">合計檢視會把美股損益換算成新台幣。當天沒輸入匯率時,沿用最近一次輸入的匯率;都沒有時使用預設值。</p>
+
+    <h4>自動抓取</h4>
+    <div class="fld"><label for="setProxy">資料轉接站網址(選填)</label><input id="setProxy" autocomplete="off" placeholder="https://xxxx.yourname.workers.dev"></div>
+    <p class="hint">證交所與匯率網站不開放瀏覽器直接抓資料,要先部署一個免費的 Cloudflare Worker 轉接站,把網址填在這裡,「抓台股收盤價」「抓美元匯率」這兩顆按鈕才會真的抓得到。留空就只能手動輸入。</p>
 
     <h4>備份</h4>
     <p class="hint">資料只存在這個瀏覽器裡,換裝置或清除瀏覽資料就會消失。定期匯出一份,是唯一的保險。</p>
@@ -243,7 +248,7 @@ var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':
 var md=function(s){var d=parse(s);return (d.getMonth()+1)+'/'+d.getDate();};
 
 /* ---------- state & storage ---------- */
-function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32}};}
+function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32,proxyUrl:''}};}
 function normalize(o){
   var s=defaults();
   if(!o||typeof o!=='object') return s;
@@ -252,6 +257,7 @@ function normalize(o){
       return {
         id:String(h.id).replace(/[^A-Za-z0-9_-]/g,''),
         symbol:String(h.symbol), name:String(h.name||''),
+        ySymbol:String(h.ySymbol||'').trim(),
         market:h.market==='US'?'US':'TW',
         lots:(Array.isArray(h.lots)?h.lots:[]).filter(function(l){return l&&DATE_RE.test(l.date)&&isFinite(l.shares);})
           .map(function(l){return {date:l.date,shares:Number(l.shares)};})
@@ -273,6 +279,7 @@ function normalize(o){
   if(o.settings){
     if(typeof o.settings.tw==='boolean') s.settings.tw=o.settings.tw;
     var f=Number(o.settings.defaultFx); if(isFinite(f)&&f>0) s.settings.defaultFx=f;
+    if(typeof o.settings.proxyUrl==='string') s.settings.proxyUrl=o.settings.proxyUrl.trim().replace(/\/+$/,'');
   }
   return s;
 }
@@ -449,7 +456,7 @@ function renderPanel(){
     p.innerHTML=head+'<p class="empty">還沒有持股。先加入持股與起算日的收盤價,就能開始記錄每日損益。</p><button class="primary" type="button" data-open="hold">新增持股</button>';
     return;
   }
-  var day=state.prices[d]||{}, hasUS=false;
+  var day=state.prices[d]||{}, hasUS=false, hasTW=state.holdings.some(function(h){return h.market==='TW';});
   var rows=state.holdings.map(function(h){
     if(h.market==='US') hasUS=true;
     var cur=typeof day[h.id]==='number'?day[h.id]:null;
@@ -460,10 +467,12 @@ function renderPanel(){
       '<input class="px" data-hid="'+h.id+'" inputmode="decimal" autocomplete="off" placeholder="收盤價" value="'+(cur==null?'':cur)+'" aria-label="'+esc(h.symbol)+' 收盤價">'+
       '<div class="meta">'+meta+'</div><div class="delta" id="dl-'+h.id+'"></div></div>';
   }).join('');
-  var fxRow=hasUS?'<div class="fxrow"><div><label for="fxIn">美元兌台幣</label><small>留空沿用最近一次</small></div><input id="fxIn" inputmode="decimal" autocomplete="off" placeholder="'+fxAt(d)+'" value="'+(state.fx[d]==null?'':state.fx[d])+'"></div>':'';
-  p.innerHTML=head+
+  var fxRow=hasUS?'<div class="fxrow"><div><label for="fxIn">美元兌台幣</label><small>留空沿用最近一次</small></div><input id="fxIn" inputmode="decimal" autocomplete="off" placeholder="'+fxAt(d)+'" value="'+(state.fx[d]==null?'':state.fx[d])+'"></div><div class="row" style="margin:0 0 10px"><button class="btn" type="button" data-act="fetchfx">抓美元匯率</button><span id="fxMsg" class="msg" aria-live="polite"></span></div>':'';
+  var twFetch=hasTW?'<div class="row" style="margin:0 0 10px"><button class="btn" type="button" data-act="fetchtw">抓台股收盤價</button><span id="twMsg" class="msg" aria-live="polite"></span></div>':'';
+  var usFetch=hasUS?'<div class="row" style="margin:0 0 10px"><button class="btn" type="button" data-act="fetchus">抓美股/英股收盤價</button><span id="usMsg" class="msg" aria-live="polite"></span></div>':'';
+  p.innerHTML=head+twFetch+
     '<div class="ptotal"><div class="lab">本日損益'+(hasUS?'(新台幣)':'')+'</div><div class="big flat" id="pTot">—</div><div class="sub" id="pSub"></div></div>'+
-    rows+fxRow+
+    rows+fxRow+usFetch+
     '<div class="pfoot"><span class="saved" id="pSaved" aria-live="polite"></span><button class="mini" type="button" data-clear>清除這天</button></div>'+
     '<p class="hint">輸入後按 Enter 跳到下一格,會自動儲存。休市的標的請留空。</p>';
   updateLive();
@@ -504,6 +513,100 @@ function commit(){
   dirty(); persist(); renderCal(); updateLive();
   var sv=$('#pSaved'); if(sv){sv.textContent='已儲存'; clearTimeout(commit.t); commit.t=setTimeout(function(){var e=$('#pSaved'); if(e) e.textContent='';},1600);}
 }
+function parseROC(s){
+  var digits=String(s||'').replace(/\D/g,''), y,m,dd;
+  if(digits.length===7){ y=Number(digits.slice(0,3))+1911; m=Number(digits.slice(3,5)); dd=Number(digits.slice(5,7)); }
+  else if(digits.length===8){ y=Number(digits.slice(0,4)); m=Number(digits.slice(4,6)); dd=Number(digits.slice(6,8)); }
+  else return null;
+  if(!y||!m||!dd) return null;
+  return y+'-'+pad(m)+'-'+pad(dd);
+}
+function fetchTWClose(btn){
+  var msg=$('#twMsg'); if(!msg) return;
+  if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
+  btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
+  fetch(state.settings.proxyUrl+'/tw')
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(list){
+      if(!Array.isArray(list)||!list.length) throw new Error('empty');
+      var apiDate=parseROC(list[0].Date);
+      if(!apiDate){ msg.textContent='證交所回傳的資料格式不明,無法自動判斷日期'; return; }
+      if(apiDate!==ui.sel){
+        msg.textContent='證交所目前最新收盤價是 '+md(apiDate)+' 的,跟你選的這天不同,未套用。可切到 '+md(apiDate)+' 再試一次';
+        return;
+      }
+      var map={}; list.forEach(function(r){ if(r&&r.Code) map[r.Code]=r; });
+      var filled=[], missed=[];
+      state.holdings.forEach(function(h){
+        if(h.market!=='TW') return;
+        var rec=map[h.symbol], px=rec?num(rec.ClosingPrice):null;
+        var inp=document.querySelector('#panel input.px[data-hid="'+h.id+'"]');
+        if(px!=null&&inp){ inp.value=px; filled.push(h.symbol); } else missed.push(h.symbol);
+      });
+      if(filled.length){ updateLive(); commit(); }
+      msg.textContent = filled.length ? ('已自動填入 '+filled.length+' 檔'+(missed.length?'(查無代號:'+missed.join('、')+')':'')) : '查無符合的台股代號,請確認持股代號是否正確';
+    })
+    .catch(function(){ msg.textContent='抓取失敗,可能是網路問題或證交所暫時無法連線,請改用手動輸入'; })
+    .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
+}
+function fetchFXRate(btn){
+  var msg=$('#fxMsg'); if(!msg) return;
+  if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
+  btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
+  fetch(state.settings.proxyUrl+'/fx')
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(j){
+      if(!j||j.result!=='success'||!j.rates||typeof j.rates.TWD!=='number') throw new Error('bad');
+      var apiTime=new Date(j.time_last_update_utc||j.last_update_utc);
+      if(isNaN(apiTime.getTime())) throw new Error('baddate');
+      var tpe=new Date(apiTime.getTime()+8*3600*1000);
+      var apiDate=tpe.getUTCFullYear()+'-'+pad(tpe.getUTCMonth()+1)+'-'+pad(tpe.getUTCDate());
+      if(apiDate!==ui.sel){
+        msg.textContent='匯率資料更新於 '+md(apiDate)+',跟你選的這天不同,未套用。可切到 '+md(apiDate)+' 再試一次';
+        return;
+      }
+      var fxi=$('#fxIn'); if(fxi){ fxi.value=Math.round(j.rates.TWD*1000)/1000; }
+      updateLive(); commit();
+      msg.textContent='已填入匯率 '+nf2.format(j.rates.TWD);
+    })
+    .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
+    .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
+}
+function epochToDateStr(epochSec,offsetSec){
+  var ms=(epochSec+(offsetSec||0))*1000, d=new Date(ms);
+  return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
+}
+function fetchUSClose(btn){
+  var msg=$('#usMsg'); if(!msg) return;
+  if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
+  var targets=state.holdings.filter(function(h){return h.market==='US'&&h.ySymbol;});
+  if(!targets.length){ msg.textContent='請先在「持股」裡幫美股/英股持股填上 Yahoo 代號(例如 VUAA.L),才能自動抓'; return; }
+  btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
+  var syms=targets.map(function(h){return h.ySymbol;});
+  var uniq=syms.filter(function(s,i){return syms.indexOf(s)===i;});
+  fetch(state.settings.proxyUrl+'/us?symbols='+encodeURIComponent(uniq.join(',')))
+    .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
+    .then(function(map){
+      var filled=[], notFinal=[], skipped=[];
+      targets.forEach(function(h){
+        var rec=map[h.ySymbol];
+        if(!rec||typeof rec.price!=='number'||typeof rec.time!=='number'){ skipped.push(h.symbol); return; }
+        var dstr=epochToDateStr(rec.time,rec.gmtoffset);
+        if(dstr!==ui.sel){ skipped.push(h.symbol+'('+md(dstr)+')'); return; }
+        if(typeof rec.regularEnd==='number' && (Date.now()/1000)<rec.regularEnd){ notFinal.push(h.symbol); return; }
+        var inp=document.querySelector('#panel input.px[data-hid="'+h.id+'"]');
+        if(inp){ inp.value=rec.price; filled.push(h.symbol); }
+      });
+      if(filled.length){ updateLive(); commit(); }
+      var parts=[];
+      if(filled.length) parts.push('已填入 '+filled.join('、'));
+      if(notFinal.length) parts.push(notFinal.join('、')+' 可能還在盤中,未套用');
+      if(skipped.length) parts.push('日期不符或查無代號:'+skipped.join('、'));
+      msg.textContent=parts.join(';  ')||'沒有符合的資料';
+    })
+    .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
+    .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
+}
 function armed(btn,label,action){
   if(btn.dataset.armed){action();return;}
   var old=btn.textContent; btn.dataset.armed='1'; btn.textContent=label; btn.classList.add('danger');
@@ -528,6 +631,9 @@ $('#panel').addEventListener('click',function(e){
   var n=e.target.closest('[data-nav]');
   if(n){ var dir=Number(n.dataset.nav); setSel(snapWeekday(addDays(ui.sel,dir),dir)); renderAll(); return; }
   var o=e.target.closest('[data-open]'); if(o){ openHold(); return; }
+  var ft=e.target.closest('[data-act="fetchtw"]'); if(ft){ fetchTWClose(ft); return; }
+  var ff=e.target.closest('[data-act="fetchfx"]'); if(ff){ fetchFXRate(ff); return; }
+  var fu=e.target.closest('[data-act="fetchus"]'); if(fu){ fetchUSClose(fu); return; }
   var c=e.target.closest('[data-clear]');
   if(c) armed(c,'再按一次確認',function(){ delete state.prices[ui.sel]; delete state.fx[ui.sel]; dirty(); persist(); renderAll(); });
 });
@@ -568,9 +674,10 @@ function renderHoldings(){
   if(!state.holdings.length){ el.innerHTML='<p class="empty">還沒有持股。</p>'; return; }
   el.innerHTML=state.holdings.map(function(h){
     var sh=sharesAt(h,'9999-12-31');
+    var ySymRow=h.market==='US'?'<div class="row" style="margin:6px 0 0"><label style="font-size:12px;color:var(--muted)">Yahoo代號</label><input class="ySymEdit" data-id="'+h.id+'" value="'+esc(h.ySymbol||'')+'" placeholder="例如 VUAA.L" style="max-width:150px" autocomplete="off"></div>':'';
     return '<div class="hitem" data-id="'+h.id+'"><div class="hhead"><div><b>'+esc(h.symbol)+'</b> '+esc(h.name)+' <span class="tag">'+(h.market==='TW'?'台股':'美股')+'</span><div class="hsub">目前持有 '+nfp.format(sh)+' 股</div></div>'+
       '<div class="hbtns"><button type="button" data-act="lots">買賣紀錄</button><button type="button" data-act="del">刪除</button></div></div>'+
-      (ui.openLots===h.id?lotsHtml(h):'')+'</div>';
+      ySymRow+(ui.openLots===h.id?lotsHtml(h):'')+'</div>';
   }).join('');
 }
 $('#hList').addEventListener('click',function(e){
@@ -593,18 +700,24 @@ $('#hList').addEventListener('click',function(e){
     h.lots.push({date:date,shares:sign*n}); dirty(); persist(); renderHoldings();
   }
 });
+$('#hList').addEventListener('change',function(e){
+  if(!e.target.matches('.ySymEdit')) return;
+  var h=byId(e.target.dataset.id); if(!h) return;
+  h.ySymbol=e.target.value.trim(); dirty(); persist();
+});
 function flash(el,t){ el.textContent=t; clearTimeout(el._t); el._t=setTimeout(function(){el.textContent='';},2600); }
 $('#nhAdd').addEventListener('click',function(){
   var sym=$('#nhSym').value.trim().toUpperCase(), name=$('#nhName').value.trim(), mkt=$('#nhMkt').value;
   var sh=num($('#nhSh').value), date=$('#nhDate').value, px=num($('#nhPx').value), m=$('#nhMsg');
+  var ySym=$('#nhYSym').value.trim();
   if(!sym) return flash(m,'請填代號');
   if(sh==null) return flash(m,'請填股數(大於 0)');
   if(!DATE_RE.test(date)) return flash(m,'請選擇起算日');
   var id='h'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  state.holdings.push({id:id,symbol:sym,name:name,market:mkt,lots:[{date:date,shares:sh}]});
+  state.holdings.push({id:id,symbol:sym,name:name,ySymbol:ySym,market:mkt,lots:[{date:date,shares:sh}]});
   if(px!=null){ state.prices[date]=state.prices[date]||{}; state.prices[date][id]=px; }
   dirty(); persist();
-  ['#nhSym','#nhName','#nhSh','#nhPx'].forEach(function(s){$(s).value='';});
+  ['#nhSym','#nhName','#nhSh','#nhPx','#nhYSym'].forEach(function(s){$(s).value='';});
   renderHoldings(); flash(m,px==null?'已加入。記得在起算日補上收盤價作為基準':'已加入');
 });
 
@@ -613,12 +726,14 @@ function backupText(){ return JSON.stringify(state); }
 $('#openSet').addEventListener('click',function(){
   $('#setUD').value=state.settings.tw?'tw':'us';
   $('#setFx').value=state.settings.defaultFx;
+  $('#setProxy').value=state.settings.proxyUrl||'';
   $('#expArea').value=backupText();
   $('#impArea').value='';
   openDlg(dlgS);
 });
 $('#setUD').addEventListener('change',function(e){ state.settings.tw=e.target.value==='tw'; persist(); applyTheme(); renderCal(); renderPanel(); });
 $('#setFx').addEventListener('change',function(e){ var v=num(e.target.value); if(v!=null){ state.settings.defaultFx=v; dirty(); persist(); renderCal(); renderPanel(); } else e.target.value=state.settings.defaultFx; });
+$('#setProxy').addEventListener('change',function(e){ state.settings.proxyUrl=e.target.value.trim().replace(/\/+$/,''); persist(); });
 $('#expCopy').addEventListener('click',function(){
   var ta=$('#expArea'), m=$('#expMsg'); ta.value=backupText();
   function fallback(){ ta.select(); try{ document.execCommand('copy'); flash(m,'已複製'); }catch(e){ flash(m,'請手動全選複製'); } }
@@ -647,7 +762,7 @@ $('#impGo').addEventListener('click',function(){
   if(!o||!Array.isArray(o.holdings)||typeof o.prices!=='object') return flash(m,'內容不是有效的備份格式');
   armed(b,'再按一次確認覆蓋',function(){
     state=normalize(o); ui.openLots=null; dirty(); persist(); applyTheme();
-    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#expArea').value=backupText();
+    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#setProxy').value=state.settings.proxyUrl||''; $('#expArea').value=backupText();
     flash(m,'已還原');
   });
 });
