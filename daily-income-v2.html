@@ -206,6 +206,10 @@ textarea{ min-height:96px; font-size:12px; font-family:ui-monospace,Menlo,Consol
     </div>
     <p class="hint">合計檢視會把美股損益換算成新台幣。當天沒輸入匯率時,沿用最近一次輸入的匯率;都沒有時使用預設值。</p>
 
+    <h4>自動抓取</h4>
+    <div class="fld"><label for="setProxy">資料轉接站網址(選填)</label><input id="setProxy" autocomplete="off" placeholder="https://xxxx.yourname.workers.dev"></div>
+    <p class="hint">證交所與匯率網站不開放瀏覽器直接抓資料,要先部署一個免費的 Cloudflare Worker 轉接站,把網址填在這裡,「抓台股收盤價」「抓美元匯率」這兩顆按鈕才會真的抓得到。留空就只能手動輸入。</p>
+
     <h4>備份</h4>
     <p class="hint">資料只存在這個瀏覽器裡,換裝置或清除瀏覽資料就會消失。定期匯出一份,是唯一的保險。</p>
     <div class="row">
@@ -243,7 +247,7 @@ var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':
 var md=function(s){var d=parse(s);return (d.getMonth()+1)+'/'+d.getDate();};
 
 /* ---------- state & storage ---------- */
-function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32}};}
+function defaults(){return {v:1,holdings:[],prices:{},fx:{},settings:{tw:true,defaultFx:32,proxyUrl:''}};}
 function normalize(o){
   var s=defaults();
   if(!o||typeof o!=='object') return s;
@@ -273,6 +277,7 @@ function normalize(o){
   if(o.settings){
     if(typeof o.settings.tw==='boolean') s.settings.tw=o.settings.tw;
     var f=Number(o.settings.defaultFx); if(isFinite(f)&&f>0) s.settings.defaultFx=f;
+    if(typeof o.settings.proxyUrl==='string') s.settings.proxyUrl=o.settings.proxyUrl.trim().replace(/\/+$/,'');
   }
   return s;
 }
@@ -515,8 +520,9 @@ function parseROC(s){
 }
 function fetchTWClose(btn){
   var msg=$('#twMsg'); if(!msg) return;
+  if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
   btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
-  fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL')
+  fetch(state.settings.proxyUrl+'/tw')
     .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
     .then(function(list){
       if(!Array.isArray(list)||!list.length) throw new Error('empty');
@@ -542,8 +548,9 @@ function fetchTWClose(btn){
 }
 function fetchFXRate(btn){
   var msg=$('#fxMsg'); if(!msg) return;
+  if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
   btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
-  fetch('https://open.er-api.com/v6/latest/USD')
+  fetch(state.settings.proxyUrl+'/fx')
     .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
     .then(function(j){
       if(!j||j.result!=='success'||!j.rates||typeof j.rates.TWD!=='number') throw new Error('bad');
@@ -673,12 +680,14 @@ function backupText(){ return JSON.stringify(state); }
 $('#openSet').addEventListener('click',function(){
   $('#setUD').value=state.settings.tw?'tw':'us';
   $('#setFx').value=state.settings.defaultFx;
+  $('#setProxy').value=state.settings.proxyUrl||'';
   $('#expArea').value=backupText();
   $('#impArea').value='';
   openDlg(dlgS);
 });
 $('#setUD').addEventListener('change',function(e){ state.settings.tw=e.target.value==='tw'; persist(); applyTheme(); renderCal(); renderPanel(); });
 $('#setFx').addEventListener('change',function(e){ var v=num(e.target.value); if(v!=null){ state.settings.defaultFx=v; dirty(); persist(); renderCal(); renderPanel(); } else e.target.value=state.settings.defaultFx; });
+$('#setProxy').addEventListener('change',function(e){ state.settings.proxyUrl=e.target.value.trim().replace(/\/+$/,''); persist(); });
 $('#expCopy').addEventListener('click',function(){
   var ta=$('#expArea'), m=$('#expMsg'); ta.value=backupText();
   function fallback(){ ta.select(); try{ document.execCommand('copy'); flash(m,'已複製'); }catch(e){ flash(m,'請手動全選複製'); } }
@@ -707,7 +716,7 @@ $('#impGo').addEventListener('click',function(){
   if(!o||!Array.isArray(o.holdings)||typeof o.prices!=='object') return flash(m,'內容不是有效的備份格式');
   armed(b,'再按一次確認覆蓋',function(){
     state=normalize(o); ui.openLots=null; dirty(); persist(); applyTheme();
-    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#expArea').value=backupText();
+    $('#setUD').value=state.settings.tw?'tw':'us'; $('#setFx').value=state.settings.defaultFx; $('#setProxy').value=state.settings.proxyUrl||''; $('#expArea').value=backupText();
     flash(m,'已還原');
   });
 });
