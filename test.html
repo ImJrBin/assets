@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>台北目前時間</title>
+</head>
+<body>
+  <h1>台北目前時間</h1>
+  <time id="taipei-time" aria-live="polite"></time>
+
+  <script>
+    const timeElement = document.getElementById("taipei-time");
+
+    function updateTaipeiTime() {
+      timeElement.textContent = new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "Asia/Taipei",
+        dateStyle: "full",
+        timeStyle: "medium",
+        hour12: false
+      }).format(new Date());
+    }
+
+    updateTaipeiTime();
+    setInterval(updateTaipeiTime, 1000);
+  </script>
+</body>
+</html>
