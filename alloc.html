@@ -630,6 +630,7 @@ async function gFetch(url) {
 }
 
 async function loadAllData() {
+  const START_YEAR = 2021; // 比照負債儀表板，2021 以前格式較舊
   try {
     showLoading('搜尋 Balance Sheet 試算表...');
     const q = encodeURIComponent(
@@ -639,8 +640,11 @@ async function loadAllData() {
     const driveData = await gFetch(
       `https://www.googleapis.com/drive/v2/files?q=${q}&maxResults=50&fields=items(id,title)`
     );
-    const files = (driveData.items || []).sort((a,b) => a.title > b.title ? 1 : -1);
-    if (!files.length) throw new Error('找不到 Balance Sheet 試算表，請確認 FOLDER_ID 與權限');
+    // 過濾 2021 年（含）以後的檔案，並依年份排序
+    const files = (driveData.items || [])
+      .filter(f => { const m = f.title.match(/(\d{4})/); return m ? parseInt(m[1]) >= START_YEAR : false; })
+      .sort((a,b) => a.title > b.title ? 1 : -1);
+    if (!files.length) throw new Error('找不到 2021 年（含）以後的 Balance Sheet，請確認 FOLDER_ID 與權限');
 
     allSheets = [];
     for (const f of files) {
@@ -652,13 +656,15 @@ async function loadAllData() {
       for (const sh of sheets) {
         const t = sh.properties.title;
         if (!/\d{6}/.test(t)) continue;
-        const enc = encodeURIComponent(t);
-        const d   = await gFetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${f.id}/values/${enc}!A1:Z100`
-        );
-        const rows = d.values || [];
-        const parsed = parseSheet(rows, t);
-        if (parsed) allSheets.push(parsed);
+        try {
+          const enc = encodeURIComponent(t);
+          const d   = await gFetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${f.id}/values/${enc}!A1:Z80`
+          );
+          const rows = d.values || [];
+          const parsed = parseSheet(rows, t);
+          if (parsed) allSheets.push(parsed);
+        } catch(e) { /* 略過解析失敗的分頁 */ }
       }
     }
 
@@ -766,20 +772,41 @@ function parseSheet(rows, sheetName) {
 function buildMonthTabs() {
   const el = document.getElementById('monthTabs');
   el.innerHTML = '';
-  // 顯示最近 12 個月
-  const recent = allSheets.slice(-12);
-  recent.forEach(s => {
-    const y = s.month.slice(0,4), mo = s.month.slice(4,6);
-    const btn = document.createElement('button');
-    btn.className = 'month-tab' + (s.month === currentMonth ? ' on' : '');
-    btn.textContent = `${y}/${mo}`;
-    btn.onclick = () => {
-      document.querySelectorAll('.month-tab').forEach(b => b.classList.remove('on'));
-      btn.classList.add('on');
-      currentMonth = s.month;
-      renderMonth(currentMonth);
-    };
-    el.appendChild(btn);
+
+  // 按年份分組，年份標籤 + 各月 tab
+  const byYear = {};
+  allSheets.forEach(s => {
+    const y = s.month.slice(0,4);
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push(s);
+  });
+
+  Object.keys(byYear).sort().forEach(year => {
+    // 年份分隔標籤
+    const yLabel = document.createElement('span');
+    yLabel.style.cssText = 'font-size:11px;color:var(--text3);align-self:center;padding:0 4px;flex-shrink:0';
+    yLabel.textContent = year;
+    el.appendChild(yLabel);
+
+    byYear[year].forEach(s => {
+      const mo = s.month.slice(4,6);
+      const btn = document.createElement('button');
+      btn.className = 'month-tab' + (s.month === currentMonth ? ' on' : '');
+      btn.textContent = mo + '月';
+      btn.onclick = () => {
+        document.querySelectorAll('.month-tab').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        currentMonth = s.month;
+        renderMonth(currentMonth);
+      };
+      el.appendChild(btn);
+    });
+  });
+
+  // 捲到最新月份
+  requestAnimationFrame(() => {
+    const active = el.querySelector('.month-tab.on');
+    if (active) active.scrollIntoView({ inline: 'nearest', behavior: 'smooth' });
   });
 }
 
