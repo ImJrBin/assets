@@ -450,10 +450,11 @@ body {
     <div>
       <h1>🌿 資產配置健診</h1>
       <div class="sub" id="pageSubtitle">攻守三層框架 · 月度健診</div>
+      <div style="margin-top:.3rem" id="srcBadge"></div>
     </div>
-    <div style="display:flex;gap:.5rem">
+    <div style="display:flex;gap:.5rem;align-items:flex-start">
       <button class="btn-sm" onclick="reload()">↻ 重新載入</button>
-      <button class="btn-sm" onclick="signOut()">登出 🚪</button>
+      <button class="btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">登出 🚪</button>
     </div>
   </div>
 
@@ -490,7 +491,7 @@ body {
     <div style="margin-top:.8rem;padding:.6rem .9rem;background:#fffdf4;border:1.5px solid #d8e8c0;border-radius:var(--r-sm);font-size:13px;font-weight:700;color:var(--green)">
       🎯 年度可投入合計：<strong>約 58.2 萬</strong>（薪資節餘 24 + 0050 配息 27 + 006208 1.5 + 2330 5.7）
     </div>
-    <div class="foot-note">* 薪資節餘以月薪 79k 扣月支出 11 萬後每月 2 萬計。配息為年化估算，實際依除息時點入帳。</div>
+    <div class="foot-note">* 薪資節餘：月支出 11 萬後每月約 2 萬可再投入。配息為年化估算，實際依除息時點入帳。</div>
   </div>
 
   <!-- 攻守比橫條 -->
@@ -587,7 +588,6 @@ body {
         <div class="sub-row"><span>🌾 0050 年配息</span><span class="v">27.0 萬</span></div>
         <div class="sub-row"><span>🌾 006208 年配息</span><span class="v">1.5 萬</span></div>
         <div class="sub-row"><span>🌾 2330 年配息</span><span class="v">5.7 萬</span></div>
-        <div class="sub-row"><span>🌐 美股 ETF（估）</span><span class="v" id="usDivRow">— 萬</span></div>
         <div class="sub-row" style="font-weight:700;color:var(--text)"><span>合計年配息</span><span class="v" id="totalDivRow">— 萬</span></div>
       </div>
     </div>
@@ -658,7 +658,7 @@ const CASH_MONTHS_TARGET = 31;
 
 // 已知固定配息（實際明細，不用殖利率估算）
 const FIXED_DIV = { tw0050: 27, tw006208: 1.5, tw2330: 5.7 };
-const US_DIV_RATE = 0.003;    // 美股 ETF 約 0.3% 殖利率
+// 美股 ETF 配息不計入再投入（直接忽略）
 
 // 三層目標 & 容忍帶
 const TARGET = { t1: 20, t2: 45, t3: 35 };
@@ -669,6 +669,7 @@ let accessToken = null;
 let allSheets   = [];
 let curMonth    = null;
 let levChart    = null;
+let dataSource  = 'sheets'; // 'pnl' | 'sheets'
 
 if (CLIENT_ID) document.getElementById('clientIdInput').value = CLIENT_ID;
 
@@ -678,6 +679,186 @@ function saveClientId() {
   localStorage.setItem('bs_client_id', v);
   CLIENT_ID = v;
   location.reload();
+}
+
+// ══════════════════════════════════════════
+// 損益日曆模式（localStorage pnl-calendar-v1）
+// ══════════════════════════════════════════
+const PNL_KEY = 'pnl-calendar-v1';
+
+// 股票代號 → 層別對應
+const TIER1_SYM  = new Set(['00631L','00685R','2330']);
+const TIER2_SYM  = new Set(['0050','006208']);
+const TIER3_US   = new Set(['VOO','VT','VTI','VUAA','VWRA']);
+// 美股美元資產要額外辨識（也算層三）
+
+// 各持股的顯示名稱（for 層卡 detail）
+const SYM_LABEL = {
+  '00631L': '00631L 元大台灣50正2',
+  '00685R': '00685R 群益台灣正2',
+  '2330':   '2330 台積電',
+  '0050':   '0050 元大台灣50',
+  '006208': '006208 富邦台50',
+  'VOO':    'VOO（美股）',
+  'VT':     'VT（美股）',
+  'VTI':    'VTI（美股）',
+  'VUAA':   'VUAA（IB）',
+  'VWRA':   'VWRA（IB）',
+};
+
+// 計算到指定日期的持股股數（累計 lots）
+function sharesAt(h, d) {
+  let s = 0;
+  (h.lots || []).forEach(l => { if (l.date <= d) s += l.shares; });
+  return s;
+}
+
+// 取得最新的 FX 匯率
+function latestFx(pnl) {
+  const fx = pnl.fx || {};
+  const dates = Object.keys(fx).sort();
+  if (!dates.length) return (pnl.settings && pnl.settings.defaultFx) || 32;
+  return fx[dates[dates.length - 1]];
+}
+
+// 取得某持股最新收盤價，同時回傳那個價格對應的日期
+function latestPriceAndDate(hid, prices) {
+  const dates = Object.keys(prices).sort().reverse();
+  for (const d of dates) {
+    const p = prices[d][hid];
+    if (p != null && p > 0) return { price: p, date: d };
+  }
+  return null;
+}
+
+// ── 從損益日曆讀取並計算今日持股值（萬）──
+function loadFromPnl() {
+  try {
+    const raw = localStorage.getItem(PNL_KEY);
+    if (!raw) return null;
+    const pnl = JSON.parse(raw);
+    if (!pnl || !Array.isArray(pnl.holdings) || !pnl.prices) return null;
+
+    const fx = latestFx(pnl);
+    const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // 累計各層金額（元，與 Google Sheets 模式單位一致）
+    let h00631 = 0, h00685 = 0, h2330 = 0;
+    let h0050 = 0, h006208 = 0;
+    let hVOO = 0, hVT = 0, hVTI = 0, hVUAA = 0, hVWRA = 0;
+    const unknownT3 = []; // 美股但不在預設清單（元）
+
+    let latestPriceDate = ''; // 記錄所有持股中最新的那個價格日期
+
+    for (const h of pnl.holdings) {
+      const sym = h.symbol || '';
+      const shares = sharesAt(h, now);
+      if (shares <= 0) continue;
+      const pd = latestPriceAndDate(h.id, pnl.prices);
+      if (!pd) continue;
+      const { price, date: priceDate } = pd;
+      if (priceDate > latestPriceDate) latestPriceDate = priceDate;
+      const isUS = (h.market || '').toUpperCase() === 'US';
+      const valTWD = isUS ? (shares * price * fx) : (shares * price); // 元
+
+      if (sym === '00631L') h00631 += valTWD;
+      else if (sym === '00685R') h00685 += valTWD;
+      else if (sym === '2330') h2330 += valTWD;
+      else if (sym === '0050') h0050 += valTWD;
+      else if (sym === '006208') h006208 += valTWD;
+      else if (sym === 'VOO')  hVOO  += valTWD;
+      else if (sym === 'VT')   hVT   += valTWD;
+      else if (sym === 'VTI')  hVTI  += valTWD;
+      else if (sym === 'VUAA') hVUAA += valTWD;
+      else if (sym === 'VWRA') hVWRA += valTWD;
+      else if (isUS) unknownT3.push({ sym, valTWD });
+    }
+
+    const usTotal = hVOO + hVT + hVTI + hVUAA + hVWRA +
+                    unknownT3.reduce((s,x)=>s+x.valTWD, 0);
+
+    // 現金：損益日曆沒有現金，由使用者手動輸入（單位萬，轉換為元）
+    const cashWanInput = getPnlCash();
+    const totalCash    = cashWanInput * 10000;
+
+    return {
+      month: now.slice(0,7).replace('-',''), // "202610"
+      dateLabel: now,
+      h00631, h00685, h2330,
+      t1: h00631 + h00685 + h2330,
+      h0050, h006208,
+      t2: h0050 + h006208,
+      hVOO, hVT, hVTI, hVUAA, hVWRA,
+      usTotal,
+      t3: usTotal + totalCash,
+      cActivity: totalCash, cIB: 0, cZH: 0, cYD: 0,
+      totalCash,
+      fxRate: fx,
+      unknownT3,
+    };
+  } catch(e) {
+    console.warn('損益日曆解析失敗', e);
+    return null;
+  }
+}
+
+// ── 現金緩衝：從 localStorage 手動存取 ──
+const CASH_LS_KEY = 'alloc-cash-v1';
+function getPnlCash() {
+  try { return parseFloat(localStorage.getItem(CASH_LS_KEY)) || 0; } catch(e){ return 0; }
+}
+function savePnlCash() {
+  const v = parseFloat(document.getElementById('pnlCashInput').value);
+  if (!isFinite(v) || v < 0) return;
+  localStorage.setItem(CASH_LS_KEY, v);
+  renderPnlMode();
+}
+
+// ── 損益日曆模式渲染 ──
+function renderPnlMode() {
+  const d = loadFromPnl();
+  if (!d) {
+    showErr('找不到損益日曆資料（localStorage: pnl-calendar-v1），請先在「每日損益日曆」頁面記錄持股。');
+    showApp();
+    return;
+  }
+  // 隱藏 Google Sheets 月分 Tabs，改用「今日快照」標籤
+  document.getElementById('monthTabs').innerHTML =
+    `<span class="year-sep">損益日曆</span>` +
+    `<button class="month-tab on" onclick="renderPnlMode()">今日快照</button>`;
+
+  // 現金手動輸入欄
+  if (!document.getElementById('cashEditBar')) {
+    const bar = document.createElement('div');
+    bar.id = 'cashEditBar';
+    bar.style.cssText = 'display:flex;align-items:center;gap:.6rem;margin:.4rem 0 .8rem;flex-wrap:wrap';
+    bar.innerHTML = `
+      <span style="font-size:13px;color:var(--text2)">🏦 現金緩衝（萬，含活存+IB+證券戶）：</span>
+      <input id="pnlCashInput" type="number" step="1" min="0" placeholder="輸入萬元"
+        style="width:90px;padding:5px 8px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--text);font-size:14px"
+        value="${getPnlCash() || ''}" onkeydown="if(event.key==='Enter')savePnlCash()">
+      <button onclick="savePnlCash()" style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:5px 14px;font-size:13px;cursor:pointer">儲存</button>
+      <span style="font-size:12px;color:var(--text2)">匯率：${d.fxRate.toFixed(1)} TWD/USD</span>`;
+    const app = document.getElementById('app');
+    const subtitle = document.getElementById('pageSubtitle');
+    subtitle.parentNode.insertBefore(bar, subtitle.nextSibling);
+  } else {
+    document.getElementById('pnlCashInput').value = getPnlCash() || '';
+  }
+
+  // 更新標題
+  const dt = d.dateLabel;
+  document.getElementById('pageSubtitle').textContent =
+    `${dt} 即時快照 · 資料來源：損益日曆`;
+
+  // 更新資料來源 badge
+  const srcBadge = document.getElementById('srcBadge');
+  if (srcBadge)
+    srcBadge.innerHTML = `<span class="badge badge-green" style="font-size:11px">📱 損益日曆 · 每日即時</span>`;
+
+  // 共用渲染（與 Google Sheets 路徑相同的 renderMonth 邏輯）
+  renderData(d);
+  showApp();
 }
 
 // ══ Google 登入 ══
@@ -701,7 +882,10 @@ function signOut() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 }
-function reload() { showLoading('🍀 重新載入...'); loadAllData(); }
+function reload() {
+  if (dataSource === 'pnl') { renderPnlMode(); return; }
+  showLoading('🍀 重新載入...'); loadAllData();
+}
 
 // ══ UI 工具 ══
 function showLoading(msg) {
@@ -718,8 +902,34 @@ function showErr(msg) {
   document.getElementById('app').style.display = 'block';
   const b = document.getElementById('errBox');
   b.textContent = msg; b.style.display = 'block';
-  setTimeout(() => b.style.display = 'none', 7000);
+  setTimeout(() => b.style.display = 'none', 9000);
 }
+
+// ══ 啟動：自動偵測資料來源 ══
+window.addEventListener('DOMContentLoaded', function() {
+  const pnlData = localStorage.getItem(PNL_KEY);
+  if (pnlData) {
+    // 有損益日曆資料 → 直接進入即時模式，跳過 Google 登入
+    dataSource = 'pnl';
+    showLoading('📱 讀取損益日曆資料...');
+    setTimeout(() => { renderPnlMode(); }, 300);
+  } else {
+    // 沒有損益日曆 → 顯示 Google 登入畫面（原流程）
+    dataSource = 'sheets';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loadingScreen').style.display = 'none';
+  }
+});
+
+// ══ 損益日曆一更新 localStorage，資產配置自動重算 ══
+// （兩個頁籤同時開著時，損益日曆 commit() 寫完就會觸發這裡）
+window.addEventListener('storage', function(e) {
+  if (e.key !== PNL_KEY) return;
+  if (dataSource === 'pnl') {
+    // 靜默重算，不顯示 loading（避免閃爍）
+    renderPnlMode();
+  }
+});
 const w  = (n, d=0) => n.toLocaleString('zh-TW', {minimumFractionDigits:d, maximumFractionDigits:d});
 const pf = (n) => n.toFixed(1);
 
@@ -890,13 +1100,21 @@ function buildMonthTabs() {
   });
 }
 
-// ══ 渲染月份 ══
+// ══ 渲染月份（Google Sheets 模式）══
 function renderMonth(month) {
   const d = allSheets.find(s => s.month === month);
   if (!d) return;
-
   const y = month.slice(0,4), mo = month.slice(4,6);
   document.getElementById('pageSubtitle').textContent = `${y} 年 ${mo} 月健診 · 攻守三層框架`;
+  const srcBadge = document.getElementById('srcBadge');
+  if (srcBadge) srcBadge.innerHTML = `<span class="badge badge-amber" style="font-size:11px">📊 Google Sheets · 每月更新</span>`;
+  const sb = document.getElementById('signOutBtn');
+  if (sb) sb.style.display = '';
+  renderData(d);
+}
+
+// ══ 統一資料渲染（PNL 或 Sheets 共用）══
+function renderData(d) {
 
   const total = d.t1 + d.t2 + d.t3;
   const tWan  = total / 10000;
@@ -932,11 +1150,9 @@ function renderMonth(month) {
   renderActions(p1, p2, p3, d, tWan);
 
   // 被動收入（用實際明細）
-  const usDiv  = (d.usTotal/10000) * US_DIV_RATE;
-  const totDiv = FIXED_DIV.tw0050 + FIXED_DIV.tw006208 + FIXED_DIV.tw2330 + usDiv;
+  const totDiv = FIXED_DIV.tw0050 + FIXED_DIV.tw006208 + FIXED_DIV.tw2330;
   const cov    = totDiv / ANNUAL_EXP * 100;
   document.getElementById('coverageNum').innerHTML = `${w(cov,0)}<span>%</span>`;
-  document.getElementById('usDivRow').textContent   = `${pf(usDiv)} 萬`;
   document.getElementById('totalDivRow').textContent = `${pf(totDiv)} 萬`;
   const covFill = document.getElementById('coverageFill');
   covFill.style.width = Math.min(cov, 130) / 1.3 + '%';
@@ -959,10 +1175,18 @@ function renderMonth(month) {
   const cashWan = d.totalCash/10000;
   const cashMo  = cashWan / MONTHLY_EXP;
   document.getElementById('cashNum').innerHTML    = `${w(cashWan,0)}<span>萬</span>`;
-  document.getElementById('cashActivity').textContent = `${w(d.cActivity/10000,1)} 萬`;
-  document.getElementById('cashIB').textContent   = `${w(d.cIB/10000,1)} 萬`;
-  document.getElementById('cashZH').textContent   = `${w(d.cZH/10000,1)} 萬`;
-  document.getElementById('cashYD').textContent   = `${w(d.cYD/10000,1)} 萬`;
+  if (dataSource === 'pnl') {
+    // PNL 模式：手動輸入的現金合計顯示在「活存」列，其餘隱藏
+    document.getElementById('cashActivity').textContent = `${w(cashWan,1)} 萬（手動輸入合計）`;
+    document.getElementById('cashIB').textContent   = '—';
+    document.getElementById('cashZH').textContent   = '—';
+    document.getElementById('cashYD').textContent   = '—';
+  } else {
+    document.getElementById('cashActivity').textContent = `${w(d.cActivity/10000,1)} 萬`;
+    document.getElementById('cashIB').textContent   = `${w(d.cIB/10000,1)} 萬`;
+    document.getElementById('cashZH').textContent   = `${w(d.cZH/10000,1)} 萬`;
+    document.getElementById('cashYD').textContent   = `${w(d.cYD/10000,1)} 萬`;
+  }
   document.getElementById('cashMonthsLabel').textContent = `${cashMo.toFixed(0)} 個月 ／ 目標 ${CASH_MONTHS_TARGET} 個月`;
   // 徽章
   const cb = document.getElementById('cashBadge');
@@ -1049,8 +1273,7 @@ function renderActions(p1, p2, p3, d, totalWan) {
     items.push(['ok','✅',`層三（全球分散+現金）${pf(p3)}%，防禦配置符合目標，持續加碼 VUAA/VWRA 即可。`]);
 
   // 被動收入
-  const usDiv  = (d.usTotal/10000) * US_DIV_RATE;
-  const totDiv = FIXED_DIV.tw0050 + FIXED_DIV.tw006208 + FIXED_DIV.tw2330 + usDiv;
+  const totDiv = FIXED_DIV.tw0050 + FIXED_DIV.tw006208 + FIXED_DIV.tw2330;
   const cov    = totDiv / ANNUAL_EXP * 100;
   if (cov >= 100)
     items.push(['ok','🎉',`被動收入覆蓋率 ${w(cov,0)}%，年配息（${pf(totDiv)} 萬）已超過年支出，恭喜達到財務自由門檻！ 🌿`]);
