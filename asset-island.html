@@ -156,7 +156,7 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
 </nav>
 
 <section id="sheet" class="panel" aria-live="polite">
-  <div class="hd"><h2>點一座島</h2><button class="x" id="closeSheet" aria-label="收起" hidden>×</button></div>
+  <div class="hd"><h2>點一座島</h2><button class="x" id="closeSheet" type="button" aria-label="關閉">×</button></div>
   <p class="hint">島的面積＝金額。拖曳旋轉、滾輪或雙指縮放。右側可以模擬壓力測試；右上「全景」隨時回到整張地圖，看哪些島會下沉、哪些站得住。</p>
 </section>
 
@@ -211,7 +211,7 @@ const ROLES=[
   {id:'safe',name:'安全墊',d:'活存與證券戶現金，大跌時不會沉的部分。'},
   {id:'misc',name:'零星',d:'基金與外幣零頭，可整理的小部位。'},
 ];
-const HOME = {id:'home', name:'家', pos:[-17,12], r:2.2};
+const HOME = {id:'home', name:'家', pos:[-17,12.5], r:2.8};
 const TARGET_MONTHLY = 100000, LEV_CAP = 2000000;
 
 ISLANDS.forEach(i=>i.value=i.items.reduce((s,x)=>s+x[1],0));
@@ -389,6 +389,51 @@ function makeIsland(isl){
 }
 ISLANDS.forEach(makeIsland);
 
+/* 行人、貓、狗 */
+const SKIN=M(0xf0c8a3),HAIR=M(0x2b2522),PANTS=M(0x44506a);
+const shirtMats=[0xe07a5f,0x3d5a80,0xf2cc8f,0x81b29a,0xf6f3ea,0x6d597a,0xd9a441].map(M);
+const familyMembers=[];
+function makePerson(h,shirt,hair='short'){
+  const g=new THREE.Group(),mat=typeof shirt==='number'?M(shirt):shirt;
+  const leg=new THREE.Mesh(new THREE.BoxGeometry(h*.26,h*.42,h*.16),PANTS);leg.position.y=h*.21;g.add(leg);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(h*.14,h*.17,h*.36,6),mat);body.position.y=h*.6;g.add(body);
+  const head=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.13,1),SKIN);head.position.y=h*.9;g.add(head);
+  const hr=new THREE.Mesh(new THREE.SphereGeometry(h*.14,8,6,0,Math.PI*2,0,Math.PI*.55),HAIR);hr.position.y=h*.92;g.add(hr);
+  if(hair==='long'){const l=new THREE.Mesh(new THREE.BoxGeometry(h*.26,h*.22,h*.1),HAIR);l.position.set(0,h*.8,-h*.1);g.add(l)}
+  if(hair==='pony'){const p=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.07,0),HAIR);p.position.set(0,h*.92,-h*.16);g.add(p)}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g;
+}
+function makePet(kind,color,socks){
+  const g=new THREE.Group(),m=M(color),L=kind==='dog'?1.25:1;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(.13*L,.1*L,.26*L),m);b.position.y=.12*L;g.add(b);
+  const h=new THREE.Mesh(new THREE.BoxGeometry(.11*L,.1*L,.1*L),m);h.position.set(0,.2*L,.15*L);g.add(h);
+  if(kind==='cat'){for(const x of[-.035,.035]){const e=new THREE.Mesh(new THREE.ConeGeometry(.022,.05,4),m);e.position.set(x,.27,.15);g.add(e)}
+    const t=new THREE.Mesh(new THREE.BoxGeometry(.025,.025,.16),m);t.position.set(0,.2,-.17);t.rotation.x=-.8;g.add(t)}
+  else{const e=new THREE.Mesh(new THREE.BoxGeometry(.13*L,.05*L,.04*L),m);e.position.set(0,.24*L,.13*L);g.add(e);
+    const t=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.1),m);t.position.set(0,.2*L,-.16*L);t.rotation.x=-.6;g.add(t)}
+  const fm=socks?M(socks):m;
+  for(const[x,z]of[[-.045,.09],[.045,.09],[-.045,-.09],[.045,-.09]]){const f=new THREE.Mesh(new THREE.BoxGeometry(.035*L,.07*L,.035*L),fm);f.position.set(x*L,.035*L,z*L);g.add(f)}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g;
+}
+const walkers=[];
+const hexR=(th,R)=>{const k=((th%(Math.PI/3))+Math.PI/3)%(Math.PI/3)-Math.PI/6;return R*Math.cos(Math.PI/6)/Math.cos(k)};
+function addWalker(obj,host,kind){
+  host.root.add(obj);
+  walkers.push({obj,host,kind,th:rand()*Math.PI*2,sp:(kind==='person'?.32:kind==='dog'?.5:.22)*(.75+rand()*.5),dir:rand()>.5?1:-1,ph:rand()*6,pause:0});
+}
+function updateWalkers(dt,t){
+  walkers.forEach(w=>{
+    const isl=w.host,s=isl.body?Math.max(Math.sqrt(Math.max(isl.cur,1e-4)),.25):1;
+    const vis=!isl.body||isl.cur>.15;w.obj.visible=vis;if(!vis)return;
+    if(w.pause>0)w.pause-=dt;else{w.th+=w.dir*w.sp*dt/isl.r;if(Math.random()<.002)w.pause=1+Math.random()*2;if(Math.random()<.0015)w.dir*=-1}
+    const R=hexR(w.th,isl.r*.97)*s;
+    w.obj.position.set(Math.sin(w.th)*R,(isl.body?isl.body.position.y:0)+.375,Math.cos(w.th)*R);
+    w.obj.rotation.y=w.th+(w.dir>0?Math.PI/2:-Math.PI/2);
+    if(w.pause<=0&&w.kind==='person')w.obj.position.y+=Math.abs(Math.sin(t*9+w.ph))*.025;
+  });
+  familyMembers.forEach((p,i)=>{p.position.y=Math.abs(Math.sin(t*1.6+i))*.012});
+}
+
 /* 家（不計價） */
 (()=>{
   const r=HOME.r,root=new THREE.Group();root.position.set(HOME.pos[0],0,HOME.pos[1]);
@@ -397,18 +442,42 @@ ISLANDS.forEach(makeIsland);
   const grass=new THREE.Mesh(new THREE.CylinderGeometry(r*.9,r*.92,.3,6),M(0xa6c27c));grass.position.y=.5;grass.receiveShadow=true;
   root.add(base,beach,grass);
   const top=new THREE.Group();top.position.y=.65;root.add(top);
-  // 老公寓：四層
-  box(top,1.6,2.6,1.2,mats.white,-.2,-.2);
-  for(let f=0;f<4;f++)for(let w=0;w<3;w++)box(top,.28,.25,.02,mats.glass,-.75+w*.55,.41,.35+f*.6);
-  box(top,1.7,.12,1.3,mats.grey,-.2,-.2,2.6);
-  // 兩隻貓：橘、黑
-  const cat=(x,z,mat)=>{box(top,.32,.2,.18,mat,x,z);box(top,.16,.16,.16,mat,x+.2,z,.14)};
-  cat(.9,.7,mats.orange);cat(1.1,.1,mats.black);
-  // 車
-  box(top,.9,.35,.45,mats.roof2,.9,-.9);box(top,.55,.25,.4,mats.glass,.85,-.9,.35);
-  tree(top,-1.2,1,.8);
+  // 老公寓：五層，頂樓水塔
+  const ax=-.55,az=-.55,fl=.62;
+  box(top,1.9,fl*5,1.35,mats.white,ax,az);
+  for(let f=0;f<5;f++){
+    for(let w=0;w<3;w++)box(top,.36,.28,.03,mats.glass,ax-.6+w*.6,az+.69,.2+f*fl);
+    if(f>0)box(top,1.92,.05,1.37,mats.grey,ax,az,f*fl);
+  }
+  box(top,.4,.5,.04,mats.wood,ax,az+.69,0);
+  box(top,2.0,.1,1.45,mats.grey,ax,az,fl*5);
+  const tank=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.4,10),M(0x4e86a6));tank.position.set(ax+.5,fl*5+.35,az-.25);tank.castShadow=true;top.add(tank);
+  box(top,.5,.3,.45,M(0x8f9a8c),ax-.45,az-.2,fl*5+.1);
+  // 灰色 Touran
+  const car=new THREE.Group();
+  const grey=M(0x8c9296),dk=M(0x2d3134),win=M(0x4b5a63);
+  const cb=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;car.add(b)};
+  cb(1.2,.3,.56,grey,0,.27,0);
+  cb(.92,.3,.52,grey,-.08,.56,0);
+  cb(.94,.2,.54,win,-.08,.56,0);
+  cb(.06,.12,.4,M(0xf3efe6),.6,.3,0);
+  for(const[x,z]of[[.38,.27],[.38,-.27],[-.38,.27],[-.38,-.27]]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.08,10),dk);w.rotation.x=Math.PI/2;w.position.set(x,.13,z);car.add(w)}
+  car.position.set(1.15,0,-1.0);car.rotation.y=-.35;top.add(car);
+  // 一家四口，站在公寓前
+  const fam=[[.58,0x3d5a80,'short',.85],[.52,0xe07a5f,'long',.45],[.46,0x81b29a,'pony',.05],[.42,0xf2cc8f,'short',-.3]];
+  fam.forEach(([h,c,hair,x])=>{const p=makePerson(h,c,hair);p.position.set(x-.2,0,.75);p.rotation.y=.25;top.add(p);familyMembers.push(p)});
+  tree(top,-1.5,.9,.8);
   HOME.root=root;scene.add(root);
 })();
+
+ISLANDS.forEach(isl=>{
+  const n=Math.min(9,Math.max(1,Math.round(isl.r*.9)));
+  for(let k=0;k<n;k++)addWalker(makePerson(.42+rand()*.12,shirtMats[Math.floor(rand()*shirtMats.length)],rand()>.6?'long':'short'),isl,'person');
+  const pets=isl.kind==='city'?3:rand()>.45?1:0;
+  for(let k=0;k<pets;k++){const dog=rand()>.5;addWalker(makePet(dog?'dog':'cat',dog?[0xc89a63,0xf2ece0,0x5a4434][k%3]:[0x9a9a9a,0xe8a35a][k%2]),isl,dog?'dog':'cat')}
+});
+addWalker(makePet('cat',0xe0913f),HOME,'cat');
+addWalker(makePet('cat',0x262626,0xf4f1ea),HOME,'cat');
 
 /* 小船 */
 const boats=[];
@@ -476,10 +545,11 @@ let updateLedger=function(){
 
 const sheet=document.getElementById('sheet');
 function renderSheet(isl){
+  sheet.hidden=false;
   const v=valNow(isl),f=factorOf(isl,SCEN[scen]);
   const total=ISLANDS.reduce((a,i)=>a+valNow(i),0);
   const rows=isl.items.map(([n,x])=>`<tr><td>${n}</td><td class="num">${fmt(x*f)}</td></tr>`).join('');
-  sheet.innerHTML=`<div class="hd"><h2>${isl.name}</h2><span><span class="v num">NT$ ${fmt(v)}</span> <button class="x" id="closeSheet" aria-label="收起">×</button></span></div>
+  sheet.innerHTML=`<div class="hd"><h2>${isl.name}</h2><span><span class="v num">NT$ ${fmt(v)}</span> <button class="x" id="closeSheet" type="button" aria-label="關閉">×</button></span></div>
   <div class="row"><span>占總資產</span><span class="num">${(v/total*100).toFixed(1)}%${f!==1?`　<span style="color:var(--bad)">${f===0?'歸零':((f-1)*100).toFixed(0)+'%'}</span>`:''}</span></div>
   ${isl.items.length>1||f!==1?`<table>${rows}</table>`:''}
   <p>${isl.note}</p>`;
@@ -491,14 +561,15 @@ function select(isl){
   flyTo(isl.pos[0],isl.pos[1],isl.r);
 }
 function selectHome(){
+  sheet.hidden=false;
   selected=null;ISLANDS.forEach(i=>i.tag.classList.remove('sel'));HOME.tag.classList.add('sel');
-  sheet.innerHTML=`<div class="hd"><h2>家</h2><span><span class="v" style="font-size:14px;color:var(--ink-2)">不計入淨資產</span> <button class="x" id="closeSheet" aria-label="收起">×</button></span></div>
-  <p>四十幾年的老公寓，無房貸。之後太太還會繼承一間。房子不放進資產負債表，但它是這張地圖上最穩的一座島：不管市場怎麼沉，住的地方不會動。</p>`;
+  sheet.innerHTML=`<div class="hd"><h2>家</h2><span><span class="v" style="font-size:14px;color:var(--ink-2)">不計入淨資產</span> <button class="x" id="closeSheet" type="button" aria-label="關閉">×</button></span></div>
+  <p>四十幾年的五層樓老公寓，無房貸；樓下停著那台灰色 Touran，Neko 和 Coco 在附近散步。之後太太還會繼承一間。房子不放進資產負債表，但它是這張地圖上最穩的一座島：不管市場怎麼沉，住的地方不會動。</p>`;
   sheet.querySelector('#closeSheet').addEventListener('click',clearSel);
   flyTo(HOME.pos[0],HOME.pos[1],HOME.r);
 }
-const defaultSheet=sheet.innerHTML;
-function clearSel(){selected=null;ISLANDS.forEach(i=>i.tag.classList.remove('sel'));HOME.tag.classList.remove('sel');sheet.innerHTML=defaultSheet;flyHome()}
+function clearSel(){selected=null;ISLANDS.forEach(i=>i.tag.classList.remove('sel'));HOME.tag.classList.remove('sel');sheet.hidden=true;flyHome()}
+document.getElementById('closeSheet').addEventListener('click',clearSel);
 
 document.querySelectorAll('#dock button').forEach(b=>b.addEventListener('click',()=>{
   scen=b.dataset.s;document.querySelectorAll('#dock button').forEach(x=>x.setAttribute('aria-pressed',x===b));
@@ -552,7 +623,7 @@ function tick(){
     i.tag.style.opacity='';
     placeTag(i.tag,i.pos[0],2.2+(i.kind==='city'?6:i.kind==='lighthouse'?4:1.5)-sink,i.pos[1]);
   });
-  HOME.tag.style.opacity='';placeTag(HOME.tag,HOME.pos[0],4.2,HOME.pos[1]);
+  HOME.tag.style.opacity='';updateWalkers(dt,t);placeTag(HOME.tag,HOME.pos[0],5,HOME.pos[1]);
   const lev=ISLANDS.find(i=>i.lev);if(lev.lamp&&!reduce)lev.lamp.material.emissiveIntensity=1+Math.sin(t*3)*.5;
   if(!reduce){
     clouds.forEach(c=>{c.position.x+=c.userData.v*dt;if(c.position.x>70)c.position.x=-70});
