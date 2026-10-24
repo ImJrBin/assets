@@ -12,20 +12,20 @@
 <style>
 /* ══ 森友會 色系 (Animal Crossing Vibe) ══════════════════════════════════════ */
 :root {
-  --bg:       #dcf5eb; /* 柔和草地綠 */
+  --bg:       #dcf5eb; 
   --bg2:      #c3ebd7;
-  --surface:  #fffced; /* 奶油對話框 */
+  --surface:  #fffced; 
   --surface2: #f2ebd9;
   --border:   rgba(140, 115, 85, 0.3);
-  --border2:  #c2a683; /* 原木棕色 */
+  --border2:  #c2a683; 
   --text:     #6b5a45;
   --text2:    #8f7a61;
   --text3:    #ad977b;
-  --green:    #5dc281; /* 狸克綠 */
+  --green:    #5dc281; 
   --green-dark:#499b5a;
   --sky:      #6bc3d6;
   --sky2:     #9edae8;
-  --amber:    #f5c542; /* 鈴錢黃 */
+  --amber:    #f5c542; 
   --amber2:   #f8d77a;
   --red:      #eb736b;
   --red2:     #f29b96;
@@ -53,21 +53,6 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%235dc281' fill-opacity='0.1'%3E%3Cpath d='M30 14 Q34 4 38 14 Q34 24 30 14z'/%3E%3Cpath d='M14 34 Q18 24 22 34 Q18 44 14 34z'/%3E%3Cpath d='M46 44 Q50 34 54 44 Q50 54 46 44z'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* ══ 共用卡片風格 (告示牌/對話框) ══ */
-.nook-card {
-  background: var(--surface);
-  border: 4px solid var(--border2);
-  border-radius: var(--r);
-  box-shadow: var(--shadow-sm);
-}
-.section-title, .card-title {
-  color: var(--text); font-size: 14px; font-weight: 900;
-  background: #f0e6d3; display: inline-block;
-  padding: 6px 14px; border-radius: 12px;
-  margin-bottom: 14px; border: 3px solid var(--border2);
-  letter-spacing: .05em;
-}
-
 /* ══ 登入畫面 ══ */
 #loginScreen {
   display: flex; flex-direction: column;
@@ -75,7 +60,9 @@ body {
   min-height: 100vh; gap: 20px; padding: 2rem;
 }
 .login-card {
-  padding: 2.5rem 3rem; text-align: center; max-width: 420px; width: 100%;
+  background: var(--surface); border: 4px solid var(--border2);
+  border-radius: var(--r); padding: 2.5rem 3rem;
+  text-align: center; max-width: 420px; width: 100%;
   box-shadow: var(--shadow);
 }
 .login-card::before { content: '🌿🍄🌸'; font-size: 32px; display: block; margin-bottom: 1rem; }
@@ -101,6 +88,7 @@ body {
   border-radius: 12px; padding: 10px 14px; color: var(--text);
   font-size: 13px; margin-top: 12px; font-family: 'DM Mono', monospace; font-weight: 600;
 }
+.client-id-input:focus { outline: none; border-color: var(--green); }
 .btn-save {
   margin-top: 12px; width: 100%; padding: 10px; border-radius: 40px;
   background: var(--amber); border: 3px solid #d49f1c; color: #fff; font-size: 14px;
@@ -121,6 +109,8 @@ body {
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 1.5rem; gap: 1rem; padding: 1.2rem 1.6rem;
+  background: var(--surface); border: 4px solid var(--border2);
+  border-radius: var(--r); box-shadow: var(--shadow-sm);
 }
 .page-header h1 { font-size: 24px; font-weight: 900; color: var(--green); text-shadow: 0 2px 0 #a4e3b7; }
 .page-header .sub { color: var(--text2); font-size: 13px; margin-top: 4px; font-weight: 800; }
@@ -157,7 +147,17 @@ body {
 .hero-section { display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.5rem; margin-bottom: 1.5rem; align-items: stretch; }
 @media (max-width: 700px) { .hero-section { grid-template-columns: 1fr; } }
 
-.hero-donut-card { padding: 1.5rem; display: flex; flex-direction: column; align-items: center; }
+.hero-donut-card { 
+  background: var(--surface); border: 4px solid var(--border2); border-radius: var(--r);
+  box-shadow: var(--shadow-sm); padding: 1.5rem; display: flex; flex-direction: column; align-items: center; 
+}
+.card-title, .section-title {
+  color: var(--text); font-size: 14px; font-weight: 900;
+  background: #f0e6d3; display: inline-block;
+  padding: 6px 14px; border-radius: 12px;
+  margin-bottom: 14px; border: 3px solid var(--border2);
+  letter-spacing: .05em; text-align: center;
+}
 .hero-donut-wrap { position: relative; width: 220px; height: 220px; }
 @media (max-width: 500px) { .hero-donut-wrap { width: 180px; height: 180px; } }
 .hero-donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
@@ -175,7 +175,9 @@ body {
 .hero-right { display: flex; flex-direction: column; gap: 1.5rem; }
 
 /* ══ 攻守比橫條 ══ */
-.attack-bar-card { padding: 1.5rem; }
+.attack-bar-card {
+  background: var(--surface); border: 4px solid var(--border2); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 1.5rem;
+}
 .attack-bar-stack { display: flex; flex-direction: column; gap: 1rem; }
 .attack-row { display: flex; align-items: center; gap: .8rem; }
 .attack-row-label { font-size: 13px; font-weight: 900; color: var(--text); width: 85px; flex-shrink: 0; line-height: 1.3; }
@@ -197,7 +199,7 @@ body {
 
 /* ══ 年度資金 ══ */
 .invest-card {
-  padding: 1.5rem;
+  border: 4px solid var(--border2); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 1.5rem;
   background-image: repeating-linear-gradient(45deg, rgba(93,194,129,0.05) 0, rgba(93,194,129,0.05) 2px, var(--surface) 2px, var(--surface) 10px);
 }
 .invest-chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .8rem; }
@@ -216,7 +218,10 @@ body {
 }
 
 /* ══ 金字塔區域 ══ */
-.pyramid-section { padding: 1.5rem; margin-bottom: 1.5rem; }
+.pyramid-section { 
+  background: var(--surface); border: 4px solid var(--border2); border-radius: var(--r); 
+  box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 1.5rem; 
+}
 .pyramid-wrap { display: flex; gap: 2.5rem; align-items: flex-start; margin-top: 1rem; }
 @media (max-width: 720px) { .pyramid-wrap { flex-direction: column; gap: 1.5rem; align-items: center; } }
 
@@ -237,6 +242,25 @@ body {
 .tier-big-num { font-size: 28px; font-weight: 900; line-height: 1; font-family: 'DM Mono', monospace; text-shadow: 0 2px 0 rgba(255,255,255,0.8); }
 .tier-big-unit { font-size: 14px; font-weight: 800; color: var(--text); }
 .tier-pct-badge { margin-left: auto; font-size: 15px; font-weight: 900; font-family: 'DM Mono', monospace; }
+
+.tier-progress-wrap { margin: .5rem 0 .6rem; }
+.tier-progress-track {
+  height: 10px; background: rgba(0,0,0,.05); border-radius: 5px;
+  position: relative; overflow: visible; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+.tier-progress-fill {
+  height: 100%; border-radius: 5px;
+  transition: width .55s cubic-bezier(.4,0,.2,1);
+}
+.tier-target-tick {
+  position: absolute; top: -4px; bottom: -4px; width: 4px;
+  background: rgba(255,255,255,0.9); border-radius: 2px;
+}
+.tier-progress-labels {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text3); font-weight: 800; margin-top: 4px;
+}
+
 .tier-holdings { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
 .holding-chip {
   font-size: 12px; font-weight: 800; padding: 4px 10px;
@@ -245,7 +269,7 @@ body {
 }
 .holding-chip .hval { font-family: 'DM Mono', monospace; color: var(--text); }
 
-/* 偏差徽章 (立體感) */
+/* 偏差徽章 */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 900;
@@ -256,7 +280,10 @@ body {
 .badge-amber { background: #fff8e0; color: #a67c00; border-color: #a67c00; box-shadow: 0 3px 0 #a67c00; }
 
 /* ══ 動作建議 ══ */
-.action-card { padding: 1.5rem; margin-bottom: 1.5rem; }
+.action-card { 
+  background: var(--surface); border: 4px solid var(--border2); border-radius: var(--r); 
+  box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 1.5rem; position: relative;
+}
 .action-card::before {
   content: ''; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
   width: 48px; height: 18px; background: #f2e2cd; border: 3px solid var(--border2);
@@ -286,7 +313,7 @@ body {
 /* ══ 下半 grid ══ */
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
 @media (max-width: 620px) { .bottom-grid { grid-template-columns: 1fr; } }
-.info-card { padding: 1.5rem; }
+.info-card { background: var(--surface); border: 4px solid var(--border2); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 1.5rem; }
 .big-num { font-size: 32px; font-weight: 900; font-family: 'DM Mono', monospace; line-height: 1.1; color: var(--text); text-shadow: 0 2px 0 var(--surface2); }
 .big-num span { font-size: 15px; font-weight: 800; color: var(--text2); margin-left: 4px; text-shadow: none; }
 
@@ -296,211 +323,17 @@ body {
 .coverage-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
 .coverage-big { font-size: 18px; font-weight: 900; font-family: 'DM Mono', monospace; color: var(--text); }
 .coverage-unit { font-size: 11px; font-weight: 800; color: var(--text3); }
+.coverage-bar-bg {
+  height: 12px; background: var(--surface2);
+  border-radius: 6px; margin: .5rem 0 .3rem;
+  overflow: hidden; border: 2px solid var(--border2);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+.coverage-fill { height: 100%; border-radius: 4px; transition: width .55s ease; }
 .sub-rows { margin-top: .8rem; }
 .sub-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text); font-weight: 800; padding: 4px 0; border-bottom: 2px dashed rgba(140,115,85,0.15); }
 .sub-row:last-child { border-bottom: none; margin-top: 4px; }
 .sub-row .v { font-family: 'DM Mono', monospace; font-size: 14px; }
 
-/* ══ 美股 ══ */
-.us-grid { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 1rem; }
-.us-chip { background: #fff; border: 3px solid var(--border2); border-radius: 16px; padding: .8rem 1rem; min-width: 120px; box-shadow: 0 4px 0 rgba(194, 166, 131, 0.15); }
-.us-chip .clabel { font-size: 12px; color: var(--text2); font-weight: 800; margin-bottom: 2px; }
-.us-chip .cvalue { font-size: 18px; font-weight: 900; font-family: 'DM Mono', monospace; color: var(--text); }
-.us-chip .cpct   { font-size: 12px; color: var(--text3); font-weight: 800; }
-.us-chip-total { background: #eaf6f8; border-color: #6bc3d6; }
-
-/* ══ 現金緩衝 ══ */
-.cash-months-bar { display: flex; gap: 3px; margin: 1rem 0; }
-.cash-month-block { height: 20px; flex: 1; border-radius: 4px; background: var(--surface2); border: 2px solid var(--border); transition: background .4s; }
-.cash-month-block.filled { background: var(--sky); border-color: #4890c8; }
-.cash-month-block.target { background: var(--green); border-color: var(--green-dark); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1); }
-
-/* ══ footer note ══ */
-.foot-note { font-size: 12px; color: var(--text3); font-weight: 800; margin-top: .8rem; background: rgba(140,115,85,0.05); padding: 6px 12px; border-radius: 8px; }
-</style>
-</head>
-<body>
-
-<!-- ═══════════ 登入 ═══════════ -->
-<div id="loginScreen">
-  <div class="nook-card login-card">
-    <h1>🌿 資產配置健診</h1>
-    <p>攻守三層框架 × 月度偏差警示<br>連結 Google Sheets Balance Sheet 自動計算</p>
-    <button class="btn-google" onclick="signIn()">
-      <svg viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.94 3.28-4.8 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      使用 Google 帳號登入
-    </button>
-  </div>
-  <div class="setup-box">
-    <h3>⚙️ OAuth Client ID 設定</h3>
-    <ol>
-      <li>前往 <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
-      <li>啟用 Sheets API ＋ Drive API</li>
-      <li>建立 OAuth 2.0 用戶端 ID（網頁應用程式）</li>
-      <li>授權 JS 來源加入此頁面網址</li>
-    </ol>
-    <input id="clientIdInput" class="client-id-input" placeholder="貼上 Client ID（xxxx.apps.googleusercontent.com）">
-    <button class="btn-save" onclick="saveClientId()">儲存 Client ID 🍀</button>
-  </div>
-</div>
-
-<!-- ═══════════ 載入 ═══════════ -->
-<div id="loadingScreen">
-  <div class="acnh-spinner">🍀</div>
-  <div id="loadMsg">連結 Google Drive...</div>
-</div>
-
-<!-- ═══════════ 主畫面 ═══════════ -->
-<div id="app">
-
-  <div class="page-header nook-card">
-    <div>
-      <h1>🌿 資產配置健診</h1>
-      <div class="sub" id="pageSubtitle">攻守三層框架 · 月度健診</div>
-      <div style="margin-top:.5rem" id="srcBadge"></div>
-    </div>
-    <div style="display:flex;gap:.8rem;align-items:flex-start">
-      <button class="btn-sm" onclick="reload()">↻ 重新載入</button>
-      <button class="btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">登出 🚪</button>
-    </div>
-  </div>
-
-  <div id="errBox"></div>
-
-  <!-- 月份 tabs -->
-  <div class="month-tabs" id="monthTabs"></div>
-
-  <!-- ══ 英雄區 ══ -->
-  <div class="hero-section">
-
-    <!-- 左：大甜甜圈 -->
-    <div class="nook-card hero-donut-card">
-      <div class="card-title">⚖️ 三層資產配置比例</div>
-      <div class="hero-donut-wrap">
-        <canvas id="heroDonut"></canvas>
-        <div class="hero-donut-center">
-          <div class="hero-total-label">總資產</div>
-          <div class="hero-total-num" id="heroTotalNum">—</div>
-          <div class="hero-total-unit">萬</div>
-        </div>
-      </div>
-      <div class="hero-donut-legend">
-        <div class="legend-row">
-          <div class="legend-swatch" style="background:var(--tier1)"></div>
-          <div class="legend-label">層一 槓桿/集中</div>
-          <div class="legend-val" id="legendV1">—</div>
-          <div class="legend-pct" id="legendP1">—%</div>
-        </div>
-        <div class="legend-row">
-          <div class="legend-swatch" style="background:var(--tier2)"></div>
-          <div class="legend-label">層二 台股大盤</div>
-          <div class="legend-val" id="legendV2">—</div>
-          <div class="legend-pct" id="legendP2">—%</div>
-        </div>
-        <div class="legend-row">
-          <div class="legend-swatch" style="background:var(--tier3)"></div>
-          <div class="legend-label">層三 全球分散+現金</div>
-          <div class="legend-val" id="legendV3">—</div>
-          <div class="legend-pct" id="legendP3">—%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 右：攻守比 + 年度資金 -->
-    <div class="hero-right">
-
-      <div class="nook-card attack-bar-card">
-        <div class="section-title">⚔️ 攻守比 — 目標：20% ／ 45% ／ 35%</div>
-        <div class="attack-bar-stack">
-          <div class="attack-row">
-            <div class="attack-row-label" style="color:#b03030">🔥 層一<br><span style="font-size:11px;color:var(--text3)">目標 20%</span></div>
-            <div class="attack-track">
-              <div class="attack-fill" id="attackFill1" style="background:var(--tier1);width:0%"></div>
-              <div class="attack-target-line" style="left:20%"></div>
-            </div>
-            <div class="attack-row-val" id="attackVal1" style="color:#b03030">—%</div>
-          </div>
-          <div class="attack-row">
-            <div class="attack-row-label" style="color:#2a7db0">🏔️ 層二<br><span style="font-size:11px;color:var(--text3)">目標 45%</span></div>
-            <div class="attack-track">
-              <div class="attack-fill" id="attackFill2" style="background:var(--tier2);width:0%"></div>
-              <div class="attack-target-line" style="left:45%"></div>
-            </div>
-            <div class="attack-row-val" id="attackVal2" style="color:#2a7db0">—%</div>
-          </div>
-          <div class="attack-row">
-            <div class="attack-row-label" style="color:#2e802e">🌍 層三<br><span style="font-size:11px;color:var(--text3)">目標 35%</span></div>
-            <div class="attack-track">
-              <div class="attack-fill" id="attackFill3" style="background:var(--tier3);width:0%"></div>
-              <div class="attack-target-line" style="left:35%"></div>
-            </div>
-            <div class="attack-row-val" id="attackVal3" style="color:#2e802e">—%</div>
-          </div>
-        </div>
-        <div class="foot-note">* 虛線為目標值，偏差超過 ±5% 會觸發再平衡建議</div>
-      </div>
-
-      <div class="nook-card invest-card">
-        <div class="section-title">🪙 年度可投入資金來源（固定）</div>
-        <div class="invest-chips">
-          <div class="invest-chip">薪資節餘 <span class="chip-val">24</span> 萬/年</div>
-          <div class="invest-chip">0050 配息 <span class="chip-val">27</span> 萬/年</div>
-          <div class="invest-chip">006208 配息 <span class="chip-val">1.5</span> 萬/年</div>
-          <div class="invest-chip">2330 配息 <span class="chip-val">5.7</span> 萬/年</div>
-        </div>
-        <div class="invest-total">🎯 年度合計可投入 <strong>約 58.2 萬</strong></div>
-        <div class="foot-note" style="background:transparent;padding:0;margin-top:8px">* 配息為年化估算，實際依除息時點入帳</div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ══ 金字塔 ══ -->
-  <div class="nook-card pyramid-section">
-    <div class="section-title">📐 攻守三層框架詳情</div>
-    <div class="pyramid-wrap">
-
-      <!-- SVG 金字塔 -->
-      <div class="pyramid-svg-wrap">
-        <svg id="pyramidSVG" width="200" height="240" viewBox="0 0 200 240"></svg>
-      </div>
-
-      <!-- 詳情卡 -->
-      <div class="pyramid-details">
-        <div class="tier-detail-card t1">
-          <div class="tier-detail-header">
-            <div class="tier-detail-title"><span style="color:#b03030">🔥 層一 · 槓桿/集中 — 正2 ＋ 台積電</span></div>
-            <span id="t1_badge"></span>
-          </div>
-          <div class="tier-amount-row">
-            <div class="tier-big-num" id="t1_amount" style="color:#b03030">—</div>
-            <div class="tier-big-unit">萬</div>
-            <div class="tier-pct-badge" id="t1_pct" style="color:#b03030">—%</div>
-          </div>
-          <div class="tier-holdings" id="t1_chips"></div>
-        </div>
-
-        <div class="tier-detail-card t2">
-          <div class="tier-detail-header">
-            <div class="tier-detail-title"><span style="color:#2a7db0">🏔️ 層二 · 台股大盤 — 0050 ＋ 富邦台50</span></div>
-            <span id="t2_badge"></span>
-          </div>
-          <div class="tier-amount-row">
-            <div class="tier-big-num" id="t2_amount" style="color:#2a7db0">—</div>
-            <div class="tier-big-unit">萬</div>
-            <div class="tier-pct-badge" id="t2_pct" style="color:#2a7db0">—%</div>
-          </div>
-          <div class="tier-holdings" id="t2_chips"></div>
-        </div>
-
-        <div class="tier-detail-card t3">
-          <div class="tier-detail-header">
-            <div class="tier-detail-title"><span style="color:#2e802e">🌍 層三 · 全球分散＋現金</span></div>
-            <span id="t3_badge"></span>
-          </div>
-          <div class="tier-amount-row">
-            <div class="tier-big-num" id="t3_amount" style="color:#2e802e">—</div>
-            <div class="tier-big-unit">萬</div>
-            <div class="tier-pct-badge" id="t3_pct" style="color:#2e802e">—%</div>
-          </div>
-          <div class="tier-holdings" id="t3_
+/* ══ 正2 donut ══ */
+.donut-outer { position: relative; width: 110px; height: 1
