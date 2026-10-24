@@ -54,7 +54,7 @@ body {
 }
 
 /* ══ 共用立體卡片風格 (取代原本的細邊框) ══ */
-.login-card, .page-header, .hero-donut-card, .attack-bar-card, .invest-card, .pyramid-section, .action-card, .info-card {
+.login-card, .page-header, .hero-donut-card, .attack-bar-card, .invest-card, .pyramid-section, .info-card {
   background: var(--surface);
   border: 4px solid var(--border2);
   border-radius: var(--r);
@@ -233,22 +233,6 @@ body {
 .badge-red   { background: #fcebeb; color: #b03030; border-color: #b03030; box-shadow: 0 3px 0 #b03030; }
 .badge-amber { background: #fff8e0; color: #a67c00; border-color: #a67c00; box-shadow: 0 3px 0 #a67c00; }
 .badge-sky   { background: #eaf6f8; color: #2a7db0; border-color: #59aabc; box-shadow: 0 3px 0 #59aabc; }
-
-/* ══ 動作建議 ══ */
-.action-card { padding: 1.5rem; margin-bottom: 1.5rem; position: relative; }
-.action-card::before { content: ''; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 48px; height: 18px; background: #f2e2cd; border: 3px solid var(--border2); border-radius: 10px; box-shadow: 0 3px 0 rgba(0,0,0,0.1); }
-.action-list { display: flex; flex-direction: column; gap: .8rem; }
-.action-item { display: flex; align-items: flex-start; gap: .8rem; padding: 1rem 1.2rem; border-radius: 20px; font-size: 14px; font-weight: 800; border: 3px solid var(--border2); box-shadow: 0 4px 0 rgba(194, 166, 131, 0.2); position: relative; background: #fff; }
-.action-item::after { content: ''; position: absolute; left: -11px; top: 18px; border-width: 8px 12px 8px 0; border-style: solid; }
-.action-ok   { background: #eaf8ea; border-color: #74c974; color: #2e802e; }
-.action-ok::after { border-color: transparent #74c974 transparent transparent; }
-.action-warn { background: #fff8e0; border-color: #f5c542; color: #a67c00; }
-.action-warn::after { border-color: transparent #f5c542 transparent transparent; }
-.action-crit { background: #fcebeb; border-color: #eb736b; color: #b03030; }
-.action-crit::after { border-color: transparent #eb736b transparent transparent; }
-.action-info { background: #eaf6f8; border-color: #6bc3d6; color: #2a7db0; }
-.action-info::after { border-color: transparent #6bc3d6 transparent transparent; }
-.action-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
 
 /* ══ 下半 grid ══ */
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
@@ -516,14 +500,6 @@ body {
         </div>
 
       </div>
-    </div>
-  </div>
-
-  <!-- 動作建議 -->
-  <div class="action-card">
-    <div class="section-title">🎯 本月再平衡建議 Action Items</div>
-    <div class="action-list" id="actionList">
-      <div class="action-item action-info"><span class="action-icon">⏳</span>載入資料中...</div>
     </div>
   </div>
 
@@ -1016,9 +992,6 @@ function renderData(d) {
     ['現金緩衝',d.totalCash/10000],
   ],tWan);
 
-  // 動作建議
-  renderActions(p1,p2,p3,d,tWan);
-
   // 被動收入
   const totDiv=FIXED_DIV.tw0050+FIXED_DIV.tw006208+FIXED_DIV.tw2330;
   const cov=totDiv/ANNUAL_EXP*100;
@@ -1174,54 +1147,6 @@ function renderTierCard(prefix,amountWan,actualPct,targetPct,maxPct,holdings,tot
       const pct=totalWan>0?(val/totalWan*100).toFixed(1):'0.0';
       return `<div class="holding-chip">${name} <span class="hval">${w(val,0)}萬</span> <span style="color:var(--text3)">${pct}%</span></div>`;
     }).join('');
-}
-
-// ── 動作建議 ──
-function renderActions(p1,p2,p3,d,totalWan) {
-  const cashWan=d.totalCash/10000;
-  const items=[];
-  if (cashWan<CASH_TARGET*0.5)
-    items.push(['crit','🚨',`現金緩衝嚴重不足（${w(cashWan,0)} 萬，目標 ${CASH_TARGET} 萬），停止積極加碼，優先補足現金防線。`]);
-  else if (cashWan<CASH_TARGET)
-    items.push(['warn','⚠️',`現金緩衝尚未達標（現 ${w(cashWan,0)} 萬，缺 ${w(CASH_TARGET-cashWan,0)} 萬），下筆薪資節餘 2 萬建議先補現金層。`]);
-  else
-    items.push(['ok','✅',`現金緩衝達標（${w(cashWan,0)} 萬≥342萬），序列報酬風險護盾 🛡️ 到位，可安心繼續加碼。`]);
-
-  const d1=p1-TARGET.t1;
-  if (d1>TOL)
-    items.push(['warn','⚠️',`層一（正2/台積電）超配 +${pf(d1)}%，本月不宜再加碼正2，等層二/三補強後自然平衡。`]);
-  else if (d1<-TOL) {
-    const need=Math.round(totalWan*Math.abs(d1)/100);
-    items.push(['info','📌',`層一低配 ${pf(d1)}%，若台股回落可分批加碼正2，補至目標約需 ${w(need,0)} 萬。`]);
-  } else
-    items.push(['ok','✅',`層一（槓桿/集中）${pf(p1)}%，在目標 20% ± ${TOL}% 容忍帶內，不需調整。`]);
-
-  const d2=p2-TARGET.t2;
-  if (d2>TOL)
-    items.push(['warn','⚠️',`層二（0050/富邦台50）超配 +${pf(d2)}%，薪資節餘或配息轉進 VUAA/VWRA，讓層三比重自然提升。`]);
-  else if (d2<-TOL) {
-    const need=Math.round(totalWan*Math.abs(d2)/100);
-    items.push(['info','📌',`層二低配 ${pf(d2)}%，可考慮定期買入 0050，約 ${w(need,0)} 萬補至目標。`]);
-  } else
-    items.push(['ok','✅',`層二（台股大盤）${pf(p2)}%，符合目標 45%，繼續定期定額即可。`]);
-
-  const d3=p3-TARGET.t3;
-  if (d3<-TOL) {
-    const need=Math.round(totalWan*Math.abs(d3)/100);
-    items.push(['info','📌',`層三低配 ${pf(d3)}%（全球分散不足），建議本月以年度可投入 58.2 萬優先買 VUAA/VWRA，約需 ${w(need,0)} 萬補足。`]);
-  } else
-    items.push(['ok','✅',`層三（全球分散+現金）${pf(p3)}%，防禦配置符合目標，持續加碼 VUAA/VWRA 即可。`]);
-
-  const totDiv=FIXED_DIV.tw0050+FIXED_DIV.tw006208+FIXED_DIV.tw2330;
-  const cov=totDiv/ANNUAL_EXP*100;
-  if (cov>=100)
-    items.push(['ok','🎉',`被動收入覆蓋率 ${w(cov,0)}%，年配息（${pf(totDiv)} 萬）已超過年支出，恭喜達到財務自由門檻！ 🌿`]);
-  else
-    items.push(['info','📌',`被動收入覆蓋率 ${w(cov,0)}%（年配息 ${pf(totDiv)} 萬 vs 年支出 ${ANNUAL_EXP} 萬），差距 ${pf(ANNUAL_EXP-totDiv)} 萬，仍需薪資 + 年度可投入 58.2 萬持續填補。`]);
-
-  document.getElementById('actionList').innerHTML=items.map(([cls,icon,txt])=>
-    `<div class="action-item action-${cls}"><span class="action-icon">${icon}</span><span>${txt}</span></div>`
-  ).join('');
 }
 
 // ── 被動收入環形圖 ──
