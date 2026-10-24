@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資產配置健診</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+:root {
+  --bg: #0f0f11;
+  --surface: #18181c;
+  --surface2: #1f1f25;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f2;
+  --text2: #8888a0;
+  --text3: #55556a;
+  --accent: #7c6af7;
+  --accent2: #a89af9;
+  --green: #3ecf8e;
+  --red: #f06060;
+  --amber: #f0a050;
+  --blue: #5090f0;
+  --tier1: #f06060;   /* 槓桿/集中 — 紅 */
+  --tier2: #5090f0;   /* 台股大盤 — 藍 */
+  --tier3: #3ecf8e;   /* 全球分散+現金 — 綠 */
+  --r: 10px;
+  --r-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── 登入畫面 ── */
+#loginScreen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; gap: 24px; padding: 2rem;
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  max-width: 420px; width: 100%;
+}
+.login-card h1 { font-size: 22px; font-weight: 500; margin-bottom: 8px; }
+.login-card p { color: var(--text2); font-size: 13px; margin-bottom: 28px; line-height: 1.7; }
+.btn-google {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #fff; color: #333; border: none;
+  padding: 11px 24px; border-radius: var(--r-sm); font-size: 14px;
+  font-weight: 500; cursor: pointer; width: 100%; transition: opacity .15s;
+}
+.btn-google:hover { opacity: .9; }
+.btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+.setup-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.5rem;
+  max-width: 420px; width: 100%;
+}
+.setup-box h3 { font-size: 13px; font-weight: 500; color: var(--text2);
+  margin-bottom: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.setup-box ol { color: var(--text2); font-size: 12px; padding-left: 1.2em; line-height: 2; }
+.setup-box a { color: var(--accent2); text-decoration: none; }
+.client-id-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); padding: 9px 12px; color: var(--text);
+  font-size: 13px; margin-top: 12px; font-family: 'DM Mono', monospace;
+}
+.client-id-input:focus { outline: none; border-color: var(--accent); }
+.btn-save {
+  margin-top: 10px; width: 100%; padding: 9px; border-radius: var(--r-sm);
+  background: var(--accent); border: none; color: #fff; font-size: 13px;
+  font-weight: 500; cursor: pointer; transition: opacity .15s;
+}
+.btn-save:hover { opacity: .85; }
+
+/* ── 載入 ── */
+#loadingScreen {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; gap: 16px;
+}
+.spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid var(--border2);
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loadMsg { color: var(--text2); font-size: 13px; }
+
+/* ── 主畫面 ── */
+#app { display: none; max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; gap: 1rem;
+}
+.page-header h1 { font-size: 18px; font-weight: 500; letter-spacing: .02em; }
+.page-header .sub { color: var(--text2); font-size: 12px; margin-top: 2px; }
+.btn-sm {
+  padding: 6px 14px; border-radius: var(--r-sm);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 12px; cursor: pointer; transition: opacity .15s;
+}
+.btn-sm:hover { opacity: .75; }
+.month-select {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); color: var(--text2);
+  padding: 6px 10px; font-size: 12px; cursor: pointer;
+}
+
+/* ── 錯誤 ── */
+#errBox {
+  display: none; background: rgba(240,96,96,.12);
+  border: 1px solid rgba(240,96,96,.3);
+  border-radius: var(--r-sm); padding: 10px 14px;
+  color: var(--red); font-size: 13px; margin-bottom: 1rem;
+}
+
+/* ── 攻守比儀表板 ── */
+.attack-bar-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.2rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.attack-bar-title {
+  font-size: 12px; color: var(--text2); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: .8rem;
+}
+.attack-bar {
+  display: flex; height: 28px; border-radius: 6px; overflow: hidden;
+  margin-bottom: .6rem;
+}
+.attack-seg {
+  transition: width .5s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: rgba(255,255,255,.85);
+  overflow: hidden; white-space: nowrap;
+}
+.attack-legend {
+  display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 12px; color: var(--text2);
+}
+.legend-dot {
+  display: inline-block; width: 9px; height: 9px;
+  border-radius: 50%; margin-right: 5px; vertical-align: middle;
+}
+
+/* ── 三層卡 ── */
+.tiers-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 700px) { .tiers-grid { grid-template-columns: 1fr; } }
+
+.tier-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.2rem;
+  position: relative; overflow: hidden;
+}
+.tier-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: var(--r) 0 0 var(--r);
+}
+.tier1::before { background: var(--tier1); }
+.tier2::before { background: var(--tier2); }
+.tier3::before { background: var(--tier3); }
+
+.tier-label {
+  font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text2); margin-bottom: .5rem;
+}
+.tier-name { font-size: 14px; font-weight: 500; margin-bottom: .8rem; }
+.tier-amount {
+  font-size: 26px; font-weight: 300;
+  font-family: 'DM Mono', monospace; line-height: 1.1;
+  margin-bottom: .3rem;
+}
+.tier-amount span { font-size: 14px; color: var(--text2); margin-left: 4px; }
+
+/* 進度條 */
+.progress-wrap { margin: .7rem 0; }
+.progress-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text2); margin-bottom: 4px;
+}
+.progress-bar-bg {
+  height: 6px; background: var(--surface2);
+  border-radius: 3px; position: relative; overflow: visible;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  transition: width .5s ease; position: relative;
+}
+.target-line {
+  position: absolute; top: -4px; bottom: -4px;
+  width: 2px; background: rgba(255,255,255,.4);
+  border-radius: 1px;
+}
+
+/* 偏差徽章 */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+}
+.badge-green { background: rgba(62,207,142,.15); color: var(--green); }
+.badge-red   { background: rgba(240,96,96,.15);  color: var(--red);   }
+.badge-amber { background: rgba(240,160,80,.15); color: var(--amber); }
+.badge-blue  { background: rgba(80,144,240,.15); color: var(--blue);  }
+
+/* 標的明細 */
+.holdings-table { width: 100%; margin-top: .8rem; }
+.holdings-table tr td {
+  padding: 3px 0; font-size: 12px; color: var(--text2); vertical-align: top;
+}
+.holdings-table tr td:first-child { width: 55%; }
+.holdings-table .val { color: var(--text); font-family: 'DM Mono', monospace; }
+.holdings-table .pct { text-align: right; color: var(--text3); }
+
+/* 動作建議 */
+.action-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.2rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.action-title {
+  font-size: 12px; color: var(--text2); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: .8rem;
+}
+.action-list { display: flex; flex-direction: column; gap: .5rem; }
+.action-item {
+  display: flex; align-items: flex-start; gap: .7rem;
+  padding: .6rem .8rem; border-radius: var(--r-sm);
+  font-size: 13px;
+}
+.action-ok   { background: rgba(62,207,142,.08);  color: var(--green); }
+.action-warn { background: rgba(240,160,80,.08);  color: var(--amber); }
+.action-crit { background: rgba(240,96,96,.08);   color: var(--red);   }
+.action-info { background: rgba(124,106,247,.08); color: var(--accent2); }
+.action-icon { font-size: 15px; flex-shrink: 0; }
+
+/* 被動收入 & 正2 detail */
+.bottom-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 600px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.2rem;
+}
+.info-card .card-title {
+  font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text2); margin-bottom: .8rem;
+}
+.big-num {
+  font-size: 28px; font-weight: 300;
+  font-family: 'DM Mono', monospace; line-height: 1.1;
+}
+.big-num span { font-size: 13px; color: var(--text2); margin-left: 3px; }
+.coverage-bar-bg {
+  height: 8px; background: var(--surface2);
+  border-radius: 4px; margin: .8rem 0 .4rem; overflow: hidden;
+}
+.coverage-fill {
+  height: 100%; border-radius: 4px; transition: width .5s ease;
+}
+.sub-rows { margin-top: .6rem; }
+.sub-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text2); padding: 2px 0;
+}
+.sub-row .v { color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+/* 月份選擇 tabs */
+.month-tabs {
+  display: flex; gap: .4rem; overflow-x: auto; margin-bottom: 1.2rem;
+  padding-bottom: .3rem;
+}
+.month-tab {
+  padding: 5px 12px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: all .15s;
+}
+.month-tab.on {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff;
+}
+.month-tab:hover:not(.on) { border-color: var(--border2); }
+
+/* 圓餅圖容器 */
+.donut-wrap {
+  display: flex; align-items: center; gap: 1rem; margin-top: .5rem;
+}
+.donut-wrap canvas { max-width: 110px; max-height: 110px; }
+.donut-legend { flex: 1; }
+.donut-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; padding: 2px 0; color: var(--text2);
+}
+.donut-row .dv { color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 登入畫面 ═══════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>📊 資產配置健診</h1>
+    <p>攻守三層框架 × 月度偏差警示<br>連結你的 Google Sheets Balance Sheet 自動計算</p>
+    <button class="btn-google" onclick="signIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.94 3.28-4.8 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      使用 Google 帳戶登入
+    </button>
+  </div>
+
+  <div class="setup-box">
+    <h3>⚙️ OAuth Client ID 設定</h3>
+    <ol>
+      <li>前往 <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+      <li>啟用 Sheets API + Drive API</li>
+      <li>建立 OAuth 2.0 用戶端 ID（網頁應用程式）</li>
+      <li>授權 JS 來源加入此頁面網址</li>
+    </ol>
+    <input id="clientIdInput" class="client-id-input" placeholder="貼上 Client ID（xxxx.apps.googleusercontent.com）">
+    <button class="btn-save" onclick="saveClientId()">儲存 Client ID</button>
+  </div>
+</div>
+
+<!-- ═══════════ 載入畫面 ═══════════ -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div id="loadMsg">連結 Google Drive...</div>
+</div>
+
+<!-- ═══════════ 主畫面 ═══════════ -->
+<div id="app">
+  <div class="page-header">
+    <div>
+      <h1>📊 資產配置健診</h1>
+      <div class="sub" id="pageSubtitle">攻守三層框架 · 月度健診</div>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn-sm" onclick="reload()">↻ 重新載入</button>
+      <button class="btn-sm" onclick="signOut()">登出</button>
+    </div>
+  </div>
+
+  <div id="errBox"></div>
+
+  <!-- 月份 tabs -->
+  <div class="month-tabs" id="monthTabs"></div>
+
+  <!-- 攻守比橫條 -->
+  <div class="attack-bar-wrap">
+    <div class="attack-bar-title">⚔️ 攻守比（三層框架）— 目標：20% / 45% / 35%</div>
+    <div class="attack-bar" id="attackBar">
+      <div class="attack-seg" id="seg1" style="background:var(--tier1);width:20%">層一 20%</div>
+      <div class="attack-seg" id="seg2" style="background:var(--tier2);width:45%">層二 45%</div>
+      <div class="attack-seg" id="seg3" style="background:var(--tier3);width:35%">層三 35%</div>
+    </div>
+    <div class="attack-legend">
+      <span><span class="legend-dot" style="background:var(--tier1)"></span>層一 槓桿/集中（目標 20%）</span>
+      <span><span class="legend-dot" style="background:var(--tier2)"></span>層二 台股大盤（目標 45%）</span>
+      <span><span class="legend-dot" style="background:var(--tier3)"></span>層三 全球分散+現金（目標 35%）</span>
+    </div>
+    <div style="margin-top:.6rem;font-size:12px;color:var(--text3);font-style:italic">
+      * 佔比基於「投資性資產＝台股＋美股＋現金緩衝」，排除長照預備金與不動產。
+    </div>
+  </div>
+
+  <!-- 三層卡 -->
+  <div class="tiers-grid">
+    <!-- 層一 -->
+    <div class="tier-card tier1">
+      <div class="tier-label">層一 · 槓桿/集中</div>
+      <div class="tier-name">正2 ＋ 台積電</div>
+      <div class="tier-amount" id="t1_amount">—<span>萬</span></div>
+      <div class="progress-wrap">
+        <div class="progress-row">
+          <span>實際</span><span id="t1_pct">—%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-fill" id="t1_bar" style="background:var(--tier1);width:0%"></div>
+          <div class="target-line" style="left:20%"></div>
+        </div>
+        <div class="progress-row" style="margin-top:4px">
+          <span style="font-size:11px;color:var(--text3)">目標 20%</span>
+          <span id="t1_badge"></span>
+        </div>
+      </div>
+      <table class="holdings-table" id="t1_detail"></table>
+    </div>
+
+    <!-- 層二 -->
+    <div class="tier-card tier2">
+      <div class="tier-label">層二 · 台股大盤</div>
+      <div class="tier-name">0050 ＋ 富邦台50</div>
+      <div class="tier-amount" id="t2_amount">—<span>萬</span></div>
+      <div class="progress-wrap">
+        <div class="progress-row">
+          <span>實際</span><span id="t2_pct">—%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-fill" id="t2_bar" style="background:var(--tier2);width:0%"></div>
+          <div class="target-line" style="left:45%"></div>
+        </div>
+        <div class="progress-row" style="margin-top:4px">
+          <span style="font-size:11px;color:var(--text3)">目標 45%</span>
+          <span id="t2_badge"></span>
+        </div>
+      </div>
+      <table class="holdings-table" id="t2_detail"></table>
+    </div>
+
+    <!-- 層三 -->
+    <div class="tier-card tier3">
+      <div class="tier-label">層三 · 全球分散＋現金</div>
+      <div class="tier-name">美股 ETF ＋ 現金緩衝</div>
+      <div class="tier-amount" id="t3_amount">—<span>萬</span></div>
+      <div class="progress-wrap">
+        <div class="progress-row">
+          <span>實際</span><span id="t3_pct">—%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-fill" id="t3_bar" style="background:var(--tier3);width:0%"></div>
+          <div class="target-line" style="left:35%"></div>
+        </div>
+        <div class="progress-row" style="margin-top:4px">
+          <span style="font-size:11px;color:var(--text3)">目標 35%</span>
+          <span id="t3_badge"></span>
+        </div>
+      </div>
+      <table class="holdings-table" id="t3_detail"></table>
+    </div>
+  </div>
+
+  <!-- 動作建議 -->
+  <div class="action-card">
+    <div class="action-title">🎯 本月再平衡建議</div>
+    <div class="action-list" id="actionList">
+      <div class="action-item action-info"><span class="action-icon">⏳</span>載入資料中...</div>
+    </div>
+  </div>
+
+  <!-- 被動收入 & 正2 -->
+  <div class="bottom-grid">
+
+    <!-- 被動收入覆蓋率 -->
+    <div class="info-card">
+      <div class="card-title">💰 被動收入覆蓋率</div>
+      <div class="big-num" id="coverageNum">—<span>%</span></div>
+      <div class="coverage-bar-bg">
+        <div class="coverage-fill" id="coverageFill" style="width:0%;background:var(--green)"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:.6rem">
+        年化配息 ÷ 年支出（11萬×12=132萬）
+      </div>
+      <div class="sub-rows">
+        <div class="sub-row"><span>台股年化配息</span><span class="v" id="twDivRow">— 萬/年</span></div>
+        <div class="sub-row"><span>美股年化配息</span><span class="v" id="usDivRow">— 萬/年</span></div>
+        <div class="sub-row"><span>合計</span><span class="v" id="totalDivRow">— 萬/年</span></div>
+      </div>
+      <div style="margin-top:.6rem;font-size:11px;color:var(--text3);font-style:italic">
+        * 配息以台股殖利率 3.2%、美股 0.3% 概估（年化）
+      </div>
+    </div>
+
+    <!-- 正2 暨槓桿追蹤 -->
+    <div class="info-card">
+      <div class="card-title">⚡ 正2 ／槓桿部位追蹤</div>
+      <div class="big-num" id="lev2Num">—<span>萬</span></div>
+      <div style="margin:.5rem 0;font-size:12px;color:var(--text2)">現值（00631L + 群益正2）</div>
+      <div style="margin-bottom:.6rem">
+        <canvas id="levDonut" width="200" height="200"></canvas>
+      </div>
+      <div class="sub-rows">
+        <div class="sub-row"><span>元大台灣50正2</span><span class="v" id="lev00631">— 萬</span></div>
+        <div class="sub-row"><span>群益台灣正2</span><span class="v" id="lev00685">— 萬</span></div>
+        <div class="sub-row"><span>台積電</span><span class="v" id="lev2330">— 萬</span></div>
+        <div class="sub-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+          <span>佔總資產</span><span class="v" id="levTotalPct">—%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 美股 sub-total -->
+  <div class="info-card" style="margin-bottom:1.5rem">
+    <div class="card-title">🌐 美股部位明細</div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:.5rem" id="usHoldingsGrid"></div>
+  </div>
+
+  <!-- 現金緩衝進度 -->
+  <div class="info-card">
+    <div class="card-title">🛡️ 現金緩衝層（目標：342萬 ＝ 31 個月生活費）</div>
+    <div style="display:flex;align-items:baseline;gap:.5rem;margin:.5rem 0">
+      <div class="big-num" id="cashNum">—<span>萬</span></div>
+      <div style="font-size:13px;color:var(--text2)">目標 342 萬</div>
+    </div>
+    <div class="coverage-bar-bg">
+      <div class="coverage-fill" id="cashFill" style="width:0%;background:var(--blue)"></div>
+    </div>
+    <div class="sub-rows">
+      <div class="sub-row"><span>活存</span><span class="v" id="cashActivity">— 萬</span></div>
+      <div class="sub-row"><span>IB 餘額</span><span class="v" id="cashIB">— 萬</span></div>
+      <div class="sub-row"><span>證券戶(中信)</span><span class="v" id="cashZH">— 萬</span></div>
+      <div class="sub-row"><span>證券戶(元大)</span><span class="v" id="cashYD">— 萬</span></div>
+      <div class="sub-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+        <span>等同月數</span><span class="v" id="cashMonths">— 個月</span></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════
+// 設定
+// ══════════════════════════════
+const FOLDER_ID = '0B18Bg9nMRKvMODA5ZmJmMmQtODc1OC00YWRkLTkxN2MtNmM2NTc2ZGNiZDY5';
+const SCOPES    = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly';
+const MONTHLY_EXP = 11;     // 萬/月
+const CASH_TARGET = 342;    // 萬（31個月生活費）
+const TW_DIV_RATE = 0.032;  // 台股平均殖利率
+const US_DIV_RATE = 0.003;  // 美股平均殖利率（VOO/VUAA/VWRA）
+
+// 三層目標
+const TIER_TARGET = { t1: 20, t2: 45, t3: 35 };
+const TIER_TOL    = 5; // ±5% 視為正常
+
+let CLIENT_ID    = localStorage.getItem('bs_client_id') || '';
+let accessToken  = null;
+let allSheets    = []; // [{month, data}]
+let currentMonth = null;
+let levDonutChart = null;
+
+// ── 啟動時填入 Client ID ──
+if (CLIENT_ID) document.getElementById('clientIdInput').value = CLIENT_ID;
+
+function saveClientId() {
+  const v = document.getElementById('clientIdInput').value.trim();
+  if (!v) return alert('請輸入 Client ID');
+  localStorage.setItem('bs_client_id', v);
+  CLIENT_ID = v;
+  location.reload();
+}
+
+// ══════════════════════════════
+// Google 登入
+// ══════════════════════════════
+function signIn() {
+  if (!CLIENT_ID) { alert('請先設定 OAuth Client ID'); return; }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showErr('登入失敗：' + resp.error); return; }
+      accessToken = resp.access_token;
+      showLoading('連接 Google Drive...');
+      loadAllData();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  allSheets = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function reload() {
+  showLoading('重新載入...');
+  loadAllData();
+}
+
+// ══════════════════════════════
+// UI 工具
+// ══════════════════════════════
+function showLoading(msg) {
+  document.getElementById('loginScreen').style.display  = 'none';
+  document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('app').style.display          = 'none';
+  document.getElementById('loadMsg').textContent = msg;
+}
+function showApp() {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display           = 'block';
+}
+function showErr(msg) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display           = 'block';
+  const b = document.getElementById('errBox');
+  b.textContent = msg; b.style.display = 'block';
+  setTimeout(() => b.style.display = 'none', 6000);
+}
+const w  = (n, d=0) => n.toLocaleString('zh-TW', {minimumFractionDigits:d, maximumFractionDigits:d});
+const pf = (n) => n.toFixed(1);
+
+// ══════════════════════════════
+// Google API
+// ══════════════════════════════
+async function gFetch(url) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+async function loadAllData() {
+  try {
+    showLoading('搜尋 Balance Sheet 試算表...');
+    const q = encodeURIComponent(
+      `title contains 'Balance Sheet' and '${FOLDER_ID}' in parents ` +
+      `and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`
+    );
+    const driveData = await gFetch(
+      `https://www.googleapis.com/drive/v2/files?q=${q}&maxResults=50&fields=items(id,title)`
+    );
+    const files = (driveData.items || []).sort((a,b) => a.title > b.title ? 1 : -1);
+    if (!files.length) throw new Error('找不到 Balance Sheet 試算表，請確認 FOLDER_ID 與權限');
+
+    allSheets = [];
+    for (const f of files) {
+      showLoading(`讀取 ${f.title}...`);
+      const meta = await gFetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${f.id}?fields=sheets.properties.title`
+      );
+      const sheets = meta.sheets || [];
+      for (const sh of sheets) {
+        const t = sh.properties.title;
+        if (!/\d{6}/.test(t)) continue;
+        const enc = encodeURIComponent(t);
+        const d   = await gFetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${f.id}/values/${enc}!A1:Z100`
+        );
+        const rows = d.values || [];
+        const parsed = parseSheet(rows, t);
+        if (parsed) allSheets.push(parsed);
+      }
+    }
+
+    if (!allSheets.length) throw new Error('未找到任何月份資料（分頁須含 6 位數年月）');
+
+    allSheets.sort((a,b) => a.month > b.month ? 1 : -1);
+    currentMonth = allSheets[allSheets.length - 1].month;
+    buildMonthTabs();
+    renderMonth(currentMonth);
+    showApp();
+
+  } catch(e) {
+    showErr('載入失敗：' + e.message);
+    showApp();
+  }
+}
+
+// ══════════════════════════════
+// 解析 Sheet
+// ══════════════════════════════
+function parseSheet(rows, sheetName) {
+  const m = sheetName.match(/(\d{6})/);
+  if (!m) return null;
+  const month = m[1];
+
+  const parseNum = (s) => {
+    if (s == null || s === '') return null;
+    const n = parseFloat(String(s).replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  };
+
+  const getVal = (kw) => {
+    for (const row of rows)
+      for (let i = 0; i < row.length; i++)
+        if (String(row[i]).includes(kw))
+          for (let j = i+1; j < row.length; j++) {
+            const v = parseNum(row[j]);
+            if (v !== null && v > 0) return v;
+          }
+    return 0;
+  };
+
+  const getExact = (kw) => {
+    let result = 0;
+    for (const row of rows)
+      for (let i = 0; i < row.length; i++)
+        if (String(row[i]).trim() === kw)
+          for (let j = i+1; j < row.length; j++) {
+            const v = parseNum(row[j]);
+            if (v !== null && v > 0) { result = v; break; }
+          }
+    return result;
+  };
+
+  // ── 三層個股 ──
+  const h00631  = getVal('台股-元大台灣50正2') || getVal('台股-元大台灣50正') || 0;
+  const h00685  = getVal('台股-群益台灣正2')   || getVal('台股-群義台灣正2') || 0;
+  const h2330   = getVal('台股-台積電') || 0;
+  const h0050   = getVal('台股-元大台灣50') || 0;
+  const h006208 = getVal('台股-富邦台50') || 0;
+
+  // 美股（合併家庭成員）
+  const hVOO    = (getVal('美股-VOO-古')||0) + (getVal('美股-VOO-樂')||0);
+  const hVTI    = getVal('美股-VTI-安') || 0;
+  const hVUAA   = getVal('美股-IB-VUAA') || 0;
+  const hVT     = (getVal('美股-VT-古')||0) + (getVal('美股-VT-芳')||0);
+  const hVWRA   = getVal('美股-IB-VWRA') || 0;
+
+  // 現金
+  const cActivity = getExact('活存')         || getVal('活存') || 0;
+  const cIB        = getExact('IB餘額')      || getVal('IB餘額') || 0;
+  const cZH        = getExact('證券戶餘額(中信)') || getVal('證券戶餘額(中信)') || 0;
+  const cYD        = getExact('證券戶餘額(元大)') || getVal('證券戶餘額(元大)') || 0;
+  const totalCash  = cActivity + cIB + cZH + cYD;
+
+  // 收入 / 月
+  let mInc = 0;
+  for (const row of rows)
+    if (row[0] === '合計' && row[2] === '合計') {
+      mInc = parseNum(row[1]) || 0; break;
+    }
+
+  return {
+    month,
+    // 層一
+    h00631, h00685, h2330,
+    t1: h00631 + h00685 + h2330,
+    // 層二
+    h0050, h006208,
+    t2: h0050 + h006208,
+    // 美股
+    hVOO, hVTI, hVUAA, hVT, hVWRA,
+    usTotal: hVOO + hVTI + hVUAA + hVT + hVWRA,
+    // 層三 = 美股 + 現金
+    cActivity, cIB, cZH, cYD, totalCash,
+    t3: (hVOO + hVTI + hVUAA + hVT + hVWRA) + totalCash,
+    // 月收入
+    mInc,
+  };
+}
+
+// ══════════════════════════════
+// 月份 tabs
+// ══════════════════════════════
+function buildMonthTabs() {
+  const el = document.getElementById('monthTabs');
+  el.innerHTML = '';
+  // 顯示最近 12 個月
+  const recent = allSheets.slice(-12);
+  recent.forEach(s => {
+    const y = s.month.slice(0,4), mo = s.month.slice(4,6);
+    const btn = document.createElement('button');
+    btn.className = 'month-tab' + (s.month === currentMonth ? ' on' : '');
+    btn.textContent = `${y}/${mo}`;
+    btn.onclick = () => {
+      document.querySelectorAll('.month-tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      currentMonth = s.month;
+      renderMonth(currentMonth);
+    };
+    el.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════
+// 渲染月份
+// ══════════════════════════════
+function renderMonth(month) {
+  const d = allSheets.find(s => s.month === month);
+  if (!d) return;
+
+  const y  = month.slice(0,4), mo = month.slice(4,6);
+  document.getElementById('pageSubtitle').textContent = `${y} 年 ${mo} 月健診 · 攻守三層框架`;
+
+  const total = d.t1 + d.t2 + d.t3;
+  const p1 = total > 0 ? d.t1 / total * 100 : 0;
+  const p2 = total > 0 ? d.t2 / total * 100 : 0;
+  const p3 = total > 0 ? d.t3 / total * 100 : 0;
+  const totalWan = total / 10000;
+
+  // 攻守比橫條
+  ['seg1','seg2','seg3'].forEach((id, i) => {
+    const pct = [p1,p2,p3][i];
+    const el = document.getElementById(id);
+    el.style.width = pct.toFixed(1) + '%';
+    el.textContent = pct >= 8 ? `層${i+1} ${pct.toFixed(0)}%` : '';
+  });
+
+  // 層卡
+  renderTierCard('t1', d.t1/10000, p1, TIER_TARGET.t1, [
+    ['元大台灣50正2', d.h00631/10000],
+    ['群益台灣正2',   d.h00685/10000],
+    ['台積電',        d.h2330/10000],
+  ], totalWan);
+
+  renderTierCard('t2', d.t2/10000, p2, TIER_TARGET.t2, [
+    ['0050 元大台灣50', d.h0050/10000],
+    ['006208 富邦台50', d.h006208/10000],
+  ], totalWan);
+
+  renderTierCard('t3', d.t3/10000, p3, TIER_TARGET.t3, [
+    ['美股 ETF 合計', d.usTotal/10000],
+    ['現金緩衝合計',  d.totalCash/10000],
+  ], totalWan);
+
+  // 動作建議
+  renderActions(p1, p2, p3, d, total);
+
+  // 被動收入
+  const twInv  = (d.t1 + d.t2) / 10000;
+  const usInv  = d.usTotal / 10000;
+  const twDiv  = twInv * TW_DIV_RATE;
+  const usDiv  = usInv * US_DIV_RATE;
+  const totDiv = twDiv + usDiv;
+  const annExp = MONTHLY_EXP * 12;
+  const cov    = totDiv / annExp * 100;
+  document.getElementById('coverageNum').innerHTML  = `${w(cov,0)}<span>%</span>`;
+  document.getElementById('twDivRow').textContent   = `${w(twDiv,1)} 萬/年`;
+  document.getElementById('usDivRow').textContent   = `${w(usDiv,1)} 萬/年`;
+  document.getElementById('totalDivRow').textContent = `${w(totDiv,1)} 萬/年`;
+  const covFill = document.getElementById('coverageFill');
+  const covPct  = Math.min(cov, 150);
+  covFill.style.width = covPct / 1.5 + '%';
+  covFill.style.background = cov >= 100 ? 'var(--green)' : cov >= 70 ? 'var(--amber)' : 'var(--red)';
+
+  // 正2 donut
+  const lev00631 = d.h00631/10000, lev00685 = d.h00685/10000, lev2330 = d.h2330/10000;
+  const levTotal = lev00631 + lev00685 + lev2330;
+  document.getElementById('lev2Num').innerHTML  = `${w(levTotal,0)}<span>萬</span>`;
+  document.getElementById('lev00631').textContent = `${w(lev00631,0)} 萬`;
+  document.getElementById('lev00685').textContent = `${w(lev00685,0)} 萬`;
+  document.getElementById('lev2330').textContent  = `${w(lev2330,0)} 萬`;
+  document.getElementById('levTotalPct').textContent = total > 0 ? `${(d.t1/total*100).toFixed(1)}%` : '—';
+
+  renderLevDonut(lev00631, lev00685, lev2330);
+
+  // 美股明細
+  renderUsGrid(d);
+
+  // 現金
+  const cash = d.totalCash / 10000;
+  document.getElementById('cashNum').innerHTML    = `${w(cash,0)}<span>萬</span>`;
+  document.getElementById('cashActivity').textContent = `${w(d.cActivity/10000,0)} 萬`;
+  document.getElementById('cashIB').textContent   = `${w(d.cIB/10000,0)} 萬`;
+  document.getElementById('cashZH').textContent   = `${w(d.cZH/10000,0)} 萬`;
+  document.getElementById('cashYD').textContent   = `${w(d.cYD/10000,0)} 萬`;
+  document.getElementById('cashMonths').textContent = `${(cash / MONTHLY_EXP).toFixed(0)} 個月`;
+  const cashPct = Math.min(cash / CASH_TARGET * 100, 100);
+  document.getElementById('cashFill').style.width = cashPct + '%';
+  document.getElementById('cashFill').style.background =
+    cashPct >= 100 ? 'var(--green)' : cashPct >= 60 ? 'var(--blue)' : 'var(--amber)';
+}
+
+// ── 層卡渲染 ──
+function renderTierCard(prefix, amountWan, actualPct, targetPct, holdings, totalWan) {
+  document.getElementById(`${prefix}_amount`).innerHTML = `${w(amountWan,0)}<span>萬</span>`;
+  document.getElementById(`${prefix}_pct`).textContent = `${pf(actualPct)}%`;
+
+  const bar = document.getElementById(`${prefix}_bar`);
+  bar.style.width = Math.min(actualPct, 100).toFixed(1) + '%';
+
+  const diff = actualPct - targetPct;
+  const badge = document.getElementById(`${prefix}_badge`);
+  if (Math.abs(diff) <= TIER_TOL) {
+    badge.innerHTML = `<span class="badge badge-green">✓ 符合目標</span>`;
+  } else if (diff > 0) {
+    badge.innerHTML = `<span class="badge badge-red">↑ 超配 +${pf(diff)}%</span>`;
+  } else {
+    badge.innerHTML = `<span class="badge badge-amber">↓ 低配 ${pf(diff)}%</span>`;
+  }
+
+  // 明細
+  const tbl = document.getElementById(`${prefix}_detail`);
+  tbl.innerHTML = holdings.map(([name, val]) => {
+    const pct = totalWan > 0 ? (val / totalWan * 100).toFixed(1) : '0.0';
+    return `<tr>
+      <td>${name}</td>
+      <td class="val">${w(val,0)} 萬</td>
+      <td class="pct">${pct}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 動作建議 ──
+function renderActions(p1, p2, p3, d, total) {
+  const actions = [];
+  const totalWan = total / 10000;
+  const cashWan  = d.totalCash / 10000;
+
+  const d1 = p1 - TIER_TARGET.t1;
+  const d2 = p2 - TIER_TARGET.t2;
+  const d3 = p3 - TIER_TARGET.t3;
+
+  // 現金緩衝
+  if (cashWan < CASH_TARGET * 0.5) {
+    actions.push(['crit', '🚨', `現金緩衝嚴重不足（${w(cashWan,0)} 萬，目標 ${CASH_TARGET} �），優先建立現金層，暫停積極加碼。`]);
+  } else if (cashWan < CASH_TARGET) {
+    const lack = CASH_TARGET - cashWan;
+    actions.push(['warn', '⚠️', `現金緩衝尚未達標（缺 ${w(lack,0)} 萬），建議下一筆薪資優先補足。`]);
+  } else {
+    actions.push(['ok', '✅', `現金緩衝充足（${w(cashWan,0)} 萬，約 ${(cashWan/MONTHLY_EXP).toFixed(0)} 個月），序列報酬風險護盾到位。`]);
+  }
+
+  // 層一
+  if (d1 > TIER_TOL) {
+    actions.push(['warn', '⚠️', `層一（正2/台積電）超配 +${pf(d1)}%，目前不宜再加碼正2；等層二或層三補強後自然下降。`]);
+  } else if (d1 < -TIER_TOL) {
+    const need = Math.round(totalWan * Math.abs(d1) / 100);
+    actions.push(['info', '📌', `層一低配 ${pf(d1)}%，若台股回落可分批加碼正2，約需 ${w(need,0)} 萬補至目標。`]);
+  } else {
+    actions.push(['ok', '✅', `層一（槓桿/集中）佔比 ${pf(p1)}%，在目標 ${TIER_TARGET.t1}% ± ${TIER_TOL}% 範圍內，不需調整。`]);
+  }
+
+  // 層二
+  if (d2 > TIER_TOL) {
+    actions.push(['warn', '⚠️', `層二（0050/富邦台50）超配 +${pf(d2)}%，本月薪資新增投入建議轉向美股 VUAA/VWRA。`]);
+  } else if (d2 < -TIER_TOL) {
+    const need = Math.round(totalWan * Math.abs(d2) / 100);
+    actions.push(['info', '📌', `層二低配 ${pf(d2)}%，可考慮買入 0050 或富邦台50，約 ${w(need,0)} 萬。`]);
+  } else {
+    actions.push(['ok', '✅', `層二（台股大盤）佔比 ${pf(p2)}%，在目標 ${TIER_TARGET.t2}% ± ${TIER_TOL}% 範圍內。`]);
+  }
+
+  // 層三
+  if (d3 > TIER_TOL) {
+    actions.push(['ok', '✅', `層三（全球分散+現金）超配 ${pf(d3)}%，全球分散比重充足，繼續定期投入 VUAA/VWRA 即可。`]);
+  } else if (d3 < -TIER_TOL) {
+    const need = Math.round(totalWan * Math.abs(d3) / 100);
+    actions.push(['info', '📌', `層三低配 ${pf(d3)}%，建議本月增加 VUAA 或 VWRA，約 ${w(need,0)} 萬補至目標。`]);
+  } else {
+    actions.push(['ok', '✅', `層三（全球分散+現金）佔比 ${pf(p3)}%，符合防禦目標。`]);
+  }
+
+  // 收入覆蓋率
+  const twInv = (d.t1 + d.t2) / 10000;
+  const usInv = d.usTotal / 10000;
+  const totDiv = twInv * TW_DIV_RATE + usInv * US_DIV_RATE;
+  const cov = totDiv / (MONTHLY_EXP * 12) * 100;
+  if (cov >= 100) {
+    actions.push(['ok', '✅', `被動收入覆蓋率 ${w(cov,0)}%，年配息（${w(totDiv,1)} 萬）已超過年支出，達到財務自由門檻！`]);
+  } else {
+    actions.push(['info', '📌', `被動收入覆蓋率 ${w(cov,0)}%（${w(totDiv,1)} 萬/年），距年支出 ${MONTHLY_EXP*12} 萬尚差 ${w(MONTHLY_EXP*12-totDiv,1)} 萬，仍需薪資補足。`]);
+  }
+
+  const list = document.getElementById('actionList');
+  list.innerHTML = actions.map(([cls, icon, text]) =>
+    `<div class="action-item action-${cls}"><span class="action-icon">${icon}</span><span>${text}</span></div>`
+  ).join('');
+}
+
+// ── 正2 donut ──
+function renderLevDonut(v00631, v00685, v2330) {
+  const ctx = document.getElementById('levDonut').getContext('2d');
+  const total = v00631 + v00685 + v2330;
+
+  if (levDonutChart) { levDonutChart.destroy(); levDonutChart = null; }
+
+  if (total <= 0) return;
+
+  levDonutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['元大台灣50正2', '群益台灣正2', '台積電'],
+      datasets: [{
+        data: [v00631, v00685, v2330],
+        backgroundColor: ['#f06060','#f09050','#f0c050'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => ` ${w(c.raw,0)} 萬 (${(c.raw/total*100).toFixed(1)}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 美股明細格子 ──
+function renderUsGrid(d) {
+  const items = [
+    ['VOO（古+樂）', d.hVOO/10000],
+    ['VT（古+芳）',  d.hVT/10000],
+    ['VTI（安）',    d.hVTI/10000],
+    ['VUAA（IB）',   d.hVUAA/10000],
+    ['VWRA（IB）',   d.hVWRA/10000],
+  ].filter(([,v]) => v > 0);
+
+  const usTotal = d.usTotal / 10000;
+  const grid = document.getElementById('usHoldingsGrid');
+  grid.innerHTML = items.map(([name, val]) => `
+    <div style="background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--r-sm);padding:.7rem .9rem;min-width:130px;">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:2px">${name}</div>
+      <div style="font-size:18px;font-family:'DM Mono',monospace;font-weight:400">${w(val,0)} 萬</div>
+      <div style="font-size:11px;color:var(--text3)">${usTotal>0?(val/usTotal*100).toFixed(1):'0.0'}% 美股</div>
+    </div>
+  `).join('') + `
+    <div style="background:rgba(80,144,240,.08);border:1px solid rgba(80,144,240,.2);
+      border-radius:var(--r-sm);padding:.7rem .9rem;min-width:130px;">
+      <div style="font-size:11px;color:var(--blue);margin-bottom:2px">美股合計</div>
+      <div style="font-size:18px;font-family:'DM Mono',monospace;color:var(--blue)">${w(usTotal,0)} 萬</div>
+      <div style="font-size:11px;color:var(--text3)">UCITS 免美國遺產稅</div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
