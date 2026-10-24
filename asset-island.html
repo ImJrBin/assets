@@ -3,9 +3,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
-/* Layout: full-bleed 3D island scene; floating ledger card top-left, scenario dock right, detail sheet bottom */
+/* Layout: full-bleed daytime 3D island scene; ledger card top-left, view toolbar + scenario dock top-right, drawer for list/roles, detail sheet bottom. Single daytime look by choice. */
 :root{
-  --sky-top:#cfe3e6; --sky-bot:#eef2e8;
+  --sky-top:#b9dde4; --sky-bot:#f4f1de;
+  color-scheme:light;
   --ink:#22312f; --ink-2:#5b6b67;
   --paper:#fbfaf5; --paper-line:#e2e4da;
   --accent:#c8623a;          /* 赤陶，用於選取與強調 */
@@ -16,15 +17,6 @@
   --font-display:var(--font-body);
   --font-num:var(--font-body);
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --sky-top:#1b2a33; --sky-bot:#2c3a3a; --ink:#eef1ea; --ink-2:#a9b6b1;
-  --paper:#1f2827; --paper-line:#34403e; --accent:#e58a62; --sea:#3d7f88;
-  --ok:#6cc08a; --warn:#e2b04a; --bad:#e07a68; --chip-bg:rgba(31,40,39,.9); color-scheme:dark}}
-:root[data-theme="dark"]{
-  --sky-top:#1b2a33; --sky-bot:#2c3a3a; --ink:#eef1ea; --ink-2:#a9b6b1;
-  --paper:#1f2827; --paper-line:#34403e; --accent:#e58a62; --sea:#3d7f88;
-  --ok:#6cc08a; --warn:#e2b04a; --bad:#e07a68; --chip-bg:rgba(31,40,39,.9); color-scheme:dark}
-
 html,body{height:100%}
 body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);font-family:var(--font-body);overflow:hidden}
 #stage{position:fixed;inset:0}
@@ -71,6 +63,32 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
 #dock button:focus-visible,.tag:focus-visible,#sheet button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #dock button em{font-style:normal;font-family:var(--font-num);font-size:11px;opacity:.75}
 
+#tools{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:8px;z-index:3}
+#tools button{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;
+  background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;padding:10px 14px;box-shadow:0 6px 18px rgba(30,50,48,.12)}
+#tools button:hover{border-color:var(--accent)}
+#tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#tools button:focus-visible,#drawer button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#tools svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+#dock{top:calc(72px + env(safe-area-inset-top,0px))}
+#drawer{top:calc(72px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:4;
+  width:min(320px,calc(100vw - 32px));max-height:calc(100% - 200px);overflow:auto;padding:14px 16px;display:grid;gap:10px}
+#drawer .hd{display:flex;justify-content:space-between;align-items:baseline}
+#drawer h3{margin:0;font-size:16px}
+#drawer .x{all:unset;cursor:pointer;font-size:18px;color:var(--ink-2);padding:0 4px}
+.grp{display:grid;gap:2px}
+.grp h4{margin:6px 0 2px;font-size:11px;letter-spacing:.12em;color:var(--ink-2);font-weight:500;display:flex;justify-content:space-between}
+.li{all:unset;cursor:pointer;display:grid;grid-template-columns:10px 1fr auto auto;gap:8px;align-items:center;font-size:13px;padding:6px 6px;border-radius:8px}
+.li:hover{background:var(--paper-line)}
+.li .dot{width:8px;height:8px;border-radius:50%}
+.li .pct{color:var(--ink-2);font-size:12px;min-width:44px;text-align:right}
+.roles{display:grid;gap:6px}
+.role{all:unset;cursor:pointer;display:grid;gap:2px;padding:9px 10px;border:1px solid var(--paper-line);border-radius:10px}
+.role:hover{border-color:var(--accent)}
+.role[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--paper))}
+.role .t{display:flex;justify-content:space-between;font-size:13.5px;font-weight:500}
+.role .d{font-size:12px;color:var(--ink-2);line-height:1.5}
+.tag.dim{opacity:.35}
 #sheet{left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));
   width:min(560px,calc(100vw - 32px));padding:14px 16px;display:grid;gap:8px}
 #sheet .hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -84,7 +102,10 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
 .hint{font-size:12px;color:var(--ink-2)}
 
 @media (max-width:640px){
-  #ledger{width:calc(100vw - 32px - 0px);padding:10px 12px}
+  #ledger{width:calc(100vw - 32px - 92px);padding:10px 12px}
+  #tools{flex-direction:column;gap:6px}
+  #tools button{padding:8px 10px;font-size:13px}
+  #drawer{top:auto;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:max(16px,env(safe-area-inset-left,0px));width:auto;max-height:55%}
   #ledger .big{font-size:22px}
   #ledger .rows{display:none}
   #ledger.open .rows{display:grid}
@@ -119,6 +140,13 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
   </div>
 </section>
 
+<nav id="tools" aria-label="檢視">
+  <button id="tAll" type="button"><svg viewBox="0 0 16 16"><path d="M4 12 12 4M6 4h6v6"/></svg>全景</button>
+  <button id="tRole" type="button" aria-pressed="false"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5.5 9.5c.7.9 1.5 1.3 2.5 1.3s1.8-.4 2.5-1.3"/><path d="M6 6.3v.2M10 6.3v.2"/></svg>角色</button>
+  <button id="tList" type="button" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></svg>清單</button>
+</nav>
+<section id="drawer" class="panel" hidden></section>
+
 <nav id="dock" class="panel" aria-label="壓力測試">
   <div class="lbl">壓力測試</div>
   <button data-s="now" aria-pressed="true">現況</button>
@@ -129,7 +157,7 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
 
 <section id="sheet" class="panel" aria-live="polite">
   <div class="hd"><h2>點一座島</h2><button class="x" id="closeSheet" aria-label="收起" hidden>×</button></div>
-  <p class="hint">島的面積＝金額。拖曳旋轉、滾輪或雙指縮放。右邊可以模擬壓力測試，看哪些島會下沉、哪些站得住。</p>
+  <p class="hint">島的面積＝金額。拖曳旋轉、滾輪或雙指縮放。右側可以模擬壓力測試；右上「全景」隨時回到整張地圖，看哪些島會下沉、哪些站得住。</p>
 </section>
 
 <script type="importmap">
@@ -173,6 +201,16 @@ const ISLANDS = [
    items:[['貝萊德新興市場除中',91391],['貝萊德新興歐洲',3173],['外幣（日圓、人民幣等）',49071],['FIH 股票',5676]],
    note:'金額小、各自零散。可以考慮哪天一起整理掉，讓地圖更單純。'},
 ];
+const ROLE_OF={core:'core',f50:'core',tsmc:'single',lev:'sat',glob:'div',usold:'div',edu1:'edu',edu2:'edu',cash:'safe',misc:'misc'};
+const ROLES=[
+  {id:'core',name:'核心引擎',d:'台股大盤指數，家裡複利的主力。'},
+  {id:'single',name:'單一個股',d:'台積電。報酬來源集中，跟核心高度重疊。'},
+  {id:'sat',name:'槓桿衛星',d:'正2，放大報酬也放大波動，設有 200 萬上限。'},
+  {id:'div',name:'全球分散',d:'美股與全世界 ETF，降低台股集中度的方向。'},
+  {id:'edu',name:'教育金',d:'孩子 18 歲移轉，不算退休池、不拿來應急。'},
+  {id:'safe',name:'安全墊',d:'活存與證券戶現金，大跌時不會沉的部分。'},
+  {id:'misc',name:'零星',d:'基金與外幣零頭，可整理的小部位。'},
+];
 const HOME = {id:'home', name:'家', pos:[-17,12], r:2.2};
 const TARGET_MONTHLY = 100000, LEV_CAP = 2000000;
 
@@ -205,8 +243,10 @@ controls.target.set(1,0,0);
 controls.enablePan=true; controls.screenSpacePanning=false;
 
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
-const hemi=new THREE.HemisphereLight(0xeef6f2,0x6a7a5a,1.1); scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xfff1dc,2.0);
+const hemi=new THREE.HemisphereLight(0xf4fbff,0x9aa883,1.7); scene.add(hemi);
+scene.add(new THREE.AmbientLight(0xffffff,.35));
+scene.fog=new THREE.Fog(0xe6eee4,95,190);
+const sun=new THREE.DirectionalLight(0xfff4e2,2.6);
 sun.position.set(-30,50,25); sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);
 Object.assign(sun.shadow.camera,{left:-45,right:45,top:40,bottom:-40,near:1,far:150});
@@ -220,10 +260,10 @@ const mats={sand:M(0xe8d7ad),sandDark:M(0xc9b17f),trunk:M(0x8a6a4a),leaf:M(0x5f9
 
 /* 水面 */
 const seaGeo=new THREE.CircleGeometry(160,64); seaGeo.rotateX(-Math.PI/2);
-const seaMat=new THREE.MeshStandardMaterial({color:0x5aa3ab,roughness:.35,metalness:.05,transparent:true,opacity:.93});
+const seaMat=new THREE.MeshStandardMaterial({color:0x7fbec2,roughness:.35,metalness:.05,transparent:true,opacity:.93});
 const sea=new THREE.Mesh(seaGeo,seaMat); sea.receiveShadow=true; scene.add(sea);
 const floorGeo=new THREE.CircleGeometry(160,48); floorGeo.rotateX(-Math.PI/2);
-const floor=new THREE.Mesh(floorGeo,M(0x3d7680)); floor.position.y=-3; scene.add(floor);
+const floor=new THREE.Mesh(floorGeo,M(0x6aa7ad)); floor.position.y=-3; scene.add(floor);
 
 /* 遠山 */
 const rand=(()=>{let s=7;return()=>(s=(s*16807)%2147483647)/2147483647})();
@@ -232,7 +272,7 @@ for(let i=0;i<26;i++){
   const a=-Math.PI*0.95+ (i/25)*Math.PI*0.9 + (rand()-.5)*.08;
   const d=70+rand()*25, h=10+rand()*18, r=9+rand()*9;
   const g=new THREE.ConeGeometry(r,h,5+Math.floor(rand()*3));
-  const m=new THREE.Mesh(g,M(rand()>.5?0x9fb98a:0x8aa77c));
+  const m=new THREE.Mesh(g,M(rand()>.5?0xb8cf98:0xa6c28c));
   m.position.set(Math.cos(a)*d,h/2-1,Math.sin(a)*d); m.rotation.y=rand()*3;
   mountains.add(m);
   if(h>20){const cap=new THREE.Mesh(new THREE.ConeGeometry(r*.32,h*.3,5),mats.white);cap.position.set(m.position.x,h-1-h*.15+.01,m.position.z);mountains.add(cap)}
@@ -396,10 +436,10 @@ homeTag.innerHTML='<span class="dot" style="background:#a6c27c"></span>家<small
 homeTag.addEventListener('click',()=>selectHome());labels.appendChild(homeTag);HOME.tag=homeTag;
 
 /* ---------- 狀態與面板 ---------- */
-let scen='now',selected=null;
+let scen='now',selected=null,roleSel=null,drawerMode=null;
 const valNow=isl=>isl.value*factorOf(isl,SCEN[scen]);
 
-function updateLedger(){
+let updateLedger=function(){
   const s=SCEN[scen];
   const vals=ISLANDS.map(i=>[i,valNow(i)]);
   const total=vals.reduce((a,[,v])=>a+v,0);
@@ -489,14 +529,6 @@ renderer.domElement.addEventListener('pointerup',e=>{
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
 addEventListener('resize',resize);resize();
 
-function applyTheme(){
-  const dark=isDark();
-  seaMat.color.setHex(dark?0x2f6b74:0x5aa3ab);
-  hemi.intensity=dark?.55:1.1;sun.intensity=dark?1.1:2.0;sun.color.setHex(dark?0xc7d4ff:0xfff1dc);
-}
-applyTheme();
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
-new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const v3=new THREE.Vector3();const clock=new THREE.Clock();
@@ -515,7 +547,7 @@ function tick(){
     i.body.scale.set(Math.max(s,.25),1,Math.max(s,.25));
     const sink=(1-i.cur)*1.3+(i.cur<0.02?1.4:0);
     i.body.position.y=-sink+(reduce?0:Math.sin(t*.8+i.pos[0])*.04);
-    i.ring.material.opacity+=((selected===i?.85:0)-i.ring.material.opacity)*.15;
+    i.ring.material.opacity+=(((selected===i||(roleSel&&ROLE_OF[i.id]===roleSel))?.85:0)-i.ring.material.opacity)*.15;
     i.spin?.forEach(h=>h.rotation.z-=dt*1.4);
     i.tag.style.opacity='';
     placeTag(i.tag,i.pos[0],2.2+(i.kind==='city'?6:i.kind==='lighthouse'?4:1.5)-sink,i.pos[1]);
@@ -529,5 +561,37 @@ function tick(){
   renderer.render(scene,camera);
   requestAnimationFrame(tick);
 }
+const drawer=document.getElementById('drawer'),tRole=document.getElementById('tRole'),tList=document.getElementById('tList');
+const GRP=[['tw','台股'],['us','美股與全球'],['edu','教育金'],['cash','現金'],['other','其他']];
+function renderDrawer(){
+  if(!drawerMode){drawer.hidden=true;return}
+  drawer.hidden=false;
+  const total=ISLANDS.reduce((a,i)=>a+valNow(i),0);
+  if(drawerMode==='list'){
+    drawer.innerHTML='<div class="hd"><h3>清單</h3><button class="x" type="button" aria-label="關閉">×</button></div>'+
+    GRP.map(([g,gn])=>{const is=ISLANDS.filter(i=>i.grp===g).sort((a,b)=>b.value-a.value);
+      const sum=is.reduce((a,i)=>a+valNow(i),0);
+      return `<div class="grp"><h4><span>${gn}</span><span class="num">${(sum/total*100).toFixed(1)}%</span></h4>`+
+      is.map(i=>`<button class="li" type="button" data-id="${i.id}"><span class="dot" style="background:${grpColor[g]}"></span><span>${i.name}</span><span class="num">${fmtW(valNow(i))}</span><span class="pct num">${(valNow(i)/total*100).toFixed(1)}%</span></button>`).join('')+'</div>'}).join('');
+    drawer.querySelectorAll('.li').forEach(b=>b.addEventListener('click',()=>{select(ISLANDS.find(i=>i.id===b.dataset.id));if(innerWidth<=640)setDrawer(null)}));
+  }else{
+    drawer.innerHTML='<div class="hd"><h3>資金角色</h3><button class="x" type="button" aria-label="關閉">×</button></div><div class="hint">每座島在家裡扮演的角色。點一個，地圖上會圈出屬於它的島。</div><div class="roles">'+
+    ROLES.map(r=>{const v=ISLANDS.filter(i=>ROLE_OF[i.id]===r.id).reduce((a,i)=>a+valNow(i),0);
+      return `<button class="role" type="button" data-r="${r.id}" aria-pressed="${roleSel===r.id}"><span class="t"><span>${r.name}</span><span class="num">${fmtW(v)}・${(v/total*100).toFixed(1)}%</span></span><span class="d">${r.d}</span></button>`}).join('')+'</div>';
+    drawer.querySelectorAll('.role').forEach(b=>b.addEventListener('click',()=>{roleSel=roleSel===b.dataset.r?null:b.dataset.r;applyRole();renderDrawer()}));
+  }
+  drawer.querySelector('.x').addEventListener('click',()=>setDrawer(null));
+}
+function applyRole(){ISLANDS.forEach(i=>i.tag.classList.toggle('dim',!!roleSel&&ROLE_OF[i.id]!==roleSel));HOME.tag.classList.toggle('dim',!!roleSel)}
+function setDrawer(m){
+  drawerMode=m;tRole.setAttribute('aria-pressed',m==='role');tList.setAttribute('aria-pressed',m==='list');
+  if(m!=='role'){roleSel=null;applyRole()}
+  renderDrawer();
+}
+tRole.addEventListener('click',()=>setDrawer(drawerMode==='role'?null:'role'));
+tList.addEventListener('click',()=>setDrawer(drawerMode==='list'?null:'list'));
+document.getElementById('tAll').addEventListener('click',()=>{setDrawer(null);clearSel()});
+addEventListener('keydown',e=>{if(e.key==='Escape'){setDrawer(null);clearSel()}});
+const _upd=updateLedger;updateLedger=function(){_upd();if(drawerMode)renderDrawer()};
 updateLedger();tick();
 </script>
