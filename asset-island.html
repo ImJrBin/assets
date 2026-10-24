@@ -1,0 +1,533 @@
+<title>家庭資產島</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-bleed 3D island scene; floating ledger card top-left, scenario dock right, detail sheet bottom */
+:root{
+  --sky-top:#cfe3e6; --sky-bot:#eef2e8;
+  --ink:#22312f; --ink-2:#5b6b67;
+  --paper:#fbfaf5; --paper-line:#e2e4da;
+  --accent:#c8623a;          /* 赤陶，用於選取與強調 */
+  --sea:#4f9aa3;
+  --ok:#3f8a5a; --warn:#c08a1e; --bad:#b84a3a;
+  --chip-bg:rgba(251,250,245,.92);
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-display:var(--font-body);
+  --font-num:var(--font-body);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --sky-top:#1b2a33; --sky-bot:#2c3a3a; --ink:#eef1ea; --ink-2:#a9b6b1;
+  --paper:#1f2827; --paper-line:#34403e; --accent:#e58a62; --sea:#3d7f88;
+  --ok:#6cc08a; --warn:#e2b04a; --bad:#e07a68; --chip-bg:rgba(31,40,39,.9); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky-top:#1b2a33; --sky-bot:#2c3a3a; --ink:#eef1ea; --ink-2:#a9b6b1;
+  --paper:#1f2827; --paper-line:#34403e; --accent:#e58a62; --sea:#3d7f88;
+  --ok:#6cc08a; --warn:#e2b04a; --bad:#e07a68; --chip-bg:rgba(31,40,39,.9); color-scheme:dark}
+
+html,body{height:100%}
+body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);font-family:var(--font-body);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;touch-action:none}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+/* labels */
+#labels{position:fixed;inset:0;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;
+  display:flex;align-items:baseline;gap:6px;white-space:nowrap;
+  background:var(--chip-bg);border:1px solid var(--paper-line);border-radius:999px;
+  padding:5px 11px 5px 9px;font-size:13px;font-weight:500;box-shadow:0 2px 8px rgba(30,50,48,.12);
+  transition:opacity .3s, transform .15s}
+.tag:hover,.tag.sel{border-color:var(--accent)}
+.tag.sel{transform:translate(-50%,-100%) scale(1.06)}
+.tag b{font-family:var(--font-num);font-size:11px;color:var(--accent);font-weight:500}
+.tag small{font-family:var(--font-num);font-size:11px;color:var(--ink-2)}
+.tag .dot{width:7px;height:7px;border-radius:50%;align-self:center}
+.tag.sunk{opacity:.45}
+
+/* panels */
+.panel{position:fixed;background:var(--paper);border:1px solid var(--paper-line);border-radius:14px;
+  box-shadow:0 8px 28px rgba(30,50,48,.14)}
+#ledger{top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+  width:min(300px,calc(100vw - 32px));padding:14px 16px 12px}
+#ledger h1{font-family:var(--font-display);font-size:22px;font-weight:700;margin:0;letter-spacing:.02em}
+#ledger .sub{font-size:12px;color:var(--ink-2);margin-top:2px}
+#ledger .big{font-size:26px;margin-top:10px;line-height:1.1}
+#ledger .delta{font-size:12px;min-height:16px}
+.rows{display:grid;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--paper-line)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px}
+.row span:first-child{color:var(--ink-2)}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)}
+.bar{height:8px;border-radius:4px;overflow:hidden;display:flex;margin-top:4px;background:var(--paper-line)}
+.bar i{display:block;height:100%}
+
+#dock{top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));
+  padding:8px;display:grid;gap:6px;width:150px}
+#dock .lbl{font-size:11px;letter-spacing:.12em;color:var(--ink-2);padding:2px 4px 0}
+#dock button{all:unset;cursor:pointer;font-size:13px;padding:8px 10px;border-radius:9px;display:flex;justify-content:space-between;gap:6px}
+#dock button:hover{background:var(--paper-line)}
+#dock button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+#dock button:focus-visible,.tag:focus-visible,#sheet button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#dock button em{font-style:normal;font-family:var(--font-num);font-size:11px;opacity:.75}
+
+#sheet{left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  width:min(560px,calc(100vw - 32px));padding:14px 16px;display:grid;gap:8px}
+#sheet .hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+#sheet h2{font-family:var(--font-display);font-size:20px;margin:0}
+#sheet .v{font-size:18px}
+#sheet p{margin:0;font-size:13px;line-height:1.6;color:var(--ink-2);text-wrap:pretty}
+#sheet table{width:100%;border-collapse:collapse;font-size:12.5px}
+#sheet td{padding:3px 0;border-bottom:1px solid var(--paper-line)}
+#sheet td:last-child{text-align:right}
+#sheet .x{all:unset;cursor:pointer;font-size:18px;color:var(--ink-2);padding:0 4px}
+.hint{font-size:12px;color:var(--ink-2)}
+
+@media (max-width:640px){
+  #ledger{width:calc(100vw - 32px - 0px);padding:10px 12px}
+  #ledger .big{font-size:22px}
+  #ledger .rows{display:none}
+  #ledger.open .rows{display:grid}
+  #dock{top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:max(16px,env(safe-area-inset-right,0px));left:max(16px,env(safe-area-inset-left,0px));width:auto;
+    grid-template-columns:repeat(4,1fr);gap:4px;padding:6px}
+  #dock .lbl{display:none}
+  #dock button{font-size:12px;padding:8px 4px;justify-content:center;text-align:center}
+  #dock button em{display:none}
+  #sheet{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .tag{font-size:12px;padding:4px 9px 4px 7px}
+  .tag small{display:none}
+}
+@media (prefers-reduced-motion:reduce){.tag{transition:none}}
+</style>
+
+<div id="stage" aria-hidden="true"></div>
+<div id="labels"></div>
+
+<section id="ledger" class="panel" aria-label="資產總覽">
+  <h1>家庭資產島</h1>
+  <div class="sub">資產負債表 202610 · 2026/10/1 更新</div>
+  <div class="big num" id="total">—</div>
+  <div class="delta num" id="delta"></div>
+  <div class="rows">
+    <div>
+      <div class="row"><span>地理分布</span><span class="num" id="geoTxt"></span></div>
+      <div class="bar" id="geoBar"></div>
+    </div>
+    <div class="row"><span>退休池 4% 月提領<br><small style="font-size:11px">不含教育金，目標 10 萬</small></span><span><span class="num" id="swr"></span> <span class="pill" id="swrPill"></span></span></div>
+    <div class="row"><span>正2 合計 / 上限 200 萬</span><span><span class="num" id="lev"></span> <span class="pill" id="levPill"></span></span></div>
+    <div class="row"><span>教育金</span><span><span class="num" id="edu"></span> <span class="pill ok" id="eduPill">獨立</span></span></div>
+  </div>
+</section>
+
+<nav id="dock" class="panel" aria-label="壓力測試">
+  <div class="lbl">壓力測試</div>
+  <button data-s="now" aria-pressed="true">現況</button>
+  <button data-s="tw40" aria-pressed="false">台股 −40%<em>正2 −70%</em></button>
+  <button data-s="all" aria-pressed="false">全球股災<em>美股 −30%</em></button>
+  <button data-s="lev0" aria-pressed="false">衛星歸零<em>正2 → 0</em></button>
+</nav>
+
+<section id="sheet" class="panel" aria-live="polite">
+  <div class="hd"><h2>點一座島</h2><button class="x" id="closeSheet" aria-label="收起" hidden>×</button></div>
+  <p class="hint">島的面積＝金額。拖曳旋轉、滾輪或雙指縮放。右邊可以模擬壓力測試，看哪些島會下沉、哪些站得住。</p>
+</section>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ---------- 資料：Balance Sheet_2026 / 202610 ---------- */
+const ISLANDS = [
+  {id:'core', name:'0050 核心', grp:'tw', pos:[0,0], kind:'city', grass:0x9fbf6e,
+   items:[['元大台灣50 (0050)',20807573]],
+   note:'家裡的主體。一座島就占了總資產六成以上，這是「台股集中度」最直觀的樣子。'},
+  {id:'tsmc', name:'台積電', grp:'tw', pos:[-12.5,4], kind:'fab', grass:0x8fb27a,
+   items:[['台積電 (2330)',5049280]],
+   note:'單一個股。0050 裡面也有約一半是台積電，所以實際押在台積電的比重比這座島看起來更大。'},
+  {id:'f50', name:'富邦台50', grp:'tw', pos:[5,-10.5], kind:'town', grass:0xa9c47a,
+   items:[['富邦台50 (006208)',897050]],
+   note:'跟 0050 追蹤同一個指數，等於同一座島的分身。之前已列為可整併、移往 VWRA 的候選。'},
+  {id:'lev', name:'正2 衛星', grp:'tw', pos:[11,6], kind:'lighthouse', grass:0xb7c56d, lev:true,
+   items:[['元大台灣50正2 (00631L)',1910510],['群益臺灣加權正2 (00685L)',64550]],
+   note:'兩檔正2 追蹤同一個市場，合併算一個上限。燈塔的燈號就是離 200 萬上限的距離。'},
+  {id:'glob', name:'全球 (IB)', grp:'us', pos:[22,-6], kind:'windmill', grass:0x8cbf9a,
+   items:[['VUAA 標普500 (愛爾蘭)',332082],['VWRA 全世界 (愛爾蘭)',311846]],
+   note:'正在長大的新島。愛爾蘭註冊，避開美國遺產稅門檻；分散台股集中度的主要航道。'},
+  {id:'usold', name:'美股（暫停）', grp:'us', pos:[24,3.5], kind:'harbor', grass:0x9cbf8c,
+   items:[['VOO（古）',1088949],['VT（古）',645010],['VT（芳）',323824]],
+   note:'複委託的美國註冊 ETF，接近遺產稅門檻所以暫停加碼，持有不動。'},
+  {id:'edu1', name:'教育金・樂', grp:'edu', pos:[-21,-6.5], kind:'school', grass:0xd6c46a, edu:true,
+   items:[['VOO（樂）',236631]],
+   note:'孩子的教育金，18 歲移轉。不算進退休池，也不拿來應急。'},
+  {id:'edu2', name:'教育金・安', grp:'edu', pos:[-21.5,-1.5], kind:'school', grass:0xd6c46a, edu:true,
+   items:[['VTI（安）',235192]],
+   note:'孩子的教育金，18 歲移轉。不算進退休池，也不拿來應急。'},
+  {id:'cash', name:'現金港', grp:'cash', pos:[-6,-11.8], kind:'dock', grass:0xc9cf9a,
+   items:[['銀行活存',762377],['證券戶餘額（元大）',550538],['IB 美元餘額',478038]],
+   note:'安全墊與彈藥庫。市場大跌時這座島不會沉，IB 的美元餘額是下一筆 VUAA/VWRA 的子彈。'},
+  {id:'misc', name:'零星小島', grp:'other', pos:[-1,13], kind:'rocks', grass:0xb3b98c,
+   items:[['貝萊德新興市場除中',91391],['貝萊德新興歐洲',3173],['外幣（日圓、人民幣等）',49071],['FIH 股票',5676]],
+   note:'金額小、各自零散。可以考慮哪天一起整理掉，讓地圖更單純。'},
+];
+const HOME = {id:'home', name:'家', pos:[-17,12], r:2.2};
+const TARGET_MONTHLY = 100000, LEV_CAP = 2000000;
+
+ISLANDS.forEach(i=>i.value=i.items.reduce((s,x)=>s+x[1],0));
+const TOTAL0 = ISLANDS.reduce((s,i)=>s+i.value,0); // 33,842,761
+
+const SCEN = {
+  now:{tw:1,lev:1,us:1,label:''},
+  tw40:{tw:.6,lev:.3,us:1,label:'台股 −40%、正2 約 −70%'},
+  all:{tw:.6,lev:.3,us:.7,label:'台股 −40%、美股 −30%'},
+  lev0:{tw:1,lev:0,us:1,label:'正2 全部歸零'},
+};
+const factorOf=(isl,s)=> isl.lev? s.lev : isl.grp==='tw'? s.tw : (isl.grp==='us'||isl.grp==='edu')? s.us : 1;
+
+/* ---------- 場景 ---------- */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.5,500);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=.08;
+controls.minDistance=25; controls.maxDistance=120;
+controls.maxPolarAngle=Math.PI*0.44; controls.minPolarAngle=Math.PI*0.12;
+controls.target.set(1,0,0);
+controls.enablePan=true; controls.screenSpacePanning=false;
+
+const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+const hemi=new THREE.HemisphereLight(0xeef6f2,0x6a7a5a,1.1); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff1dc,2.0);
+sun.position.set(-30,50,25); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-45,right:45,top:40,bottom:-40,near:1,far:150});
+sun.shadow.bias=-0.0006; scene.add(sun);
+
+const M=c=>new THREE.MeshStandardMaterial({color:c,flatShading:true,roughness:.9,metalness:0});
+const mats={sand:M(0xe8d7ad),sandDark:M(0xc9b17f),trunk:M(0x8a6a4a),leaf:M(0x5f9a5a),leaf2:M(0x77ac5c),
+  pine:M(0x4f8656),white:M(0xf3efe6),roof:M(0xc8623a),roof2:M(0x5d7d8c),glass:M(0x9cc8d3),grey:M(0xb9bdb6),
+  dark:M(0x3a4442),wood:M(0xa8825a),yellow:M(0xe8c24a),rock:M(0xa7a597),blade:M(0xfaf7ef),red:M(0xc4473a),
+  orange:M(0xe0913f),black:M(0x2b2b2b)};
+
+/* 水面 */
+const seaGeo=new THREE.CircleGeometry(160,64); seaGeo.rotateX(-Math.PI/2);
+const seaMat=new THREE.MeshStandardMaterial({color:0x5aa3ab,roughness:.35,metalness:.05,transparent:true,opacity:.93});
+const sea=new THREE.Mesh(seaGeo,seaMat); sea.receiveShadow=true; scene.add(sea);
+const floorGeo=new THREE.CircleGeometry(160,48); floorGeo.rotateX(-Math.PI/2);
+const floor=new THREE.Mesh(floorGeo,M(0x3d7680)); floor.position.y=-3; scene.add(floor);
+
+/* 遠山 */
+const rand=(()=>{let s=7;return()=>(s=(s*16807)%2147483647)/2147483647})();
+const mountains=new THREE.Group();
+for(let i=0;i<26;i++){
+  const a=-Math.PI*0.95+ (i/25)*Math.PI*0.9 + (rand()-.5)*.08;
+  const d=70+rand()*25, h=10+rand()*18, r=9+rand()*9;
+  const g=new THREE.ConeGeometry(r,h,5+Math.floor(rand()*3));
+  const m=new THREE.Mesh(g,M(rand()>.5?0x9fb98a:0x8aa77c));
+  m.position.set(Math.cos(a)*d,h/2-1,Math.sin(a)*d); m.rotation.y=rand()*3;
+  mountains.add(m);
+  if(h>20){const cap=new THREE.Mesh(new THREE.ConeGeometry(r*.32,h*.3,5),mats.white);cap.position.set(m.position.x,h-1-h*.15+.01,m.position.z);mountains.add(cap)}
+}
+scene.add(mountains);
+
+/* 雲 */
+const clouds=[];
+for(let i=0;i<9;i++){
+  const c=new THREE.Group();
+  const n=3+Math.floor(rand()*3);
+  for(let j=0;j<n;j++){const s=new THREE.Mesh(new THREE.IcosahedronGeometry(1.4+rand()*1.4,0),mats.white);s.position.set(j*1.8,rand()*.8,rand()*1.2);c.add(s)}
+  c.position.set(-60+rand()*120,16+rand()*8,-45+rand()*70);
+  c.userData.v=.4+rand()*.6; scene.add(c); clouds.push(c);
+}
+
+/* ---------- 造島 ---------- */
+const K=0.6, rOf=v=>Math.max(1.15,K*Math.sqrt(v/1e5));
+const pick=[];
+
+function tree(g,x,z,s=1){
+  const t=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.06*s,.09*s,.5*s,5),mats.trunk);trunk.position.y=.25*s;t.add(trunk);
+  if(rand()>.45){const c=new THREE.Mesh(new THREE.ConeGeometry(.42*s,1.1*s,6),mats.pine);c.position.y=.95*s;t.add(c)}
+  else{const c=new THREE.Mesh(new THREE.IcosahedronGeometry(.42*s,0),rand()>.5?mats.leaf:mats.leaf2);c.position.y=.8*s;t.add(c)}
+  t.position.set(x,0,z);t.traverse(o=>{if(o.isMesh)o.castShadow=true});g.add(t);
+}
+function box(g,w,h,d,mat,x,z,y=0){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y+h/2,z);m.castShadow=true;m.receiveShadow=true;g.add(m);return m}
+function house(g,x,z,s=1,roofMat=mats.roof){
+  box(g,.9*s,.6*s,.8*s,mats.white,x,z);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(.75*s,.5*s,4),roofMat);r.position.set(x,.6*s+.25*s,z);r.rotation.y=Math.PI/4;r.castShadow=true;g.add(r);
+}
+const inDisk=(r)=>{const a=rand()*Math.PI*2,d=Math.sqrt(rand())*r;return[Math.cos(a)*d,Math.sin(a)*d]};
+
+function decorate(top,kind,r,isl){
+  const free=(fn,n,rr=r*.8)=>{for(let i=0;i<n;i++){const[x,z]=inDisk(rr);fn(x,z)}};
+  if(kind==='city'){
+    // 方格街區：越接近中心越高
+    const step=1.25;
+    for(let x=-r;x<=r;x+=step)for(let z=-r;z<=r;z+=step){
+      const d=Math.hypot(x,z); if(d>r*.78||rand()<.18)continue;
+      if(rand()<.22){tree(top,x,z,.9);continue}
+      const h=.5+ (1-d/r)*3.2*rand()+.3;
+      const mat=rand()<.15?mats.glass:rand()<.5?mats.white:mats.grey;
+      box(top,.9,h,.9,mat,x,z);
+      if(rand()<.25)box(top,.5,.18,.5,mats.roof,x,z,h);
+    }
+    // 中央地標
+    box(top,1.6,6.5,1.6,mats.glass,0,0); box(top,1.0,1.2,1.0,mats.white,0,0,6.5);
+  }else if(kind==='fab'){
+    box(top,r*.9,1.1,r*.55,mats.white,0,-.4);
+    box(top,r*.9,.2,r*.55,mats.roof2,0,-.4,1.1);
+    box(top,r*.5,.8,r*.35,mats.grey,-r*.2,r*.45);
+    for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.22,.26,2.6,8),mats.grey);c.position.set(r*.32-i*.7,1.3+1.1,-r*.3);c.castShadow=true;top.add(c)}
+    free((x,z)=>{if(Math.hypot(x,z)>r*.55)tree(top,x,z)},Math.round(r*r*.6));
+  }else if(kind==='town'){
+    free((x,z)=>house(top,x,z,.9,rand()>.5?mats.roof:mats.roof2),5,r*.55);
+    free((x,z)=>tree(top,x,z,.9),8);
+  }else if(kind==='lighthouse'){
+    const lh=new THREE.Group();
+    for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.42-.04*i,.46-.04*i,.8,10),i%2?mats.red:mats.white);c.position.y=.4+i*.8;c.castShadow=true;lh.add(c)}
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.38,12,10),new THREE.MeshStandardMaterial({color:0xffd166,emissive:0xffb020,emissiveIntensity:1.4}));
+    lamp.position.y=3.55;lh.add(lamp);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(.45,.5,10),mats.dark);cap.position.y=4.05;lh.add(cap);
+    lh.position.set(r*.25,0,-r*.1);top.add(lh);isl.lamp=lamp;
+    house(top,-r*.35,r*.25,.9);
+    free((x,z)=>{if(Math.hypot(x-r*.25,z+r*.1)>1.1)tree(top,x,z,.9)},7);
+  }else if(kind==='windmill'){
+    for(let k=0;k<2;k++){
+      const w=new THREE.Group();
+      const p=new THREE.Mesh(new THREE.CylinderGeometry(.08,.14,3.2,6),mats.blade);p.position.y=1.6;p.castShadow=true;w.add(p);
+      const hub=new THREE.Group();hub.position.set(0,3.2,.15);
+      for(let b=0;b<3;b++){const bl=new THREE.Mesh(new THREE.BoxGeometry(.12,1.5,.04),mats.blade);bl.position.y=.75;const piv=new THREE.Group();piv.rotation.z=b*Math.PI*2/3;piv.add(bl);hub.add(piv)}
+      w.add(hub);w.position.set(k?.6:-.6,0,k?.4:-.3);top.add(w);(isl.spin??=[]).push(hub);
+    }
+    free((x,z)=>tree(top,x,z,.8),3,r*.7);
+  }else if(kind==='harbor'){
+    for(let i=0;i<3;i++)box(top,.9,.9,.9,[mats.roof2,mats.roof,mats.yellow][i],-r*.3+i*.95,r*.1);
+    box(top,1.1,1.6,1,mats.white,r*.3,-r*.35);
+    free((x,z)=>tree(top,x,z,.9),6);
+  }else if(kind==='school'){
+    box(top,1.3,.75,.8,mats.yellow,0,0);
+    const r2=new THREE.Mesh(new THREE.ConeGeometry(.95,.45,4),mats.roof);r2.position.y=.97;r2.rotation.y=Math.PI/4;r2.scale.set(1.15,1,.7);r2.castShadow=true;top.add(r2);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1.6,5),mats.grey);pole.position.set(.8,.8,.3);top.add(pole);
+    const flag=new THREE.Mesh(new THREE.BoxGeometry(.45,.28,.02),mats.red);flag.position.set(1.03,1.45,.3);top.add(flag);
+    tree(top,-.6,.5,.7);
+  }else if(kind==='dock'){
+    // 倉庫 + 碼頭
+    box(top,1.4,.9,1.0,mats.wood,-.3,-.3); box(top,1.5,.15,1.1,mats.roof2,-.3,-.3,.9);
+    for(let i=0;i<3;i++)box(top,.55,.55,.55,mats.yellow,.6+i*.2,.5-i*.55);
+    free((x,z)=>tree(top,x,z,.8),4,r*.75);
+  }else if(kind==='rocks'){
+    for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(.35+rand()*.35,0),mats.rock);m.position.set((rand()-.5)*1.2,.25,(rand()-.5)*1.2);m.castShadow=true;top.add(m)}
+    tree(top,.3,-.2,.7);
+  }
+}
+
+function makeIsland(isl){
+  const r=isl.r=rOf(isl.value);
+  const root=new THREE.Group();root.position.set(isl.pos[0],0,isl.pos[1]);
+  const body=new THREE.Group(); root.add(body);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(r*1.06,r*1.18,1.4,6),mats.sandDark);base.position.y=-.55;base.receiveShadow=true;
+  const beach=new THREE.Mesh(new THREE.CylinderGeometry(r*1.02,r*1.06,.35,6),mats.sand);beach.position.y=.2;beach.receiveShadow=true;beach.castShadow=true;
+  const grass=new THREE.Mesh(new THREE.CylinderGeometry(r*.9,r*.92,.3,6),M(isl.grass));grass.position.y=.5;grass.receiveShadow=true;grass.castShadow=true;
+  body.add(base,beach,grass);
+  [base,beach,grass].forEach(m=>{m.userData.isl=isl;pick.push(m)});
+  const top=new THREE.Group();top.position.y=.65;body.add(top);
+  decorate(top,isl.kind,r,isl);
+  // 選取光環
+  const ring=new THREE.Mesh(new THREE.RingGeometry(r*1.22,r*1.32,6),new THREE.MeshBasicMaterial({color:0xc8623a,transparent:true,opacity:0,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.y=.03;root.add(ring);
+  isl.ring=ring;isl.root=root;isl.body=body;isl.cur=1;isl.goal=1;
+  scene.add(root);
+}
+ISLANDS.forEach(makeIsland);
+
+/* 家（不計價） */
+(()=>{
+  const r=HOME.r,root=new THREE.Group();root.position.set(HOME.pos[0],0,HOME.pos[1]);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(r*1.06,r*1.18,1.4,6),mats.sandDark);base.position.y=-.55;
+  const beach=new THREE.Mesh(new THREE.CylinderGeometry(r*1.02,r*1.06,.35,6),mats.sand);beach.position.y=.2;beach.castShadow=true;beach.receiveShadow=true;
+  const grass=new THREE.Mesh(new THREE.CylinderGeometry(r*.9,r*.92,.3,6),M(0xa6c27c));grass.position.y=.5;grass.receiveShadow=true;
+  root.add(base,beach,grass);
+  const top=new THREE.Group();top.position.y=.65;root.add(top);
+  // 老公寓：四層
+  box(top,1.6,2.6,1.2,mats.white,-.2,-.2);
+  for(let f=0;f<4;f++)for(let w=0;w<3;w++)box(top,.28,.25,.02,mats.glass,-.75+w*.55,.41,.35+f*.6);
+  box(top,1.7,.12,1.3,mats.grey,-.2,-.2,2.6);
+  // 兩隻貓：橘、黑
+  const cat=(x,z,mat)=>{box(top,.32,.2,.18,mat,x,z);box(top,.16,.16,.16,mat,x+.2,z,.14)};
+  cat(.9,.7,mats.orange);cat(1.1,.1,mats.black);
+  // 車
+  box(top,.9,.35,.45,mats.roof2,.9,-.9);box(top,.55,.25,.4,mats.glass,.85,-.9,.35);
+  tree(top,-1.2,1,.8);
+  HOME.root=root;scene.add(root);
+})();
+
+/* 小船 */
+const boats=[];
+for(let i=0;i<7;i++){
+  const b=new THREE.Group();
+  b.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.9,.25,.4),mats.wood),{castShadow:true}));
+  const sail=new THREE.Mesh(new THREE.ConeGeometry(.3,.9,3),mats.blade);sail.position.y=.55;b.add(sail);
+  const a=rand()*Math.PI*2,d=30+rand()*14;b.position.set(Math.cos(a)*d,.05,Math.sin(a)*d*.7);
+  b.userData={a,d,v:(.02+rand()*.03)*(rand()>.5?1:-1),ph:rand()*6};scene.add(b);boats.push(b);
+}
+
+/* ---------- 標籤 ---------- */
+const labels=document.getElementById('labels');
+const fmtW=v=>{if(v>=1e8)return(v/1e8).toFixed(2)+' 億';if(v>=1e4)return Math.round(v/1e4).toLocaleString('zh-TW')+' 萬';return v.toLocaleString('zh-TW')};
+const fmt=v=>Math.round(v).toLocaleString('zh-TW');
+const grpColor={tw:'#c8623a',us:'#4f8fa3',edu:'#d1a92a',cash:'#7b8a6a',other:'#9a9a8a'};
+ISLANDS.forEach(isl=>{
+  const el=document.createElement('button');el.className='tag';el.type='button';
+  el.innerHTML=`<span class="dot" style="background:${grpColor[isl.grp]}"></span>${isl.name}<small></small>`;
+  el.addEventListener('click',()=>select(isl));
+  labels.appendChild(el);isl.tag=el;
+});
+const homeTag=document.createElement('button');homeTag.className='tag';homeTag.type='button';
+homeTag.innerHTML='<span class="dot" style="background:#a6c27c"></span>家<small>不計價</small>';
+homeTag.addEventListener('click',()=>selectHome());labels.appendChild(homeTag);HOME.tag=homeTag;
+
+/* ---------- 狀態與面板 ---------- */
+let scen='now',selected=null;
+const valNow=isl=>isl.value*factorOf(isl,SCEN[scen]);
+
+function updateLedger(){
+  const s=SCEN[scen];
+  const vals=ISLANDS.map(i=>[i,valNow(i)]);
+  const total=vals.reduce((a,[,v])=>a+v,0);
+  document.getElementById('total').textContent='NT$ '+fmt(total);
+  const d=total-TOTAL0;
+  document.getElementById('delta').innerHTML=scen==='now'?'<span style="color:var(--ink-2)">淨資產（無負債）</span>':`<span style="color:var(--bad)">${s.label}：${d<0?'−':'+'}${fmtW(Math.abs(d))}（${(d/TOTAL0*100).toFixed(1)}%）</span>`;
+  const sum=g=>vals.filter(([i])=>i.grp===g).reduce((a,[,v])=>a+v,0);
+  const tw=sum('tw'),us=sum('us')+sum('edu'),cash=sum('cash'),oth=sum('other');
+  const pct=x=>(x/total*100);
+  document.getElementById('geoTxt').textContent=`台股 ${pct(tw).toFixed(1)}%・美股 ${pct(us).toFixed(1)}%・現金 ${pct(cash).toFixed(1)}%`;
+  document.getElementById('geoBar').innerHTML=[[tw,grpColor.tw],[us,grpColor.us],[cash,grpColor.cash],[oth,grpColor.other]].map(([v,c])=>`<i style="width:${pct(v)}%;background:${c}"></i>`).join('');
+  const edu=sum('edu');
+  const swr=(total-edu)*0.04/12;
+  document.getElementById('swr').textContent=fmt(swr);
+  const sp=document.getElementById('swrPill');
+  sp.className='pill '+(swr>=TARGET_MONTHLY?'ok':swr>=TARGET_MONTHLY*.8?'warn':'bad');
+  sp.textContent=swr>=TARGET_MONTHLY?'達標':swr>=TARGET_MONTHLY*.8?'差 '+fmtW(TARGET_MONTHLY-swr):'不足';
+  const lev=vals.find(([i])=>i.lev)[1];
+  document.getElementById('lev').textContent=fmtW(lev);
+  const lp=document.getElementById('levPill');const ratio=lev/LEV_CAP;
+  lp.className='pill '+(ratio>1?'bad':ratio>=.95?'warn':'ok');
+  lp.textContent=ratio>1?'超過上限':ratio>=.95?'接近上限':ratio===0?'已歸零':(ratio*100).toFixed(0)+'%';
+  document.getElementById('edu').textContent=fmtW(edu);
+  const ep=document.getElementById('eduPill');
+  ep.textContent=s.us<1?'隨美股波動・不動用':'獨立';
+  // lamp color
+  const levIsl=ISLANDS.find(i=>i.lev);
+  const col=ratio>1?0xe0503a:ratio>=.95?0xffb020:0x7fd38a;
+  levIsl.lamp.material.color.setHex(col);levIsl.lamp.material.emissive.setHex(col);
+  // tags
+  ISLANDS.forEach(i=>{const v=valNow(i);i.tag.querySelector('small').textContent=fmtW(v);i.tag.classList.toggle('sunk',v<i.value*.65)});
+  if(selected)renderSheet(selected);
+}
+
+const sheet=document.getElementById('sheet');
+function renderSheet(isl){
+  const v=valNow(isl),f=factorOf(isl,SCEN[scen]);
+  const total=ISLANDS.reduce((a,i)=>a+valNow(i),0);
+  const rows=isl.items.map(([n,x])=>`<tr><td>${n}</td><td class="num">${fmt(x*f)}</td></tr>`).join('');
+  sheet.innerHTML=`<div class="hd"><h2>${isl.name}</h2><span><span class="v num">NT$ ${fmt(v)}</span> <button class="x" id="closeSheet" aria-label="收起">×</button></span></div>
+  <div class="row"><span>占總資產</span><span class="num">${(v/total*100).toFixed(1)}%${f!==1?`　<span style="color:var(--bad)">${f===0?'歸零':((f-1)*100).toFixed(0)+'%'}</span>`:''}</span></div>
+  ${isl.items.length>1||f!==1?`<table>${rows}</table>`:''}
+  <p>${isl.note}</p>`;
+  sheet.querySelector('#closeSheet').addEventListener('click',clearSel);
+}
+function select(isl){
+  selected=isl;ISLANDS.forEach(i=>{i.tag.classList.toggle('sel',i===isl)});HOME.tag.classList.remove('sel');
+  renderSheet(isl);
+  flyTo(isl.pos[0],isl.pos[1],isl.r);
+}
+function selectHome(){
+  selected=null;ISLANDS.forEach(i=>i.tag.classList.remove('sel'));HOME.tag.classList.add('sel');
+  sheet.innerHTML=`<div class="hd"><h2>家</h2><span><span class="v" style="font-size:14px;color:var(--ink-2)">不計入淨資產</span> <button class="x" id="closeSheet" aria-label="收起">×</button></span></div>
+  <p>四十幾年的老公寓，無房貸。之後太太還會繼承一間。房子不放進資產負債表，但它是這張地圖上最穩的一座島：不管市場怎麼沉，住的地方不會動。</p>`;
+  sheet.querySelector('#closeSheet').addEventListener('click',clearSel);
+  flyTo(HOME.pos[0],HOME.pos[1],HOME.r);
+}
+const defaultSheet=sheet.innerHTML;
+function clearSel(){selected=null;ISLANDS.forEach(i=>i.tag.classList.remove('sel'));HOME.tag.classList.remove('sel');sheet.innerHTML=defaultSheet;flyHome()}
+
+document.querySelectorAll('#dock button').forEach(b=>b.addEventListener('click',()=>{
+  scen=b.dataset.s;document.querySelectorAll('#dock button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  ISLANDS.forEach(i=>i.goal=factorOf(i,SCEN[scen]));
+  updateLedger();
+}));
+document.getElementById('ledger').addEventListener('click',e=>{if(innerWidth<=640)e.currentTarget.classList.toggle('open')});
+
+/* ---------- 相機 ---------- */
+let fly=null;
+const camHome=()=>{const m=innerWidth<640;return{p:new THREE.Vector3(m?8:6,m?78:48,m?70:58),t:new THREE.Vector3(m?1:3,0,m?1:2)}};
+function flyTo(x,z,r){const d=Math.max(14,r*3.2+8);fly={p:new THREE.Vector3(x+d*.15,d*.95,z+d*1.05),t:new THREE.Vector3(x,0,z),k:0}}
+function flyHome(){const h=camHome();fly={p:h.p,t:h.t,k:0}}
+{const h=camHome();camera.position.copy(h.p);controls.target.copy(h.t)}
+controls.addEventListener('start',()=>{fly=null});
+
+/* 點選 */
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();let downAt=null;
+renderer.domElement.addEventListener('pointerdown',e=>downAt=[e.clientX,e.clientY]);
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>6)return;
+  ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,camera);
+  const hit=ray.intersectObjects(pick,false)[0];
+  if(hit)select(hit.object.userData.isl);
+});
+
+/* ---------- 主迴圈 ---------- */
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+function applyTheme(){
+  const dark=isDark();
+  seaMat.color.setHex(dark?0x2f6b74:0x5aa3ab);
+  hemi.intensity=dark?.55:1.1;sun.intensity=dark?1.1:2.0;sun.color.setHex(dark?0xc7d4ff:0xfff1dc);
+}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const v3=new THREE.Vector3();const clock=new THREE.Clock();
+function placeTag(el,x,y,z){
+  v3.set(x,y,z).project(camera);
+  if(v3.z>1){el.style.opacity=0;return}
+  el.style.left=((v3.x+1)/2*innerWidth)+'px';el.style.top=((1-v3.y)/2*innerHeight)+'px';
+}
+function tick(){
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  if(fly){fly.k=Math.min(1,fly.k+dt*1.6);const e=reduce?1:.08+fly.k*.1;camera.position.lerp(fly.p,e);controls.target.lerp(fly.t,e);if(camera.position.distanceTo(fly.p)<.05)fly=null}
+  controls.update();
+  ISLANDS.forEach(i=>{
+    i.cur+=(i.goal-i.cur)*(reduce?1:Math.min(1,dt*2.5));
+    const s=Math.sqrt(Math.max(i.cur,0.0001));
+    i.body.scale.set(Math.max(s,.25),1,Math.max(s,.25));
+    const sink=(1-i.cur)*1.3+(i.cur<0.02?1.4:0);
+    i.body.position.y=-sink+(reduce?0:Math.sin(t*.8+i.pos[0])*.04);
+    i.ring.material.opacity+=((selected===i?.85:0)-i.ring.material.opacity)*.15;
+    i.spin?.forEach(h=>h.rotation.z-=dt*1.4);
+    i.tag.style.opacity='';
+    placeTag(i.tag,i.pos[0],2.2+(i.kind==='city'?6:i.kind==='lighthouse'?4:1.5)-sink,i.pos[1]);
+  });
+  HOME.tag.style.opacity='';placeTag(HOME.tag,HOME.pos[0],4.2,HOME.pos[1]);
+  const lev=ISLANDS.find(i=>i.lev);if(lev.lamp&&!reduce)lev.lamp.material.emissiveIntensity=1+Math.sin(t*3)*.5;
+  if(!reduce){
+    clouds.forEach(c=>{c.position.x+=c.userData.v*dt;if(c.position.x>70)c.position.x=-70});
+    boats.forEach(b=>{const u=b.userData;u.a+=u.v*dt;b.position.set(Math.cos(u.a)*u.d,.05+Math.sin(t*1.5+u.ph)*.06,Math.sin(u.a)*u.d*.7);b.rotation.y=-u.a+(u.v>0?0:Math.PI)})
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+updateLedger();tick();
+</script>
