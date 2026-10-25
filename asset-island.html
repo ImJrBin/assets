@@ -471,7 +471,7 @@ function decorate(top,kind,r,isl){
     // 方格街區：越接近中心越高
     const step=1.25;
     for(let x=-r;x<=r;x+=step)for(let z=-r;z<=r;z+=step){
-      const d=Math.hypot(x,z); if(d>r*.78||rand()<.18)continue;
+      const d=Math.hypot(x,z); if(d>r*.7||rand()<.18)continue;
       if(Math.hypot(x-r*.45,z-r*.42)<1.9)continue;
       if(rand()<.22){tree(top,x,z,.9);continue}
       const h=.5+ (1-d/r)*3.2*rand()+.3;
@@ -559,18 +559,66 @@ function makeIsland(isl){
   scene.add(root);
 }
 /* 行人、貓、狗 */
-const SKIN=M(0xf0c8a3),HAIR=M(0x2b2522),PANTS=M(0x44506a);
-const shirtMats=[0xe07a5f,0x3d5a80,0xf2cc8f,0x81b29a,0xf6f3ea,0x6d597a,0xd9a441].map(M);
+const SKIN=M(0xf0c8a3),HAIR=M(0x2b2522),PANTS=M(0x44506a),SHOE=M(0x2e2e2e);
+const SKINS=[0xf0c8a3,0xe8b98f,0xd9a57e,0xf6dcc4].map(M);
+const HAIRS=[0x2b2522,0x2b2522,0x3d2a20,0x5a3a26].map(M),GREY=M(0xcfccc6);
+const PANTSM=[0x44506a,0x3b3f45,0x6d7a8c,0x8a6f55,0x2f4a3a,0xd9cbb0].map(M);
+const HATC=[0xe07a4f,0x3d5a80,0xf2c14e,0x5fb0a8,0xf6f3ea,0x6d597a,0x2b2b2b].map(M);
+const shirtMats=[0xe07a5f,0x3d5a80,0xf2cc8f,0x81b29a,0xf6f3ea,0x6d597a,0xd9a441,0x5fb0a8,0xe8607a].map(M);
+const pickM=a=>a[Math.floor(rand()*a.length)];
 const familyMembers=[];
-function makePerson(h,shirt,hair='short'){
+function makePerson(h,shirt,hair='short',o={}){
   const g=new THREE.Group(),mat=typeof shirt==='number'?M(shirt):shirt;
-  const leg=new THREE.Mesh(new THREE.BoxGeometry(h*.26,h*.42,h*.16),PANTS);leg.position.y=h*.21;g.add(leg);
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(h*.14,h*.17,h*.36,6),mat);body.position.y=h*.6;g.add(body);
-  const head=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.13,1),SKIN);head.position.y=h*.9;g.add(head);
-  const hr=new THREE.Mesh(new THREE.SphereGeometry(h*.14,8,6,0,Math.PI*2,0,Math.PI*.55),HAIR);hr.position.y=h*.92;g.add(hr);
-  if(hair==='long'){const l=new THREE.Mesh(new THREE.BoxGeometry(h*.26,h*.22,h*.1),HAIR);l.position.set(0,h*.8,-h*.1);g.add(l)}
-  if(hair==='pony'){const p=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.07,0),HAIR);p.position.set(0,h*.92,-h*.16);g.add(p)}
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g;
+  const skin=o.skin||SKIN,hm=o.hairMat||HAIR,pm=o.pants||PANTS;
+  const limbs={};
+  for(const sd of[-1,1]){
+    const lp=new THREE.Group();lp.position.set(sd*h*.075,h*.44,0);
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(h*.12,h*.42,h*.13),pm);leg.position.y=-h*.21;lp.add(leg);
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(h*.13,h*.06,h*.19),SHOE);sh.position.set(0,-h*.42,h*.03);lp.add(sh);
+    g.add(lp);limbs[sd<0?'legL':'legR']=lp;
+    const ap=new THREE.Group();ap.position.set(sd*h*.2,h*.76,0);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(h*.08,h*.3,h*.09),mat);arm.position.y=-h*.15;ap.add(arm);
+    const hand=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.05,0),skin);hand.position.y=-h*.32;ap.add(hand);
+    g.add(ap);limbs[sd<0?'armL':'armR']=ap;
+  }
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(h*.15,h*.17,h*.36,8),mat);body.position.y=h*.61;g.add(body);
+  const head=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.13,1),skin);head.position.y=h*.9;g.add(head);
+  if(hair!=='bald'){const hr=new THREE.Mesh(new THREE.SphereGeometry(h*.14,10,6,0,Math.PI*2,0,Math.PI*.55),hm);hr.position.y=h*.92;hr.rotation.x=-.25;g.add(hr)}
+  if(hair==='long'){const l=new THREE.Mesh(new THREE.BoxGeometry(h*.26,h*.24,h*.1),hm);l.position.set(0,h*.8,-h*.1);g.add(l)}
+  if(hair==='pony'){const p=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.07,0),hm);p.position.set(0,h*.93,-h*.17);g.add(p)}
+  const hc=o.hatColor||pickM(HATC);
+  if(o.hat==='cap'){const c=new THREE.Mesh(new THREE.SphereGeometry(h*.145,10,6,0,Math.PI*2,0,Math.PI*.5),hc);c.position.y=h*.95;g.add(c);
+    const br=new THREE.Mesh(new THREE.BoxGeometry(h*.2,h*.025,h*.14),hc);br.position.set(0,h*.96,h*.15);g.add(br)}
+  if(o.hat==='straw'){const b=new THREE.Mesh(new THREE.CylinderGeometry(h*.27,h*.27,h*.025,12),M(0xe6cf8f));b.position.y=h*.99;g.add(b);
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(h*.12,h*.14,h*.1,10),M(0xe6cf8f));c.position.y=h*1.04;g.add(c);
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(h*.142,h*.142,h*.03,10),hc);band.position.y=h*1.0;g.add(band)}
+  if(o.hat==='beanie'){const c=new THREE.Mesh(new THREE.SphereGeometry(h*.15,10,6,0,Math.PI*2,0,Math.PI*.55),hc);c.position.y=h*.94;g.add(c);
+    const p=new THREE.Mesh(new THREE.IcosahedronGeometry(h*.045,0),hc);p.position.y=h*1.09;g.add(p)}
+  if(o.hat==='helmet'){const c=new THREE.Mesh(new THREE.SphereGeometry(h*.16,10,6,0,Math.PI*2,0,Math.PI*.5),hc);c.position.y=h*.94;c.scale.z=1.2;g.add(c)}
+  if(o.bag){const b=new THREE.Mesh(new THREE.BoxGeometry(h*.22,h*.24,h*.1),o.bagColor||pickM(HATC));b.position.set(0,h*.64,-h*.19);g.add(b)}
+  g.traverse(x=>{if(x.isMesh)x.castShadow=true});g.userData.limbs=limbs;return g;
+}
+function randomPerson(){
+  const r=rand(),elder=r<.14,kid=!elder&&r<.3;
+  const h=kid?.34+rand()*.06:.44+rand()*.1;
+  const hat=rand()<.45?pickM(['cap','cap','straw','beanie']):null;
+  const p=makePerson(h,pickM(shirtMats),elder?(rand()<.5?'short':'bald'):pickM(['short','short','long','pony']),
+    {skin:pickM(SKINS),hairMat:elder?GREY:pickM(HAIRS),pants:pickM(PANTSM),hat:elder&&rand()<.5?'straw':hat,bag:!elder&&rand()<.3});
+  p.userData.age=elder?'elder':kid?'kid':'adult';return p;
+}
+function makeCyclist(){
+  const g=new THREE.Group(),fc=pickM(HATC),wheels=[];
+  for(const z of[-.2,.2]){const w=new THREE.Mesh(new THREE.TorusGeometry(.12,.022,6,14),SHOE);w.rotation.y=Math.PI/2;w.position.set(0,.13,z);g.add(w);wheels.push(w)}
+  const fr=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.38),fc);fr.position.set(0,.24,0);fr.rotation.x=.12;g.add(fr);
+  const post=new THREE.Mesh(new THREE.BoxGeometry(.025,.16,.025),fc);post.position.set(0,.22,-.09);g.add(post);
+  const seat=new THREE.Mesh(new THREE.BoxGeometry(.07,.025,.1),SHOE);seat.position.set(0,.31,-.1);g.add(seat);
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(.22,.025,.025),mats.pole);bar.position.set(0,.37,.17);g.add(bar);
+  const fork=new THREE.Mesh(new THREE.BoxGeometry(.025,.22,.025),fc);fork.position.set(0,.26,.18);g.add(fork);
+  if(rand()<.4){const bk=new THREE.Mesh(new THREE.BoxGeometry(.14,.09,.12),M(0xa8825a));bk.position.set(0,.4,.22);g.add(bk)}
+  const p=makePerson(.46,pickM(shirtMats),'short',{skin:pickM(SKINS),hairMat:pickM(HAIRS),pants:pickM(PANTSM),hat:'helmet',hatColor:pickM(HATC),bag:rand()<.4});
+  p.position.set(0,.1,-.06);g.add(p);
+  const L=p.userData.limbs;L.armL.rotation.x=L.armR.rotation.x=-1.05;
+  g.traverse(x=>{if(x.isMesh)x.castShadow=true});g.userData={wheels,rider:L};return g;
 }
 function makePet(kind,color,socks){
   const g=new THREE.Group(),m=M(color),L=kind==='dog'?1.25:1;
@@ -594,20 +642,62 @@ function addUmbrella(p,h=.48){
   const c=new THREE.Mesh(new THREE.ConeGeometry(h*.55,h*.28,8),UMB[Math.floor(Math.random()*UMB.length)]);c.position.y=h*.8;c.castShadow=true;u.add(c);
   u.position.set(h*.12,h*.55,0);u.visible=false;p.add(u);umbrellas.push(u);
 }
+const SPEED={person:.34,elder:.2,kid:.42,dog:.55,cat:.24,bike:1.15};
 function addWalker(obj,host,kind){
-  host.root.add(obj);
+  obj.scale.setScalar(1.35);scene.add(obj);
   if(kind==='person')addUmbrella(obj);
-  walkers.push({obj,host,kind,th:rand()*Math.PI*2,sp:(kind==='person'?.32:kind==='dog'?.5:.22)*(.75+rand()*.5),dir:rand()>.5?1:-1,ph:rand()*6,pause:0});
+  walkers.push({obj,isl:host,kind,th:rand()*Math.PI*2,sp:(SPEED[kind]||.3)*(.8+rand()*.4),dir:rand()>.5?1:-1,ph:rand()*6,pause:0,mode:'ring',cool:rand()*4});
 }
+const angDiff=(a,b)=>{let d=(a-b)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return d};
+const ringScale=isl=>isl.body?Math.max(Math.sqrt(Math.max(isl.cur,1e-4))*(isl.base||1),.25):1;
+function ringPos(isl,th,out){const R=hexR(th,isl.r*.955)*ringScale(isl);return out.set(isl.pos[0]+Math.sin(th)*R,(isl.body?isl.body.position.y:0)+.375,isl.pos[1]+Math.cos(th)*R)}
+const _a=new THREE.Vector3(),_b=new THREE.Vector3();
 function updateWalkers(dt,t){
   walkers.forEach(w=>{
-    const isl=w.host,s=isl.body?Math.max(Math.sqrt(Math.max(isl.cur,1e-4))*(isl.base||1),.25):1;
-    const vis=!isl.body||isl.cur>.15;w.obj.visible=vis;if(!vis)return;
-    if(w.pause>0)w.pause-=dt;else{w.th+=w.dir*w.sp*dt/isl.r;if(Math.random()<.002)w.pause=1+Math.random()*2;if(Math.random()<.0015)w.dir*=-1}
-    const R=hexR(w.th,isl.r*.955)*s;
-    w.obj.position.set(Math.sin(w.th)*R,(isl.body?isl.body.position.y:0)+.375,Math.cos(w.th)*R);
-    w.obj.rotation.y=w.th+(w.dir>0?Math.PI/2:-Math.PI/2);
-    if(w.pause<=0&&w.kind==='person')w.obj.position.y+=Math.abs(Math.sin(t*9+w.ph))*.025;
+    const moving=w.mode==='bridge'||w.pause<=0;
+    if(w.mode==='ring'){
+      const isl=w.isl,vis=!isl.body||isl.cur>.15;w.obj.visible=vis;if(!vis)return;
+      w.cool-=dt;
+      if(w.pause>0)w.pause-=dt;
+      else{
+        const prev=w.th;w.th+=w.dir*w.sp*dt/(isl.r*ringScale(isl));
+        if(w.kind!=='bike'&&Math.random()<.0015)w.pause=1+Math.random()*2.5;
+        if(w.kind!=='bike'&&Math.random()<.001)w.dir*=-1;
+        // 經過橋頭時，有機會走上橋
+        if(w.cool<=0)for(const e of isl.ends||[]){
+          const d0=angDiff(prev,e.ang),d1=angDiff(w.th,e.ang);
+          if(Math.sign(d0)!==Math.sign(d1)&&Math.abs(d0)<.6){
+            if(e.br.g.visible&&Math.random()<.5){w.mode='bridge';w.br=e.br;w.t=e.toB?0:1;w.bdir=e.toB?1:-1;break}
+            w.cool=1.5;
+          }
+        }
+      }
+      if(w.mode==='ring'){
+        ringPos(isl,w.th,w.obj.position);
+        w.obj.rotation.y=w.th+(w.dir>0?Math.PI/2:-Math.PI/2);
+      }
+    }
+    if(w.mode==='bridge'){
+      const b=w.br;ringPos(b.A,b.angA,_a);ringPos(b.B,b.angB,_b);
+      if(!b.g.visible){w.t=w.bdir>0?1:0}
+      const len=_a.distanceTo(_b)||1;w.t+=w.bdir*w.sp*dt/len;
+      if(w.t>=1||w.t<=0){const toB=w.t>=1;w.isl=toB?b.B:b.A;w.th=toB?b.angB:b.angA;w.mode='ring';w.dir=Math.random()<.5?1:-1;w.cool=3;ringPos(w.isl,w.th,w.obj.position);}
+      else{
+        const dx=(_b.x-_a.x)*w.bdir,dz=(_b.z-_a.z)*w.bdir,lat=.16;
+        w.obj.position.lerpVectors(_a,_b,w.t);
+        w.obj.position.x+=dz/len*lat*-1;w.obj.position.z+=dx/len*lat;
+        w.obj.rotation.y=Math.atan2(dx,dz);w.obj.visible=true;
+      }
+    }
+    // 走路：手腳擺動、身體微微上下；騎車：踩踏板、輪子轉
+    const L=w.obj.userData.limbs;
+    if(L){w.ph+=dt*(moving?w.sp*22:0);const a=moving?Math.sin(w.ph)*.6:0;
+      L.legL.rotation.x=a;L.legR.rotation.x=-a;L.armL.rotation.x=-a*.7;L.armR.rotation.x=a*.7;
+      if(moving)w.obj.position.y+=Math.abs(Math.sin(w.ph))*.02}
+    if(w.kind==='bike'){const u=w.obj.userData;w.ph+=dt*w.sp*10;
+      u.wheels.forEach(x=>x.rotation.x-=dt*w.sp*8);
+      u.rider.legL.rotation.x=-1.2+Math.sin(w.ph)*.5;u.rider.legR.rotation.x=-1.2-Math.sin(w.ph)*.5}
+    if(w.kind==='dog'||w.kind==='cat'){if(moving)w.obj.position.y+=Math.abs(Math.sin(t*14+w.ph))*.015}
   });
   familyMembers.forEach((p,i)=>{p.position.y=Math.abs(Math.sin(t*1.6+i))*.012});
 }
@@ -633,6 +723,24 @@ function umbrella(g,x,z,mat){const p=new THREE.Mesh(new THREE.CylinderGeometry(.
   const c=new THREE.Mesh(new THREE.ConeGeometry(.38,.2,8),mat);c.position.set(x,.75,z);c.castShadow=true;g.add(c)}
 function bike(g,x,z,rot,mat){const b=new THREE.Group();for(const dx of[-.14,.14]){const w=new THREE.Mesh(new THREE.TorusGeometry(.08,.015,5,12),mats.pole);w.position.set(dx,.08,0);b.add(w)}
   const f=new THREE.Mesh(new THREE.BoxGeometry(.3,.025,.025),mat);f.position.y=.15;b.add(f);b.position.set(x,0,z);b.rotation.y=rot;g.add(b)}
+function makeVehicle(kind,color){
+  const b=new THREE.Group(),c=M(color),win=M(0x4b5a63),K=mats.stripeK;
+  const add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;b.add(o);return o};
+  if(kind==='bus'){
+    add(new THREE.BoxGeometry(.5,.42,1.25),c,0,.32,0);
+    add(new THREE.BoxGeometry(.52,.14,1.1),mats.cream,0,.42,.02);
+    add(new THREE.BoxGeometry(.46,.05,1.15),mats.cream,0,.55,0);
+    add(new THREE.BoxGeometry(.4,.12,.02),win,0,.4,.63);
+    for(const[x,z]of[[.25,.38],[-.25,.38],[.25,-.4],[-.25,-.4]]){const w=add(new THREE.CylinderGeometry(.1,.1,.06,10),K,x,.1,z);w.rotation.z=Math.PI/2}
+  }else{
+    add(new THREE.BoxGeometry(.36,.16,.62),c,0,.15,0);
+    add(new THREE.BoxGeometry(.32,.14,.32),c,0,.3,-.04);
+    add(new THREE.BoxGeometry(.33,.09,.33),win,0,.3,-.04);
+    add(new THREE.BoxGeometry(.06,.05,.02),M(0xfff2c8),.11,.16,.31);add(new THREE.BoxGeometry(.06,.05,.02),M(0xfff2c8),-.11,.16,.31);
+    for(const[x,z]of[[.18,.2],[-.18,.2],[.18,-.2],[-.18,-.2]]){const w=add(new THREE.CylinderGeometry(.075,.075,.05,10),K,x,.075,z);w.rotation.z=Math.PI/2}
+  }
+  return b;
+}
 function bus(g,x,z,rot){const b=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(.6,.5,1.5),mats.busO);body.position.y=.37;b.add(body);
   const win=new THREE.Mesh(new THREE.BoxGeometry(.62,.16,1.3),mats.cream);win.position.set(0,.47,.02);b.add(win);
   const roof=new THREE.Mesh(new THREE.BoxGeometry(.56,.05,1.4),mats.cream);roof.position.y=.64;b.add(roof);
@@ -652,12 +760,24 @@ ISLANDS.forEach(isl=>{
       if(r>=2.4)bunting(body,x1*.985,z1*.985,x2*.985,z2*.985,yb+1.25)}
   }
   // 草地邊的灌木與長椅
-  if(big){const nb=Math.round(r*2.2);for(let i=0;i<nb;i++){const a=rand()*Math.PI*2;const R=hexR(a,r*.86);bush(top,Math.sin(a)*R,Math.cos(a)*R,.8+rand()*.5)}
+  if(big&&isl.kind!=='city'){const nb=Math.round(r*2.2);for(let i=0;i<nb;i++){const a=rand()*Math.PI*2;const R=hexR(a,r*.86);bush(top,Math.sin(a)*R,Math.cos(a)*R,.8+rand()*.5)}}
+  if(big){
     for(let k=0;k<6;k+=2){const a=k*Math.PI/3+Math.PI/6;const R=hexR(a,r*.95);bench(body,Math.sin(a)*R,Math.cos(a)*R,a+Math.PI);body.children.at(-1).position.y=yb}}
   // 主題道具
   const onRim=(a,f=.955)=>{const R=hexR(a,r*f);return[Math.sin(a)*R,Math.cos(a)*R]};
   if(isl.kind==='city'){
-    const a=Math.PI*1.12;const[bx,bz]=onRim(a,.96);bus(body,bx,bz,a+Math.PI/2);body.children.at(-1).position.y=yb;
+    const a=Math.PI*1.12;
+    // 環島道路：柏油＋白色虛線，車子沿路繞行
+    const RR=r*.83,asph=M(0x6f777a),dash=M(0xf3efe6);
+    for(let k=0;k<6;k++){const[x1,z1]=hexV(k,RR),[x2,z2]=hexV(k+1,RR);seg(top,x1,z1,x2,z2,.02,.04,.66,asph).receiveShadow=true;
+      for(let q=1;q<8;q+=2){const t0=q/8,t1=(q+.6)/8;seg(top,x1+(x2-x1)*t0,z1+(z2-z1)*t0,x1+(x2-x1)*t1,z1+(z2-z1)*t1,.045,.01,.05,dash)}
+      const[cx,cz]=hexV(k,RR);const pad=new THREE.Mesh(new THREE.CylinderGeometry(.33,.33,.04,6),asph);pad.position.set(cx,.02,cz);top.add(pad)}
+    isl.cars=[];
+    const addCar=(m,th,dir,sp)=>{top.add(m);isl.cars.push({m,th,dir,sp,RR,lane:dir>0?.14:-.14})};
+    addCar(makeVehicle('bus',0xe2703f),.3,1,.9);
+    addCar(makeVehicle('car',0x5d7d8c),2.2,1,1.4);
+    addCar(makeVehicle('car',0xf2c14e),4.0,-1,1.25);
+    addCar(makeVehicle('car',0xf3efe6),5.2,-1,1.1);
     for(let i=0;i<4;i++){const[x,z]=onRim(a+.12+i*.03,.95);bike(body,x,z,a,BUNT[i]);body.children.at(-1).position.y=yb}
     // 噴水池廣場
     const fx=r*.45,fz=r*.42;const basin=new THREE.Mesh(new THREE.CylinderGeometry(.9,.95,.25,12),mats.cream);basin.position.set(fx,.12,fz);top.add(basin);
@@ -713,7 +833,8 @@ const bridges=[];
   for(let i=0;i<=n;i++){const t=i/n,px=x1+(x2-x1)*t,pz=z1+(z2-z1)*t;
     for(const sg of[1,-1]){const p=new THREE.Mesh(new THREE.BoxGeometry(.05,.25,.05),mats.white);p.position.set(px+nx*sg,.48,pz+nz*sg);g.add(p)}
     const pil=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.9,6),mats.wood);pil.position.set(px,-.15,pz);g.add(pil)}
-  scene.add(g);bridges.push({g,A,B});
+  const br={g,A,B,angA:Math.atan2(ux,uz),angB:Math.atan2(-ux,-uz)};
+  scene.add(g);bridges.push(br);(A.ends??=[]).push({br,ang:br.angA,toB:true});(B.ends??=[]).push({br,ang:br.angB,toB:false});
 });
 
 /* 水面：蓮葉、蘆葦、浮球 */
@@ -754,14 +875,17 @@ const bridges=[];
   car.position.set(1.15,0,-1.0);car.rotation.y=-.35;top.add(car);
   // 一家四口，站在公寓前
   const fam=[[.58,0x3d5a80,'short',.85],[.52,0xe07a5f,'long',.45],[.46,0x81b29a,'pony',.05],[.42,0xf2cc8f,'short',-.3]];
-  fam.forEach(([h,c,hair,x])=>{const p=makePerson(h,c,hair);p.position.set(x-.2,0,.75);p.rotation.y=.25;top.add(p);familyMembers.push(p);addUmbrella(p,h)});
+  fam.forEach(([h,c,hair,x])=>{const p=makePerson(h,c,hair);p.position.set(x-.2,0,.75);p.rotation.y=.25;p.scale.setScalar(1.3);top.add(p);familyMembers.push(p);addUmbrella(p,h)});
   tree(top,-1.5,.9,.8);
   HOME.root=root;scene.add(root);
 })();
 
 ISLANDS.forEach(isl=>{
   const n=Math.min(9,Math.max(1,Math.round(isl.r*.9)));
-  for(let k=0;k<n;k++)addWalker(makePerson(.42+rand()*.12,shirtMats[Math.floor(rand()*shirtMats.length)],rand()>.6?'long':'short'),isl,'person');
+  for(let k=0;k<n+1;k++){const p=randomPerson();addWalker(p,isl,'person');const ag=p.userData.age;
+    if(ag!=='adult')walkers.at(-1).sp=SPEED[ag]*(.8+rand()*.4)}
+  const bikes=isl.kind==='city'?3:isl.r>=2.4?1:0;
+  for(let k=0;k<bikes;k++)addWalker(makeCyclist(),isl,'bike');
   const pets=isl.kind==='city'?3:rand()>.45?1:0;
   for(let k=0;k<pets;k++){const dog=rand()>.5;addWalker(makePet(dog?'dog':'cat',dog?[0xc89a63,0xf2ece0,0x5a4434][k%3]:[0x9a9a9a,0xe8a35a][k%2]),isl,dog?'dog':'cat')}
 });
@@ -874,7 +998,7 @@ document.getElementById('ledger').addEventListener('click',e=>{if(innerWidth<=64
 
 /* ---------- 相機 ---------- */
 let fly=null;
-const camHome=()=>{const m=innerWidth<640;return m?{p:new THREE.Vector3(80,90,4),t:new THREE.Vector3(5,0,2.5)}:{p:new THREE.Vector3(-3,50,60),t:new THREE.Vector3(-4.5,0,3)}};
+const camHome=()=>{const m=innerWidth<640;return m?{p:new THREE.Vector3(44,47,2),t:new THREE.Vector3(3,0,1.5)}:{p:new THREE.Vector3(-1,24,31),t:new THREE.Vector3(-.5,0,1.5)}};
 function flyTo(x,z,r){const d=Math.max(14,r*3.2+8);fly={p:new THREE.Vector3(x+d*.15,d*.95,z+d*1.05),t:new THREE.Vector3(x,0,z),k:0}}
 function flyHome(){const h=camHome();fly={p:h.p,t:h.t,k:0}}
 {const h=camHome();camera.position.copy(h.p);controls.target.copy(h.t)}
@@ -1075,6 +1199,11 @@ function tick(){
   });
   HOME.tag.style.opacity='';updateWalkers(dt,t);
   bridges.forEach(b=>{b.g.visible=b.A.cur>.55&&b.B.cur>.55});
+  ISLANDS.forEach(i=>i.cars?.forEach(c=>{
+    if(!reduce)c.th+=c.dir*c.sp*dt/c.RR;
+    const R=hexR(c.th,c.RR)+c.lane;c.m.position.set(Math.sin(c.th)*R,.04,Math.cos(c.th)*R);
+    c.m.rotation.y=c.th+(c.dir>0?Math.PI/2:-Math.PI/2);
+  }));
   ISLANDS.forEach(i=>{if(i.globe&&!reduce)i.globe.rotation.y+=dt*.6;if(i.jet&&!reduce)i.jet.scale.y=1+Math.sin(t*4)*.15;if(i.crane&&!reduce)i.crane.rotation.y=Math.sin(t*.3)*.6;if(i.tower&&!reduce)i.tower.rotation.y=Math.sin(t*.22+1)*.9});placeTag(HOME.tag,HOME.pos[0],5,HOME.pos[1]);
   const lev=ISLANDS.find(i=>i.lev);if(lev.lamp&&!reduce)lev.lamp.material.emissiveIntensity=1+Math.sin(t*3)*.5;
   if(!reduce){
