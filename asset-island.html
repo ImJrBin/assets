@@ -22,6 +22,7 @@
   --accent:#c8623a;          /* 赤陶，用於選取與強調 */
   --sea:#4f9aa3;
   --ok:#3f8a5a; --warn:#c08a1e; --bad:#b84a3a;
+  --rise:#d23c2f; --fall:#2e8b4e;
   --chip-bg:rgba(251,250,245,.92);
   --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --font-display:var(--font-body);
@@ -46,7 +47,7 @@ body{background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);
 .tag b{font-family:var(--font-num);font-size:11px;color:var(--accent);font-weight:500}
 .tag small{font-family:var(--font-num);font-size:11px;color:var(--ink-2)}
 .tag small i,.li i,#delta i,#sheet i.up,#sheet i.down{font-style:normal;font-size:11px;margin-left:4px}
-i.up{color:var(--ok)} i.down{color:var(--bad)}
+i.up{color:var(--rise)} i.down{color:var(--fall)} /* 台股慣例：漲紅跌綠 */
 #auth{margin-top:8px;display:grid;gap:6px}
 #auth button,.linkbtn{all:unset;cursor:pointer}
 #auth .go{background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 12px;font-size:13.5px;font-weight:500;text-align:center}
