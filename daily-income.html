@@ -581,21 +581,16 @@ function fetchFXRate(btn){
   var msg=$('#fxMsg'); if(!msg) return;
   if(!state.settings.proxyUrl){ msg.textContent='還沒設定轉接站網址,請先到「設定與備份」填入'; return; }
   btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
-  fetch(state.settings.proxyUrl+'/fx')
+  fetch(state.settings.proxyUrl+'/fx?date='+ui.sel.replace(/-/g,''))
     .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
     .then(function(j){
-      if(!j||j.result!=='success'||!j.rates||typeof j.rates.TWD!=='number') throw new Error('bad');
-      var apiTime=new Date(j.time_last_update_utc||j.last_update_utc);
-      if(isNaN(apiTime.getTime())) throw new Error('baddate');
-      var tpe=new Date(apiTime.getTime()+8*3600*1000);
-      var apiDate=tpe.getUTCFullYear()+'-'+pad(tpe.getUTCMonth()+1)+'-'+pad(tpe.getUTCDate());
-      if(apiDate!==ui.sel){
-        msg.textContent='匯率資料更新於 '+md(apiDate)+',跟你選的這天不同,未套用。可切到 '+md(apiDate)+' 再試一次';
+      if(!j||j.status!=='ok'||typeof j.price!=='number'){
+        msg.textContent='查無 '+md(ui.sel)+' 的匯率資料,可能該天沒有報價,請改用手動輸入';
         return;
       }
-      var fxi=$('#fxIn'); if(fxi){ fxi.value=Math.round(j.rates.TWD*1000)/1000; }
+      var fxi=$('#fxIn'); if(fxi){ fxi.value=j.price; }
       updateLive(); commit();
-      msg.textContent='已填入匯率 '+nf2.format(j.rates.TWD);
+      msg.textContent='已填入匯率 '+nf2.format(j.price);
     })
     .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
     .then(function(){ btn.disabled=false; btn.textContent=old; },function(){ btn.disabled=false; btn.textContent=old; });
