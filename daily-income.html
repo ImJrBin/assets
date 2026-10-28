@@ -612,24 +612,25 @@ function fetchUSClose(btn){
   btn.disabled=true; var old=btn.textContent; btn.textContent='抓取中…'; msg.textContent='';
   var syms=targets.map(function(h){return h.ySymbol;});
   var uniq=syms.filter(function(s,i){return syms.indexOf(s)===i;});
-  fetch(state.settings.proxyUrl+'/us?symbols='+encodeURIComponent(uniq.join(',')))
+  fetch(state.settings.proxyUrl+'/us?symbols='+encodeURIComponent(uniq.join(','))+'&date='+ui.sel.replace(/-/g,''))
     .then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); })
     .then(function(map){
       var filled=[], notFinal=[], skipped=[];
       targets.forEach(function(h){
         var rec=map[h.ySymbol];
-        if(!rec||typeof rec.price!=='number'||typeof rec.time!=='number'){ skipped.push(h.symbol); return; }
-        var dstr=epochToDateStr(rec.time,rec.gmtoffset);
-        if(dstr!==ui.sel){ skipped.push(h.symbol+'('+md(dstr)+')'); return; }
-        if(typeof rec.regularEnd==='number' && (Date.now()/1000)<rec.regularEnd){ notFinal.push(h.symbol); return; }
-        var inp=document.querySelector('#panel input.px[data-hid="'+h.id+'"]');
-        if(inp){ inp.value=rec.price; filled.push(h.symbol); }
+        if(rec&&rec.status==='ok'&&typeof rec.price==='number'){
+          var inp=document.querySelector('#panel input.px[data-hid="'+h.id+'"]');
+          if(inp){ inp.value=rec.price; filled.push(h.symbol); }
+          return;
+        }
+        if(rec&&rec.status==='pending'){ notFinal.push(h.symbol); return; }
+        skipped.push(h.symbol);
       });
       if(filled.length){ updateLive(); commit(); }
       var parts=[];
       if(filled.length) parts.push('已填入 '+filled.join('、'));
       if(notFinal.length) parts.push(notFinal.join('、')+' 可能還在盤中,未套用');
-      if(skipped.length) parts.push('日期不符或查無代號:'+skipped.join('、'));
+      if(skipped.length) parts.push('查無 '+md(ui.sel)+' 的收盤資料:'+skipped.join('、'));
       msg.textContent=parts.join(';  ')||'沒有符合的資料';
     })
     .catch(function(){ msg.textContent='抓取失敗,可能是網路問題,請改用手動輸入'; })
