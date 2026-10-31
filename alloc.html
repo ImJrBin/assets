@@ -87,7 +87,7 @@
 
   dialog{
     border:1px solid var(--border2);border-radius:16px;background:var(--surface);color:var(--text);
-    padding:0;width:min(440px,calc(100% - 24px));
+    padding:0;width:min(440px,calc(100% - 24px));max-height:88vh;overflow:auto;
   }
   dialog::backdrop{background:rgba(0,0,0,.6)}
   .dlg{padding:18px}
@@ -101,6 +101,9 @@
   .dlg .act{display:flex;gap:8px;margin-top:16px}
   .btn{flex:1;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--surface2);font-size:14px}
   .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+  .grow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .grow span{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grow input{flex:none;width:118px;height:38px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg);color:var(--text);padding:0 8px;font-size:13px}
   .msg{min-height:18px;margin-top:10px;font-size:12px;color:var(--accent2)}
 </style>
 </head>
@@ -155,6 +158,9 @@
     <input type="text" id="cfgUrl" placeholder="https://xxxx.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="cfgKey">同步金鑰</label>
     <input type="password" id="cfgKey" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label>合併設定</label>
+    <p style="margin:0 0 6px">同代號會自動合併；想把不同代號併成一片（例如兩支正2），在右邊填同一個組名。留空 = 自動。</p>
+    <div id="grpList"></div>
     <div class="msg" id="cfgMsg"></div>
     <div class="act">
       <button class="btn" id="cfgClose">關閉</button>
@@ -265,13 +271,63 @@ function compute(d){
   return {rows:rows,missing:missing,total:total,fx:fx};
 }
 
-/* 同一市場用同色系的深淺區分個股:台股偏紫、美股偏青 */
-function shade(market,i,n){
-  var hue=market==='TW'?256:182, sat=market==='TW'?72:50;
-  var l=n<=1?64:70-i*(26/(n-1));
-  return 'hsl('+hue+','+sat+'%,'+Math.max(42,l).toFixed(0)+'%)';
+/* ---------- 合併同類持股 ---------- */
+var GROUPS_KEY='alloc-groups-v1';
+var FAM2=['00631L','00663L','00675L','00685L'];   /* 台灣股市正2:預設歸成同一片 */
+function symKey(h){ return String(h.symbol).toUpperCase().replace(/\s+/g,''); }
+function defaultGroup(h){ var k=symKey(h); return (h.market==='TW'&&FAM2.indexOf(k)>=0)?'台股正2':k; }
+function groupName(h){
+  var ov=rd(GROUPS_KEY)||{}, o=ov[symKey(h)];
+  return (typeof o==='string'&&o.trim())?o.trim():defaultGroup(h);
 }
-var C_TW='rgba(124,106,247,.75)', C_US='rgba(86,196,196,.75)';
+/* 同代號(例如兩筆 VT)自動合併;正2 等可在 ⚙ 裡自訂歸組 */
+function groupRows(rows,total){
+  var map={}, list=[];
+  rows.forEach(function(x){
+    var k=groupName(x.h), g=map[k];
+    if(!g){ g=map[k]={key:k,members:[],val:0}; list.push(g); }
+    g.members.push(x); g.val+=x.val;
+  });
+  list.forEach(function(g){
+    var big=g.members.slice().sort(function(a,b){return b.val-a.val;})[0];
+    var syms=[]; g.members.forEach(function(m){ var k=symKey(m.h); if(syms.indexOf(k)<0) syms.push(k); });
+    g.sym=g.key; g.market=big.h.market;
+    g.name=syms.length===1?(big.h.name||''):syms.join('＋');
+    g.pct=total>0?g.val/total:0;
+    var old=g.members.filter(function(m){return m.carried;});
+    g.carried=old.length>0;
+    g.pd=old.length?old.map(function(m){return m.pd;}).sort()[0]:'';
+    g.memo=syms.map(function(s){
+      var ms=g.members.filter(function(m){return symKey(m.h)===s;});
+      var sh=ms.reduce(function(a,m){return a+m.sh;},0);
+      return (syms.length>1?s+' ':'')+nfsh.format(sh)+' 股 × '+nfsh.format(ms[0].price)+(ms[0].h.market==='US'?' USD':'')+
+        (syms.length===1&&ms.length>1?'（'+ms.length+' 筆合併）':'');
+    }).join('　＋　');
+  });
+  return list;
+}
+
+/* 每一檔一種獨立色(色票參考彩色圓環圖);同一檔每天固定同色,存在本機 */
+var PALETTE=['#3b6fe0','#d6506a','#e3c94f','#7a4fe0','#3fb0d9','#e8964f','#6fc29a','#9db2ef','#c76fc4','#a3b84a'];
+var COLORS_KEY='alloc-colors-v1';
+function assignColors(groups){
+  var m=rd(COLORS_KEY)||{}, used={}, changed=false;
+  groups.forEach(function(g){ if(typeof m[g.key]==='number') used[m[g.key]%PALETTE.length]=1; });
+  groups.forEach(function(g){
+    if(typeof m[g.key]!=='number'){
+      var i=0; while(used[i]&&i<PALETTE.length) i++;
+      if(i>=PALETTE.length) i=Object.keys(m).length%PALETTE.length;
+      m[g.key]=i; used[i]=1; changed=true;
+    }
+    g.color=PALETTE[m[g.key]%PALETTE.length];
+  });
+  if(changed) wr(COLORS_KEY,m);
+}
+function isLight(hex){
+  var n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255;
+  return (0.299*r+0.587*g+0.114*b)/255>0.62;
+}
+var C_TW='#7d8fb3', C_US='#b79d78';   /* 台股/美股合計條用中性色,避免跟個股顏色混淆 */
 
 function pctTxt(p){ return p>0&&p<0.001?'<0.1%':(p*100).toFixed(1)+'%'; }
 
@@ -351,11 +407,11 @@ function render(){
   $('#prev').disabled=pi<0; $('#next').disabled=ni<0; $('#latest').disabled=(sel===last);
 
   var r=compute(sel);
-  var tw=r.rows.filter(function(x){return x.h.market==='TW';}).sort(function(a,b){return b.val-a.val;});
-  var us=r.rows.filter(function(x){return x.h.market==='US';}).sort(function(a,b){return b.val-a.val;});
-  tw.forEach(function(x,i){ x.color=shade('TW',i,tw.length); });
-  us.forEach(function(x,i){ x.color=shade('US',i,us.length); });
+  var gs=groupRows(r.rows,r.total);
+  var tw=gs.filter(function(x){return x.market==='TW';}).sort(function(a,b){return b.val-a.val;});
+  var us=gs.filter(function(x){return x.market==='US';}).sort(function(a,b){return b.val-a.val;});
   var ordered=tw.concat(us);
+  assignColors(ordered);
   var twT=tw.reduce(function(s,x){return s+x.val;},0), usT=us.reduce(function(s,x){return s+x.val;},0);
 
   $('#sub').textContent='資料：'+SRC+' ・更新於 '+timeLabel(S.updatedAt)+(pullMsg?' ・'+pullMsg:'');
@@ -364,8 +420,7 @@ function render(){
 
   /* 圓餅圖:每檔持股一片,名稱直接標在圖上 */
   var items=ordered.map(function(x){
-    var lm=/(\d+)%\)$/.exec(x.color);
-    return {sym:x.h.symbol,name:x.h.symbol+(x.h.name?' '+x.h.name:''),v:x.val,c:x.color,dark:lm?Number(lm[1])>=56:false};
+    return {sym:x.sym,name:x.sym+(x.name?' '+x.name:''),v:x.val,c:x.color,dark:isLight(x.color)};
   });
   var sidePad=items.some(function(i){return i.v/r.total<0.14;})?64:14;
   if(chart){ chart.destroy(); chart=null; }
@@ -405,7 +460,7 @@ function render(){
 
   /* 提醒 */
   var notes=[], carried=ordered.filter(function(x){return x.carried;});
-  if(carried.length) notes.push(carried.length+' 檔當天沒有收盤價，沿用前一次記價（標示「沿用」）。');
+  if(carried.length) notes.push(carried.map(function(x){return x.sym;}).join('、')+' 當天沒有收盤價，沿用前一次記價（標示「沿用」）。');
   if(r.missing.length) notes.push(r.missing.map(function(h){return h.symbol;}).join('、')+' 到這天為止還沒有任何收盤價，未計入。');
   if(!r.rows.length) notes.push('這天沒有持股，請換一天。');
   var ne=$('#note'); ne.textContent=notes.join(' '); ne.className='note'+(notes.length?' warn':''); ne.hidden=!notes.length;
@@ -414,9 +469,9 @@ function render(){
   $('#lg').innerHTML=ordered.map(function(x){
     return '<div class="row">'+
       '<span class="dot" style="background:'+x.color+'"></span>'+
-      '<div class="nm"><b>'+esc(x.h.symbol)+'</b>'+(x.h.name?'<small>'+esc(x.h.name)+'</small>':'')+
-        '<span class="tag">'+(x.h.market==='TW'?'台':'美')+'</span>'+(x.carried?'<span class="tag">沿用 '+md(x.pd)+'</span>':'')+
-        '<span class="sub2">'+nfsh.format(x.sh)+' 股 × '+nfsh.format(x.price)+(x.h.market==='US'?' USD':'')+'</span></div>'+
+      '<div class="nm"><b>'+esc(x.sym)+'</b>'+(x.name?'<small>'+esc(x.name)+'</small>':'')+
+        '<span class="tag">'+(x.market==='TW'?'台':'美')+'</span>'+(x.carried?'<span class="tag">沿用 '+md(x.pd)+'</span>':'')+
+        '<span class="sub2">'+esc(x.memo)+'</span></div>'+
       '<div class="nv"><span class="p">'+pctTxt(x.pct)+'</span><span class="m">NT$ '+nf0.format(x.val)+'</span></div>'+
     '</div>';
   }).join('');
@@ -463,6 +518,13 @@ $('#dsel').addEventListener('change',function(e){ if(DATE_RE.test(e.target.value
 var dlg=$('#dlg');
 function openDlg(){
   var c=cfg(); $('#cfgUrl').value=c.proxyUrl; $('#cfgKey').value=c.syncKey; $('#cfgMsg').textContent='';
+  var ov=rd(GROUPS_KEY)||{}, seen={}, html='';
+  (S?S.holdings:[]).forEach(function(h){
+    var k=symKey(h); if(seen[k]) return; seen[k]=1;
+    html+='<div class="grow"><span>'+esc(h.symbol)+(h.name?' '+esc(h.name):'')+'</span>'+
+      '<input type="text" data-sym="'+esc(k)+'" value="'+esc(ov[k]||'')+'" placeholder="'+esc(defaultGroup(h))+'" maxlength="12"></div>';
+  });
+  $('#grpList').innerHTML=html;
   if(dlg.showModal) dlg.showModal(); else dlg.setAttribute('open','');
 }
 function closeDlg(){ if(dlg.close) dlg.close(); else dlg.removeAttribute('open'); }
@@ -470,6 +532,8 @@ $('#cfgBtn').addEventListener('click',openDlg);
 $('#cfgClose').addEventListener('click',closeDlg);
 $('#cfgSave').addEventListener('click',function(){
   wr(CFG_KEY,{proxyUrl:$('#cfgUrl').value.trim().replace(/\/+$/,''),syncKey:$('#cfgKey').value.trim()});
+  var ovn={}; document.querySelectorAll('#grpList input').forEach(function(i){ var v=i.value.trim(); if(v) ovn[i.getAttribute('data-sym')]=v; });
+  wr(GROUPS_KEY,ovn); if(S) render();
   $('#cfgMsg').textContent='已儲存，同步中…';
   pull(true).then(function(){ $('#cfgMsg').textContent=pullMsg; if(S) closeDlg(); });
 });
