@@ -171,6 +171,12 @@
     <input type="text" id="cfgUrl" placeholder="https://xxxx.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="cfgKey">同步金鑰</label>
     <input type="password" id="cfgKey" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label>全球股票基金（VT、VWRA）</label>
+    <p style="margin:0 0 6px">這類基金約六成是美股。勾選後，「依資產分類」會把它們依下面的比例拆進「美股」與「非美股」；不勾就單獨成「全球股票」一類。</p>
+    <div class="grow">
+      <label style="margin:0;flex:1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)"><input type="checkbox" id="ltOn" style="width:20px;height:20px;padding:0"> 依比例拆分</label>
+      <span style="flex:none">美股占比</span><input type="text" id="ltUs" inputmode="decimal" style="width:64px;text-align:right" maxlength="3"><span style="flex:none">%</span>
+    </div>
     <label>合併與分類設定</label>
     <p style="margin:0 0 6px">同代號會自動合併。「合併成一片」：不同代號填同一個名稱就併成一片（例如兩支正2）。「資產類別」：決定它算進右邊哪一類（例如全球股票、美股、台股、債券）。留空 = 自動。</p>
     <div class="grow gh"><span></span><b>合併成一片</b><b>資產類別</b></div>
@@ -343,6 +349,7 @@ var CLS_MAP={
 function defaultClass(h){
   var k=symKey(h);
   if(CLS_MAP[k]) return CLS_MAP[k];
+  if(h.market==='TW'&&FAM2.indexOf(k)>=0) return '衛星(正2)';
   if(h.market==='TW') return /^\d{5}B$/.test(k)?'債券':'台股';
   return '海外股票';
 }
@@ -350,17 +357,32 @@ function className(h){
   var ov=rd(CLASS_KEY)||{}, o=ov[symKey(h)];
   return (typeof o==='string'&&o.trim())?o.trim():defaultClass(h);
 }
+var LT_KEY='alloc-lookthrough-v1';
+function lookThrough(){
+  var o=rd(LT_KEY); if(!o) return {on:true,us:60};
+  var u=Number(o.us);
+  return {on:o.on!==false,us:(isFinite(u)&&u>=0&&u<=100)?u:60};
+}
+/* 全球股票基金(VT、VWRA…)約六成是美股:開啟拆分時,依比例分進「美股」與「非美股」 */
 function classRows(rows,total){
-  var map={}, list=[];
-  rows.forEach(function(x){
-    var k=className(x.h), g=map[k];
+  var lt=lookThrough(), map={}, list=[];
+  function add(k,sym,val){
+    if(!(val>0)) return;
+    var g=map[k];
     if(!g){ g=map[k]={key:'cls:'+k,sym:k,name:'',market:'',val:0,bySym:{}}; list.push(g); }
-    g.val+=x.val; var s=symKey(x.h); g.bySym[s]=(g.bySym[s]||0)+x.val;
+    g.val+=val; g.bySym[sym]=(g.bySym[sym]||0)+val;
+  }
+  rows.forEach(function(x){
+    var k=className(x.h), s=symKey(x.h);
+    if(lt.on&&k==='全球股票'){
+      add('美股',lt.us>=100?s:s+'×'+lt.us+'%',x.val*lt.us/100);
+      add('非美股',lt.us<=0?s:s+'×'+(100-lt.us)+'%',x.val*(100-lt.us)/100);
+    } else add(k,s,x.val);
   });
   list.forEach(function(g){
     g.pct=total>0?g.val/total:0; g.carried=false;
     var parts=Object.keys(g.bySym).sort(function(a,b){return g.bySym[b]-g.bySym[a];});
-    g.name=parts.join('＋');
+    g.name='';
     g.memo=parts.map(function(s){return s+' '+pctTxt(total>0?g.bySym[s]/total:0);}).join('　');
   });
   return list.sort(function(a,b){return b.val-a.val;});
@@ -593,6 +615,7 @@ $('#dsel').addEventListener('change',function(e){ if(DATE_RE.test(e.target.value
 var dlg=$('#dlg');
 function openDlg(){
   var c=cfg(); $('#cfgUrl').value=c.proxyUrl; $('#cfgKey').value=c.syncKey; $('#cfgMsg').textContent='';
+  var lt=lookThrough(); $('#ltOn').checked=lt.on; $('#ltUs').value=lt.us;
   var ov=rd(GROUPS_KEY)||{}, cv=rd(CLASS_KEY)||{}, seen={}, html='';
   (S?S.holdings:[]).forEach(function(h){
     var k=symKey(h); if(seen[k]) return; seen[k]=1;
@@ -610,7 +633,9 @@ $('#cfgSave').addEventListener('click',function(){
   wr(CFG_KEY,{proxyUrl:$('#cfgUrl').value.trim().replace(/\/+$/,''),syncKey:$('#cfgKey').value.trim()});
   var gn={}, cn={};
   document.querySelectorAll('#grpList input').forEach(function(i){ var v=i.value.trim(); if(v) (i.getAttribute('data-kind')==='c'?cn:gn)[i.getAttribute('data-sym')]=v; });
-  wr(GROUPS_KEY,gn); wr(CLASS_KEY,cn); if(S) render();
+  wr(GROUPS_KEY,gn); wr(CLASS_KEY,cn);
+  var lu=Number($('#ltUs').value); wr(LT_KEY,{on:$('#ltOn').checked,us:(isFinite(lu)&&lu>=0&&lu<=100)?lu:60});
+  if(S) render();
   $('#cfgMsg').textContent='已儲存，同步中…';
   pull(true).then(function(){ $('#cfgMsg').textContent=pullMsg; if(S) closeDlg(); });
 });
