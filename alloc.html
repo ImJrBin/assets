@@ -55,14 +55,11 @@
   }
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
-  .chart-wrap{position:relative;height:290px}
-  .center{
-    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    pointer-events:none;text-align:center;
-  }
-  .center .k{font-size:11px;color:var(--text2);letter-spacing:.08em}
-  .center .v{font:500 17px "DM Mono",ui-monospace,monospace;margin-top:2px}
-  .center .d{font-size:11px;color:var(--text3);margin-top:2px}
+  .chart-wrap{position:relative;height:280px}
+  .tot-row{display:flex;align-items:baseline;justify-content:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+  .tot-row .k{font-size:11px;color:var(--text2);letter-spacing:.08em}
+  .tot-row .v{font:500 18px "DM Mono",ui-monospace,monospace}
+  .tot-row .d{font-size:11px;color:var(--text3)}
 
   .mbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--surface2);margin:2px 0 10px}
   .mbar i{display:block;height:100%}
@@ -129,9 +126,9 @@
 
   <div id="main">
     <div class="card">
+      <div class="tot-row"><span class="k">股票市值</span><span class="v" id="tot">–</span><span class="d" id="totd"></span></div>
       <div class="chart-wrap">
         <canvas id="c" role="img" aria-label="當日資產配置圓餅圖"></canvas>
-        <div class="center"><span class="k">股票市值</span><span class="v" id="tot">–</span><span class="d" id="totd"></span></div>
       </div>
     </div>
 
@@ -278,6 +275,58 @@ var C_TW='rgba(124,106,247,.75)', C_US='rgba(86,196,196,.75)';
 
 function pctTxt(p){ return p>0&&p<0.001?'<0.1%':(p*100).toFixed(1)+'%'; }
 
+/* 在每片扇形上標持股代號:夠大的標在片內(代號+占比),太小的拉線標在圓外 */
+function sliceLabels(items,total){
+  var FONT='"Noto Sans TC","DM Sans",-apple-system,"PingFang TC",sans-serif';
+  return {
+    id:'sliceLabels',
+    afterDatasetsDraw:function(ch){
+      var ctx=ch.ctx, arcs=ch.getDatasetMeta(0).data, outs=[];
+      ctx.save(); ctx.textBaseline='middle';
+      arcs.forEach(function(arc,i){
+        var it=items[i], frac=it.v/total; if(!(frac>0)) return;
+        var g=arc.getProps(['x','y','startAngle','endAngle','outerRadius'],true);
+        var mid=(g.startAngle+g.endAngle)/2, cs=Math.cos(mid), sn=Math.sin(mid);
+        var rr=g.outerRadius*(frac>=0.25?0.62:0.68), fits=false;
+        if(frac>=0.09){
+          ctx.font='700 12px '+FONT;
+          var chord=2*rr*Math.sin(Math.min(Math.PI/2,Math.PI*frac));
+          fits=ctx.measureText(it.sym).width+8<chord && frac>=0.09;
+        }
+        if(fits){
+          var x=g.x+cs*rr, y=g.y+sn*rr;
+          ctx.textAlign='center'; ctx.fillStyle=it.dark?'#14141a':'#ffffff';
+          ctx.font='700 12px '+FONT; ctx.fillText(it.sym,x,y-7);
+          ctx.font='500 11px '+FONT; ctx.fillText(pctTxt(frac),x,y+8);
+        } else {
+          outs.push({it:it,frac:frac,g:g,cs:cs,sn:sn});
+        }
+      });
+      /* 圓外標籤:左右各自排開,避免互相蓋住 */
+      [1,-1].forEach(function(side){
+        var list=outs.filter(function(o){return (o.cs>=0?1:-1)===side;}).sort(function(a,b){return a.sn-b.sn;});
+        var minGap=28, ys=[];
+        list.forEach(function(o,k){
+          var y=o.g.y+o.sn*(o.g.outerRadius+14);
+          if(k>0&&y<ys[k-1]+minGap) y=ys[k-1]+minGap;
+          ys.push(y);
+        });
+        list.forEach(function(o,k){
+          var R=o.g.outerRadius, x0=o.g.x+o.cs*R, y0=o.g.y+o.sn*R;
+          var x1=o.g.x+o.cs*(R+10), y1=o.g.y+o.sn*(R+10);
+          var x2=o.g.x+side*(R+14), y2=ys[k];
+          ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+          ctx.textAlign=side>0?'left':'right'; ctx.fillStyle='#f0f0f2';
+          ctx.font='700 11px '+FONT; ctx.fillText(o.it.sym,x2+side*4,y2-7);
+          ctx.font='500 11px '+FONT; ctx.fillStyle='#b4b4c4'; ctx.fillText(pctTxt(o.frac),x2+side*4,y2+7);
+        });
+      });
+      ctx.restore();
+    }
+  };
+}
+
 /* ---------- 畫面 ---------- */
 function showEmpty(html){
   $('#main').hidden=true; $('#datebar').hidden=true;
@@ -313,35 +362,35 @@ function render(){
   $('#tot').textContent=r.total>0?'NT$ '+nf0.format(r.total):'–';
   $('#totd').textContent=md(sel);
 
-  /* 圓餅圖:外圈個股,內圈台股/美股合計 */
-  var outer=ordered.map(function(x){return {name:x.h.symbol+(x.h.name?' '+x.h.name:''),v:x.val,c:x.color};});
-  var inner=[];
-  if(twT>0) inner.push({name:'台股',v:twT,c:C_TW});
-  if(usT>0) inner.push({name:'美股',v:usT,c:C_US});
+  /* 圓餅圖:每檔持股一片,名稱直接標在圖上 */
+  var items=ordered.map(function(x){
+    var lm=/(\d+)%\)$/.exec(x.color);
+    return {sym:x.h.symbol,name:x.h.symbol+(x.h.name?' '+x.h.name:''),v:x.val,c:x.color,dark:lm?Number(lm[1])>=56:false};
+  });
+  var sidePad=items.some(function(i){return i.v/r.total<0.14;})?64:14;
   if(chart){ chart.destroy(); chart=null; }
   if(window.Chart && r.total>0){
     chart=new Chart($('#c').getContext('2d'),{
-      type:'doughnut',
+      type:'pie',
       data:{
-        labels:outer.map(function(i){return i.name;}),
-        datasets:[
-          {data:outer.map(function(i){return Math.round(i.v);}),backgroundColor:outer.map(function(i){return i.c;}),borderWidth:2,borderColor:'#18181c',weight:2},
-          {data:inner.map(function(i){return Math.round(i.v);}),backgroundColor:inner.map(function(i){return i.c;}),borderWidth:2,borderColor:'#18181c',weight:1}
-        ]
+        labels:items.map(function(i){return i.name;}),
+        datasets:[{data:items.map(function(i){return Math.round(i.v);}),backgroundColor:items.map(function(i){return i.c;}),borderWidth:2,borderColor:'#18181c'}]
       },
       options:{
-        responsive:true,maintainAspectRatio:false,cutout:'34%',animation:{duration:250},
+        responsive:true,maintainAspectRatio:false,animation:{duration:250},
+        layout:{padding:{left:sidePad,right:sidePad,top:14,bottom:14}},
         plugins:{
           legend:{display:false},
           tooltip:{callbacks:{
             title:function(){return '';},
             label:function(ctx){
-              var it=(ctx.datasetIndex===0?outer:inner)[ctx.dataIndex];
+              var it=items[ctx.dataIndex];
               return it.name+'  '+pctTxt(it.v/r.total)+'  NT$ '+nf0.format(it.v);
             }
           }}
         }
-      }
+      },
+      plugins:[sliceLabels(items,r.total)]
     });
   }
 
