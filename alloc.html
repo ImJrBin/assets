@@ -117,7 +117,8 @@
     color:var(--text);padding:0 10px;font:14px "DM Mono",ui-monospace,monospace;
   }
   .dlg .act{display:flex;gap:8px;margin:16px -18px -18px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:2}
-  @media(max-width:600px){.dlg input[type=text],.dlg input[type=password],.dlg .grow input[type=text]{font-size:16px}}
+  .dlg select{width:100%;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg);color:var(--text);padding:0 10px;font-size:14px}
+  @media(max-width:600px){.dlg select{font-size:16px}.dlg input[type=text],.dlg input[type=password],.dlg .grow input[type=text]{font-size:16px}}
   .btn{flex:1;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--surface2);font-size:14px}
   .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
   .grow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
@@ -190,6 +191,8 @@
     <input type="text" id="cfgUrl" placeholder="https://xxxx.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="cfgKey">同步金鑰</label>
     <input type="password" id="cfgKey" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="palSel">圓餅圖配色</label>
+    <select id="palSel"></select>
     <label>全球股票基金（VT、VWRA）</label>
     <p style="margin:0 0 6px">這類基金約六成是美股，每一檔各自設定。勾選後，「依資產分類」會把它們依下面的比例拆進「美股」與「全球股票非美」；不勾就單獨成「全球股票」一類。</p>
     <div class="grow">
@@ -478,7 +481,13 @@ function classRows(rows,total){
 }
 
 /* 每一檔一種獨立色(色票參考彩色圓環圖);同一檔每天固定同色,存在本機 */
-var PALETTE=['#3b6fe0','#d6506a','#e3c94f','#7a4fe0','#3fb0d9','#e8964f','#6fc29a','#9db2ef','#c76fc4','#a3b84a'];
+var PALETTES={
+  '預設':['#3b6fe0','#d6506a','#e3c94f','#7a4fe0','#3fb0d9','#e8964f','#6fc29a','#9db2ef','#c76fc4','#a3b84a'],
+  /* 日系和色:縹(はなだ)、紅、山吹、藤、青磁、柿、萌黄、桜、鶯、鼠 */
+  '日系和色':['#2f6fa7','#cf4b5b','#e2a93a','#8a77b8','#4aa59c','#e07a4d','#7fae5b','#eebccb','#a29a45','#8591a0']
+};
+var PAL_KEY='alloc-palette-v1';
+var PALETTE=PALETTES[(rd(PAL_KEY)||{}).name]||PALETTES['預設'];
 var COLORS_KEY='alloc-colors-v1';
 function assignColors(groups){
   var m=rd(COLORS_KEY)||{}, used={}, changed=false;
@@ -553,12 +562,14 @@ function sliceLabels(items,total){
           var R=o.g.outerRadius, x0=o.g.x+o.cs*R, y0=o.g.y+o.sn*R;
           var x1=o.g.x+o.cs*(R+10), y1=o.g.y+o.sn*(R+10);
           var x2=o.g.x+side*(R+14), y2=ys[k];
-          ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
-          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-          ctx.textAlign=side>0?'left':'right'; ctx.fillStyle='#f0f0f2';
           var avail=side>0?(ch.width-(x2+4)-4):(x2-4-4);
           ctx.font='700 11px '+FONT;
-          var lines=wrapText(ctx,o.it.sym,Math.max(30,avail)), lh=13, h=(lines.length+1)*lh, ty=y2-h/2+lh/2;
+          var lines=wrapText(ctx,o.it.sym,Math.max(30,avail)), lh=13, h=(lines.length+1)*lh;
+          y2=Math.min(ch.height-h/2-4,Math.max(h/2+4,y2));
+          var ty=y2-h/2+lh/2;
+          ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+          ctx.textAlign=side>0?'left':'right';
           lines.forEach(function(ln,li){ ctx.fillStyle='#f0f0f2'; ctx.font='700 11px '+FONT; ctx.fillText(ln,x2+side*4,ty+li*lh); });
           ctx.font='500 11px '+FONT; ctx.fillStyle='#b4b4c4'; ctx.fillText(pctTxt(o.frac),x2+side*4,ty+lines.length*lh);
         });
@@ -660,7 +671,7 @@ function legendHtml(list,showMarket){
   }).join('');
 }
 function drawPie(id,slot,items,total){
-  var sidePad=items.some(function(i){return i.v/total<0.14;})?64:14;
+  var sidePad=items.some(function(i){return i.v/total<0.14;})?(items.some(function(i){return i.v/total<0.14&&Array.from(i.sym).length>=5;})?92:64):14;
   if(charts[slot]){ charts[slot].destroy(); charts[slot]=null; }
   if(!(window.Chart&&total>0)) return;
   charts[slot]=new Chart($(id).getContext('2d'),{
@@ -738,6 +749,8 @@ function openDlg(){
       '<input type="text" data-kind="ltd" data-sym="'+esc(k)+'" value="'+esc(f.asof)+'" placeholder="2026-09" maxlength="7"></div>';
   });
   $('#ltList').innerHTML=lh||'<p style="margin:0">目前沒有歸在「全球股票」的持股。</p>';
+  var pn=(rd(PAL_KEY)||{}).name; if(!PALETTES[pn]) pn='預設';
+  $('#palSel').innerHTML=Object.keys(PALETTES).map(function(k){return '<option'+(k===pn?' selected':'')+'>'+k+'</option>';}).join('');
   var tgs=targets(), tk={}, th='';
   LASTCLS.forEach(function(c){ tk[c.sym]=1; });
   Object.keys(tgs.m).forEach(function(k){ tk[k]=1; });
@@ -769,6 +782,7 @@ $('#cfgSave').addEventListener('click',function(){
     if(isFinite(v)&&v>=0&&v<=100&&i.value.trim()!=='') lm[k]={us:v,asof:d?d.value.trim():''};
   });
   wr(LT_KEY,{on:$('#ltOn').checked,m:lm});
+  wr(PAL_KEY,{name:$('#palSel').value}); PALETTE=PALETTES[$('#palSel').value]||PALETTES['預設'];
   var tm={}; document.querySelectorAll('#tgList input[data-kind="tg"]').forEach(function(i){
     var t=i.value.trim().replace('%',''); if(t==='') return; var v=Number(t); if(isFinite(v)&&v>=0&&v<=100) tm[i.getAttribute('data-sym')]=v;
   });
