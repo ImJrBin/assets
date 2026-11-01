@@ -85,6 +85,19 @@
   .lg .nv .p{font-size:16px;font-weight:500}
   .lg .nv .m{display:block;font-size:11px;color:var(--text2)}
 
+  .rb{max-width:560px;margin:0 auto 12px}
+  .rb .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .rb .row:last-of-type{border-bottom:0}
+  .rb .dot{flex:none;width:12px;height:12px;border-radius:3px}
+  .rb .nm{flex:1;min-width:0}
+  .rb .nm b{font-weight:500}
+  .rb .nm small{display:block;font-size:11px;color:var(--text3);margin-top:1px}
+  .rb .act2{flex:none;text-align:right;font-family:"DM Mono",ui-monospace,monospace;font-size:13px}
+  .rb .act2 small{display:block;font-size:11px;color:var(--text2)}
+  .rb .sell{color:#ef6b73}.rb .buy{color:#4ec98a}.rb .ok{color:var(--text3)}
+  .rb .row.off{background:rgba(255,190,70,.07);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
+  .rb .sumln{font-size:12px;color:var(--text2);margin:8px 0 0}
+  .rb .hint{font-size:12px;color:var(--text3);margin:0}
   .note{font-size:12px;color:var(--text2);margin:0 2px 8px}
   .note.warn{color:var(--amber)}
   .empty{text-align:center;color:var(--text2);padding:36px 12px;font-size:14px}
@@ -154,6 +167,11 @@
       </section>
     </div>
 
+    <div class="card rb" id="rb">
+      <h3 class="ctitle">再平衡試算</h3>
+      <div class="lg" id="rbBody"></div>
+    </div>
+
     <div class="card sumcard">
       <div class="mbar" id="mbar"></div>
       <div class="mrow" id="mrow"></div>
@@ -179,6 +197,11 @@
     <div class="grow gh"><span></span><b>美股占比 %</b><b>資料月份</b></div>
     <div id="ltList"></div>
     <p style="margin:6px 0 0">占比請以基金公司官網的「國家／市場配置」為準，並填上該數字的資料月份（例如 2026-09）；超過 4 個月沒更新，頁面會提醒。</p>
+    <label>目標占比（再平衡）</label>
+    <p style="margin:0 0 6px">為每個資產類別設定想維持的占比，主畫面會算出每一類要賣或買多少。沒填的類別不參與試算。</p>
+    <div class="grow gh"><span></span><b>目標 %</b></div>
+    <div id="tgList"></div>
+    <div class="grow"><span>容忍範圍（± 個百分點，超過才提示調整）</span><input type="text" id="tgBand" inputmode="decimal" maxlength="4"></div>
     <label>合併與分類設定</label>
     <p style="margin:0 0 6px">同代號會自動合併。「合併成一片」：不同代號填同一個名稱就併成一片（例如兩支正2）。「資產類別」：決定它算進右邊哪一類（例如全球股票、美股、台股、債券）。留空 = 自動。</p>
     <div class="grow gh"><span></span><b>合併成一片</b><b>資產類別</b></div>
@@ -359,6 +382,46 @@ function className(h){
   var ov=rd(CLASS_KEY)||{}, o=ov[symKey(h)];
   return (typeof o==='string'&&o.trim())?o.trim():defaultClass(h);
 }
+var TGT_KEY='alloc-targets-v1';
+function targets(){
+  var o=rd(TGT_KEY)||{}, m=o.m||{}, out={};
+  Object.keys(m).forEach(function(k){ var v=Number(m[k]); if(isFinite(v)&&v>=0&&v<=100) out[k]=v; });
+  var b=Number(o.band); return {m:out,band:(isFinite(b)&&b>=0&&b<=50)?b:3};
+}
+var LASTCLS=[];
+function rebalance(cls,total){
+  var tg=targets(), keys=Object.keys(tg.m), el=$('#rb');
+  if(!(total>0)){ el.hidden=true; return; }
+  el.hidden=false;
+  if(!keys.length){
+    $('#rbBody').innerHTML='<p class="hint">還沒設定目標占比。點右上角 ⚙，在「目標占比」填上各類別想維持的比例（例如台股 70%），這裡就會告訴你要賣或買多少。</p>';
+    return;
+  }
+  var byK={}; cls.forEach(function(c){ byK[c.sym]=c; });
+  var rows=keys.map(function(k){
+    var c=byK[k], val=c?c.val:0, cur=val/total*100, t=tg.m[k];
+    return {k:k,color:c?c.color:'#555a66',val:val,cur:cur,t:t,diff:cur-t,amt:t/100*total-val};
+  }).sort(function(a,b){return Math.abs(b.diff)-Math.abs(a.diff);});
+  var sell=0,buy=0,sumT=0;
+  var html=rows.map(function(r){
+    sumT+=r.t;
+    var off=Math.abs(r.diff)>0.0001&&Math.abs(r.diff)>=tg.band;
+    if(r.amt<0) sell+=-r.amt; else buy+=r.amt;
+    var act;
+    if(!off) act='<span class="ok">在範圍內</span><small>差 '+(r.diff>=0?'+':'')+r.diff.toFixed(1)+'%</small>';
+    else if(r.amt<0) act='<span class="sell">賣出 NT$ '+nf0.format(-r.amt)+'</span><small>多 '+r.diff.toFixed(1)+'%</small>';
+    else act='<span class="buy">買進 NT$ '+nf0.format(r.amt)+'</span><small>少 '+(-r.diff).toFixed(1)+'%</small>';
+    return '<div class="row'+(off?' off':'')+'"><span class="dot" style="background:'+r.color+'"></span>'+
+      '<div class="nm"><b>'+esc(r.k)+'</b><small>現況 '+r.cur.toFixed(1)+'% ／ 目標 '+r.t+'%</small></div>'+
+      '<div class="act2">'+act+'</div></div>';
+  }).join('');
+  var foot='若全部調回目標：賣出合計 NT$ '+nf0.format(sell)+'，買進合計 NT$ '+nf0.format(buy)+'。';
+  if(Math.abs(sumT-100)>0.05) foot+='　<span style="color:var(--amber)">目標加總是 '+Math.round(sumT*100)/100+'%，不是 100%，賣買金額不會剛好互抵。</span>';
+  var unset=cls.filter(function(c){return !(c.sym in tg.m);});
+  if(unset.length) foot+='　未設定目標的類別：'+unset.map(function(c){return c.sym+' '+pctTxt(c.pct);}).join('、')+'。';
+  foot+='　容忍範圍 ±'+tg.band+'%。金額為當日收盤估算，未含手續費與證交稅。';
+  $('#rbBody').innerHTML=html+'<p class="sumln">'+foot+'</p>';
+}
 var LT_KEY='alloc-lookthrough-v2';
 /* 預設值(官方資料):VWRA 62.24% 〔Vanguard 官網,2026-09-30〕;VT 59.88% 〔marketxls,2026-08-31,第三方〕 */
 var LT_DEF={VWRA:{us:62.24,asof:'2026-09'},VT:{us:59.88,asof:'2026-08'}};
@@ -524,7 +587,8 @@ function render(){
   });
   drawPie('#c','h',items,r.total);
   var cls=classRows(r.rows,r.total);
-  assignColors(cls);
+  assignColors(cls); LASTCLS=cls;
+  rebalance(cls,r.total);
   drawPie('#c2','c',cls.map(function(x){
     return {sym:x.sym,name:x.sym+(x.name?' '+x.name:''),v:x.val,c:x.color,dark:isLight(x.color)};
   }),r.total);
@@ -650,6 +714,13 @@ function openDlg(){
       '<input type="text" data-kind="ltd" data-sym="'+esc(k)+'" value="'+esc(f.asof)+'" placeholder="2026-09" maxlength="7"></div>';
   });
   $('#ltList').innerHTML=lh||'<p style="margin:0">目前沒有歸在「全球股票」的持股。</p>';
+  var tgs=targets(), tk={}, th='';
+  LASTCLS.forEach(function(c){ tk[c.sym]=1; });
+  Object.keys(tgs.m).forEach(function(k){ tk[k]=1; });
+  Object.keys(tk).forEach(function(k){
+    th+='<div class="grow"><span>'+esc(k)+'</span><input type="text" data-kind="tg" data-sym="'+esc(k)+'" inputmode="decimal" maxlength="5" value="'+(k in tgs.m?tgs.m[k]:'')+'" placeholder="–"></div>';
+  });
+  $('#tgList').innerHTML=th||'<p style="margin:0">尚無資料。</p>'; $('#tgBand').value=tgs.band;
   var ov=rd(GROUPS_KEY)||{}, cv=rd(CLASS_KEY)||{}, seen={}, html='';
   (S?S.holdings:[]).forEach(function(h){
     var k=symKey(h); if(seen[k]) return; seen[k]=1;
@@ -674,6 +745,10 @@ $('#cfgSave').addEventListener('click',function(){
     if(isFinite(v)&&v>=0&&v<=100&&i.value.trim()!=='') lm[k]={us:v,asof:d?d.value.trim():''};
   });
   wr(LT_KEY,{on:$('#ltOn').checked,m:lm});
+  var tm={}; document.querySelectorAll('#tgList input[data-kind="tg"]').forEach(function(i){
+    var t=i.value.trim().replace('%',''); if(t==='') return; var v=Number(t); if(isFinite(v)&&v>=0&&v<=100) tm[i.getAttribute('data-sym')]=v;
+  });
+  var bd=Number($('#tgBand').value); wr(TGT_KEY,{m:tm,band:(isFinite(bd)&&bd>=0&&bd<=50)?bd:3});
   if(S) render();
   $('#cfgMsg').textContent='已儲存，同步中…';
   pull(true).then(function(){ $('#cfgMsg').textContent=pullMsg; if(S) closeDlg(); });
