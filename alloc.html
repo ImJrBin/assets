@@ -105,7 +105,7 @@
 
   dialog{
     border:1px solid var(--border2);border-radius:16px;background:var(--surface);color:var(--text);
-    padding:0;width:min(440px,calc(100% - 24px));max-height:88vh;overflow:auto;
+    padding:0;width:min(440px,calc(100% - 24px));max-height:88vh;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;
   }
   dialog::backdrop{background:rgba(0,0,0,.6)}
   .dlg{padding:18px}
@@ -116,7 +116,8 @@
     width:100%;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg);
     color:var(--text);padding:0 10px;font:14px "DM Mono",ui-monospace,monospace;
   }
-  .dlg .act{display:flex;gap:8px;margin-top:16px}
+  .dlg .act{display:flex;gap:8px;margin:16px -18px -18px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:2}
+  @media(max-width:600px){.dlg input[type=text],.dlg input[type=password],.dlg .grow input[type=text]{font-size:16px}}
   .btn{flex:1;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--surface2);font-size:14px}
   .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
   .grow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
@@ -390,7 +391,13 @@ function targets(){
   var b=Number(o.band); return {m:out,band:(isFinite(b)&&b>=0&&b<=50)?b:3};
 }
 var LASTCLS=[];
-function rebalance(cls,total){
+function globalMix(rows){
+  var lt=lookThrough(); if(!lt.on) return null;
+  var v=0,n=0;
+  rows.forEach(function(x){ if(className(x.h)==='全球股票'){ var u=ltFor(symKey(x.h),lt).us; v+=x.val; n+=x.val*(100-u)/100; } });
+  return v>0&&n>0?{q:n/v}:null;
+}
+function rebalance(cls,total,mix){
   var tg=targets(), keys=Object.keys(tg.m), el=$('#rb');
   if(!(total>0)){ el.hidden=true; return; }
   el.hidden=false;
@@ -412,8 +419,13 @@ function rebalance(cls,total){
     if(!off) act='<span class="ok">在範圍內</span><small>差 '+(r.diff>=0?'+':'')+r.diff.toFixed(1)+'%</small>';
     else if(r.amt<0) act='<span class="sell">賣出 NT$ '+nf0.format(-r.amt)+'</span><small>多 '+r.diff.toFixed(1)+'%</small>';
     else act='<span class="buy">買進 NT$ '+nf0.format(r.amt)+'</span><small>少 '+(-r.diff).toFixed(1)+'%</small>';
+    var extra='';
+    if(off&&r.k==='全球股票非美'&&mix){
+      var fa=Math.abs(r.amt)/mix.q, us=fa-Math.abs(r.amt), bs=r.amt>0;
+      extra='<small style="color:var(--amber)">只能透過 VT／VWRA 調整：要'+(bs?'買':'賣')+' NT$ '+nf0.format(fa)+'，連帶'+(bs?'多':'少')+'了美股 NT$ '+nf0.format(us)+'。想不動到美股，請改用純非美的 ETF（如 VXUS、VEA、VWO）。</small>';
+    }
     return '<div class="row'+(off?' off':'')+'"><span class="dot" style="background:'+r.color+'"></span>'+
-      '<div class="nm"><b>'+esc(r.k)+'</b><small>現況 '+r.cur.toFixed(1)+'% ／ 目標 '+r.t+'%</small></div>'+
+      '<div class="nm"><b>'+esc(r.k)+'</b><small>現況 '+r.cur.toFixed(1)+'% ／ 目標 '+r.t+'%</small>'+extra+'</div>'+
       '<div class="act2">'+act+'</div></div>';
   }).join('');
   var foot='若全部調回目標：賣出合計 NT$ '+nf0.format(sell)+'，買進合計 NT$ '+nf0.format(buy)+'。';
@@ -490,6 +502,14 @@ var C_TW='#7d8fb3', C_US='#b79d78';   /* 台股/美股合計條用中性色,避�
 function pctTxt(p){ return p>0&&p<0.001?'<0.1%':(p*100).toFixed(1)+'%'; }
 
 /* 在每片扇形上標持股代號:夠大的標在片內(代號+占比),太小的拉線標在圓外 */
+function wrapText(ctx,text,maxW){
+  var out=[], cur='';
+  Array.from(text).forEach(function(c){
+    if(cur&&ctx.measureText(cur+c).width>maxW){ out.push(cur); cur=c; } else cur+=c;
+  });
+  if(cur) out.push(cur);
+  return out.length?out:[text];
+}
 function sliceLabels(items,total){
   var FONT='"Noto Sans TC","DM Sans",-apple-system,"PingFang TC",sans-serif';
   return {
@@ -519,7 +539,7 @@ function sliceLabels(items,total){
       /* 圓外標籤:左右各自排開,避免互相蓋住 */
       [1,-1].forEach(function(side){
         var list=outs.filter(function(o){return (o.cs>=0?1:-1)===side;}).sort(function(a,b){return a.sn-b.sn;});
-        var minGap=28, ys=[], top=16, bot=ch.height-16;
+        var minGap=40, ys=[], top=16, bot=ch.height-16;
         list.forEach(function(o,k){
           var y=o.g.y+o.sn*(o.g.outerRadius+14);
           ys.push(Math.min(bot,Math.max(top,y)));
@@ -536,8 +556,11 @@ function sliceLabels(items,total){
           ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
           ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
           ctx.textAlign=side>0?'left':'right'; ctx.fillStyle='#f0f0f2';
-          ctx.font='700 11px '+FONT; ctx.fillText(o.it.sym,x2+side*4,y2-7);
-          ctx.font='500 11px '+FONT; ctx.fillStyle='#b4b4c4'; ctx.fillText(pctTxt(o.frac),x2+side*4,y2+7);
+          var avail=side>0?(ch.width-(x2+4)-4):(x2-4-4);
+          ctx.font='700 11px '+FONT;
+          var lines=wrapText(ctx,o.it.sym,Math.max(30,avail)), lh=13, h=(lines.length+1)*lh, ty=y2-h/2+lh/2;
+          lines.forEach(function(ln,li){ ctx.fillStyle='#f0f0f2'; ctx.font='700 11px '+FONT; ctx.fillText(ln,x2+side*4,ty+li*lh); });
+          ctx.font='500 11px '+FONT; ctx.fillStyle='#b4b4c4'; ctx.fillText(pctTxt(o.frac),x2+side*4,ty+lines.length*lh);
         });
       });
       ctx.restore();
@@ -589,7 +612,7 @@ function render(){
   drawPie('#c','h',items,r.total);
   var cls=classRows(r.rows,r.total);
   assignColors(cls); LASTCLS=cls;
-  rebalance(cls,r.total);
+  rebalance(cls,r.total,globalMix(r.rows));
   drawPie('#c2','c',cls.map(function(x){
     return {sym:x.sym,name:x.sym+(x.name?' '+x.name:''),v:x.val,c:x.color,dark:isLight(x.color)};
   }),r.total);
