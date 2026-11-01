@@ -190,7 +190,7 @@
     <label for="cfgKey">同步金鑰</label>
     <input type="password" id="cfgKey" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label>全球股票基金（VT、VWRA）</label>
-    <p style="margin:0 0 6px">這類基金約六成是美股，每一檔各自設定。勾選後，「依資產分類」會把它們依下面的比例拆進「美股」與「非美股」；不勾就單獨成「全球股票」一類。</p>
+    <p style="margin:0 0 6px">這類基金約六成是美股，每一檔各自設定。勾選後，「依資產分類」會把它們依下面的比例拆進「美股」與「全球股票非美」；不勾就單獨成「全球股票」一類。</p>
     <div class="grow">
       <label style="margin:0;flex:1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)"><input type="checkbox" id="ltOn" style="width:20px;height:20px;padding:0"> 依比例拆分</label>
     </div>
@@ -385,6 +385,7 @@ function className(h){
 var TGT_KEY='alloc-targets-v1';
 function targets(){
   var o=rd(TGT_KEY)||{}, m=o.m||{}, out={};
+  if('非美股' in m&&!('全球股票非美' in m)){ m['全球股票非美']=m['非美股']; delete m['非美股']; }
   Object.keys(m).forEach(function(k){ var v=Number(m[k]); if(isFinite(v)&&v>=0&&v<=100) out[k]=v; });
   var b=Number(o.band); return {m:out,band:(isFinite(b)&&b>=0&&b<=50)?b:3};
 }
@@ -452,7 +453,7 @@ function classRows(rows,total){
     if(lt.on&&k==='全球股票'){
       var u=ltFor(s,lt).us;
       add('美股',u>=100?s:s+'×'+u+'%',x.val*u/100);
-      add('非美股',u<=0?s:s+'×'+Math.round((100-u)*100)/100+'%',x.val*(100-u)/100);
+      add('全球股票非美',u<=0?s:s+'×'+Math.round((100-u)*100)/100+'%',x.val*(100-u)/100);
     } else add(k,s,x.val);
   });
   list.forEach(function(g){
